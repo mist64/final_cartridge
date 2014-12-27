@@ -1,0 +1,23 @@
+GLOBAL {
+    OUTPUTNAME      "fc3b.s";
+    INPUTNAME       "fc3b.bin";
+    STARTADDR       $A000;
+    PAGELENGTH      0;                  # No paging
+    CPU             "6502";
+};
+
+# One segment for the whole stuff
+#SEGMENT { START $A000;  END   $BFFF; NAME fc3b; };
+
+RANGE { START $A000; END $A003; TYPE AddrTable; };
+RANGE { START $A47B; END $A482; TYPE ByteTable; };
+RANGE { START $A6B3; END $A6C0; TYPE TextTable; };
+RANGE { START $AA00; END $AAFF; TYPE TextTable; };
+RANGE { START $B937; END $BA14; TYPE ByteTable; };
+RANGE { START $BA15; END $BA55; TYPE TextTable; };
+RANGE { START $BA56; END $BA8B; TYPE RtsTable; };
+RANGE { START $BBC1; END $BBCF; TYPE TextTable; };
+
+RANGE { START $BD97; END $BF9F; TYPE ByteTable; };
+RANGE { START $BFE7; END $BFFF; TYPE ByteTable; };
+

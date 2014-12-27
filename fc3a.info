@@ -1,0 +1,28 @@
+GLOBAL {
+    OUTPUTNAME      "fc3a.s";
+    INPUTNAME       "fc3a.bin";
+    STARTADDR       $8000;
+    PAGELENGTH      0;                  # No paging
+    CPU             "6502";
+};
+
+# One segment for the whole stuff
+#SEGMENT { START $8000;  END   $FDFF; NAME fc3a; };
+
+RANGE { START $8000; END $8003; TYPE AddrTable; };
+RANGE { START $8004; END $8008; TYPE TextTable; };
+RANGE { START $80AD; END $80B0; TYPE TextTable; };
+RANGE { START $80DE; END $80EB; TYPE AddrTable; };
+RANGE { START $8449; END $8452; TYPE ByteTable; };
+RANGE { START $85FD; END $860A; TYPE ByteTable; };
+RANGE { START $860B; END $8691; TYPE TextTable; };
+RANGE { START $8693; END $86CC; TYPE ByteTable; };
+RANGE { START $89FB; END $8A18; TYPE TextTable; };
+RANGE { START $8A1B; END $8A1B; TYPE ByteTable; };
+RANGE { START $8E87; END $8EBA; TYPE TextTable; };
+RANGE { START $918B; END $9196; TYPE ByteTable; }; # BASIC loader
+RANGE { START $94C1; END $94F8; TYPE TextTable; };
+RANGE { START $973B; END $975C; TYPE TextTable; };
+RANGE { START $98D2; END $98D4; TYPE ByteTable; };
+RANGE { START $994B; END $995A; TYPE ByteTable; };
+RANGE { START $9DC4; END $9DFF; TYPE ByteTable; };
