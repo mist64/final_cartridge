@@ -6,8 +6,8 @@
 
         .setcpu "6502"
 
-L0073           := $0073
-L0079           := $0079
+CHRGET          := $0073
+CHRGOT          := $0079
 L819F           := $819F
 L81FE           := $81FE
 L8315           := $8315
@@ -51,29 +51,31 @@ LEB48           := $EB48
 
 .segment        "fc3x": absolute
 
-LDE00:  rti
+LDE00:  .byte   $40
 
 jmp_bank:
         sta     LDFFF
         rts
 
-LDE05:  pha
-        lda     #$40
+enable_rom: ; $DE05
+        pha
+        lda     #$40 ; bank 0
 LDE08:  sta     LDFFF
         pla
         rts
 
         sty     $01
-LDE0F: ; jump_bank_0_1
+
+disable_rom: ; $DE0F
         pha
-        lda     #$70 ; bank 0, NMI + GAME + EXROM
+        lda     #$70 ; no ROM at $8000; BASIC at $A000
         bne     LDE08
-        jsr     LDE0F
+        jsr     disable_rom
         jmp     LE37B
 
 LDE1A:  ora     #$07
         sta     $01
-        bne     LDE05
+        bne     enable_rom
         tay
         tay
         lda     $01
@@ -85,7 +87,7 @@ LDE2B:  tax
         sta     $01
         txa
         ldx     $AE
-        jmp     LDE0F
+        jmp     disable_rom
 
         lda     $01
         pha
@@ -97,17 +99,17 @@ LDE2B:  tax
         jsr     LDE1A
         jmp     L81FE
 
-        jsr     LDE05
+        jsr     enable_rom
         jmp     L8C02
 
-        jsr     LDE05
+        jsr     enable_rom
         jmp     L819F
 
         lda     $02A7
         beq     LDE5D
         jmp     LEB42
 
-LDE5D:  jsr     LDE05
+LDE5D:  jsr     enable_rom
         jmp     L9229
 
         sta     $01
@@ -121,139 +123,149 @@ LDE5D:  jsr     LDE05
         inc     $01
         rts
 
-        jsr     LDF1B
+        jsr     _CHRGET
         jsr     L8315
-        jsr     LDE0F
+        jsr     disable_rom
         jmp     LA7AE
 
-        jsr     LDE0F
+        jsr     disable_rom
         jmp     LA7EF ; execute BASIC statement
 
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LBD7E ; add A to FAC
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+        jsr     disable_rom
         jmp     LAE8D ; get element in expression
 
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LAD8A ; FRMNUM eval expression, make sure it's numeric
         jsr     LB7F7 ; GETADR convert FAC into 16 bit int
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE05
+        jsr     enable_rom
         jsr     L8B54
         jmp     L9881
 
-        jsr     LDE0F
+        jsr     disable_rom
         jmp     LEB48 ; evaluate SHIFT/CTRL/C=
 
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LA96B ; get line number
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LAB47 ; print character
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LA68E ; set TXTPTR to start of program
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LA82C ; check for STOP
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LA533 ; rebuild BASIC line chaining
         beq     LDEE1
-        jsr     LDE0F
+        jsr     disable_rom
         jsr     LE257 ; get string from BASIC line, set filename
-LDEE1:  jmp     LDE05
+LDEE1:  jmp     enable_rom
 
-        jsr     LDE0F
-        jsr     LBC49
-        jsr     LBDDD
-        jmp     LDE05
+        jsr     disable_rom
+        jsr     LBC49 ; FLOAT UNSIGNED VALUE IN FAC+1,2
+        jsr     LBDDD ; convert FAC to ASCII
+        jmp     enable_rom
 
-        jsr     LDE0F
-        jsr     LB395
+        jsr     disable_rom
+        jsr     LB395 ; convert A/Y to float
         jmp     LDEFF
 
-        jsr     LDE0F
-        jsr     LBBA6
+        jsr     disable_rom
+        jsr     LBBA6 ; convert $22/$23 to FAC
 LDEFF:  iny
-        jsr     LBDD7
-        jmp     LDE05
+        jsr     LBDD7 ; print FAC
+        jmp     enable_rom
 
-        jsr     LDE0F
-        jsr     LBDCD
-        jmp     LDE05
+        jsr     disable_rom
+        jsr     LBDCD ; print A/X as integer
+        jmp     enable_rom
 
-        jsr     LDE0F
-        jsr     LA613
+        jsr     disable_rom
+        jsr     LA613 ; search for BASIC line
         php
-        jsr     LDE05
+        jsr     enable_rom
         plp
         rts
 
-LDF1B:  jsr     LDE0F
-        jsr     L0073
+_CHRGET: ; $DF1B
+        jsr     disable_rom
+        jsr     CHRGET
 LDF21:  php
-        jsr     LDE05
+        jsr     enable_rom
         plp
         rts
 
-        jsr     LDE0F
-        jsr     L0079
+_CHRGOT: ; $DF27
+        jsr     disable_rom
+        jsr     CHRGOT
         jmp     LDF21
 
-        jsr     LDE0F
+_lda_5a_indy:
+        jsr     disable_rom
         lda     ($5A),y
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+_lda_5f_indy:
+        jsr     disable_rom
         lda     ($5F),y
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+_lda_ae_indx:
+        jsr     disable_rom
         lda     ($AE,x)
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+_lda_7a_indy:
+        jsr     disable_rom
         lda     ($7A),y
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+_lda_7a_indx:
+        jsr     disable_rom
         lda     ($7A,x)
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+_lda_22_indy:
+        jsr     disable_rom
         lda     ($22),y
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
+_lda_8b_indy:
+        jsr     disable_rom
         lda     ($8B),y
-        jmp     LDE05
+        jmp     enable_rom
 
-        jsr     LDE0F
-        jmp     LA724
+        jsr     disable_rom
+        jmp     LA724 ; detokenize
 
-        jsr     LDE0F
-        jmp     LA6F3
+        jsr     disable_rom
+        jmp     LA6F3 ; part of LIST
 
-        jsr     LDE0F
-        jsr     LE422
-        jsr     LDE05
+        jsr     disable_rom
+        jsr     LE422 ; print c64 banner
+        jsr     enable_rom
         jmp     L9511
 
         .addr   L922A
-        jsr     LE422
-        jsr     LDE05
+
+        jsr     LE422 ; print c64 banner
+        jsr     enable_rom
         jmp     L922A
 
         iny
-        jmp     LBDD7
+        jmp     LBDD7; print FAC
 
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
@@ -262,29 +274,32 @@ LDF21:  php
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF
-        jsr     LDE05
-        jsr     LA161
-        jmp     LDE0F
 
-        jsr     LDE05
+; calls into banks 0+1
+        jsr     enable_rom
+        jsr     LA161
+        jmp     disable_rom
+
+        jsr     enable_rom
         jmp     LA19C
 
-        jsr     LDE05
+        jsr     enable_rom
         jmp     LA1C5
 
-        jsr     LDE05
+        jsr     enable_rom
         jmp     LA1CB
 
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF
+
         sei
-        lda     #$42
+        lda     #$42 ; bank 2 (Desktop, Freezer/Print)
         sta     LDFFF
-        lda     LDE00
+        lda     LDE00 ; $40 ???
         pha
-        lda     $A000
+        lda     $A000 ; ???
         pha
-        lda     #$41
+        lda     #$41 ; bank 1 (Notepad, BASIC (Menu Bar))
         sta     LDFFF
         .byte   $3A,$2A,$FF,$FF
 LDFFF:  .byte   $FF
