@@ -3,6 +3,34 @@
 ; Input file: fc3a.bin
 ; Page:       1
 
+;   The Final Cartridge 3
+;
+;   - 4 16K ROM Banks at $8000/$a000 (=64K)
+;
+;        Bank 0:  BASIC, Monitor, Disk-Turbo
+;        Bank 1:  Notepad, BASIC (Menu Bar)
+;        Bank 2:  Desktop, Freezer/Print
+;        Bank 3:  Freezer, Compression
+;
+;   - the cartridges uses the entire io1 and io2 range
+;
+;   - one register at $DFFF:
+;
+;    7      Hide this register (1 = hidden)
+;    6      NMI line   (0 = low = active) *1)
+;    5      GAME line  (0 = low = active) *2)
+;    4      EXROM line (0 = low = active)
+;    2-3    unassigned (usually set to 0)
+;    0-1    number of bank to show at $8000
+;
+;    1) if either the freezer button is pressed, or bit 6 is 0, then
+;       an NMI is generated
+;
+;    2) if the freezer button is pressed, GAME is also forced low
+;
+;    - the rest of io1/io2 contain a mirror of the last 2 pages of the
+;      currently selected rom bank (also at $dfff, contrary to what some
+;      other documents say)
 
         .setcpu "6502"
 
@@ -69,10 +97,10 @@ LC1F3           := $C1F3
 LC268           := $C268
 LC8E8           := $C8E8
 LD6D3           := $D6D3
-LDE01           := $DE01
+jmp_bank        := $DE01
 LDE05           := $DE05
 LDE0D           := $DE0D
-LDE0F           := $DE0F
+jmp_bank_0_1    := $DE0F
 LDE1A           := $DE1A
 LDE20           := $DE20
 LDE2B           := $DE2B
@@ -204,11 +232,11 @@ IOBASE          := $FFF3
 
 .segment        "fc3a": absolute
 
-        .addr   L8009
-        .addr   LFE5E
-        .byte   $C3,$C2,$CD
-        .byte   "80"
-L8009:  jmp     L804C
+        .addr   entry ; FC3 entry
+        .addr   LFE5E ; default cartridge soft reset entry point
+        .byte   $C3,$C2,$CD,"80" ; 'cbm80'
+
+entry:  jmp     entry2
 
         jmp     L955E
 
@@ -224,115 +252,123 @@ L8009:  jmp     L804C
 
         jmp     L9473
 
-        jmp     L802C
+        jmp     init_basic_vectors
 
         jsr     LA004
-        lda     #$43
-        jmp     LDE01
+        lda     #$43 ; bank 2
+        jmp     jmp_bank
 
-L802C:  jsr     L80F9
+init_basic_vectors:
+        jsr     init_load_save_vectors
 L802F:  ldx     #$09
-L8031:  lda     L80DE+4,x
+L8031:  lda     L80DE+4,x ; overwrite BASIC vectors
         sta     $0302,x
         dex
         bpl     L8031
         rts
 
-L803B:  jsr     L80F9
+L803B:  jsr     init_load_save_vectors
         jsr     L802F
         lda     #$BF
         pha
         lda     #$F9
         pha
-        lda     #$42
-        jmp     LDE01
+        lda     #$42 ; bank 2
+        jmp     jmp_bank
 
-L804C:  jsr     LFDA3
+entry2: 
+        ; short-circuit startup, skipping memory test
+        jsr     LFDA3 ; init I/O
         lda     $D011
         pha
         lda     $DC01
         pha
-        lda     #$00
+        lda     #$00 ; clear pages 0, 2, 3
         tay
 L805A:  sta     $02,y
         sta     $0200,y
         sta     $0300,y
         iny
         bne     L805A
-        ldx     #$00
-        ldy     #$A0
-        jsr     LFE2D
+        ldx     #<$A000
+        ldy     #>$A000
+        jsr     LFE2D ; set memtop
         lda     #$08
-        sta     $0282
+        sta     $0282 ; start of BASIC $0800
         lda     #$04
-        sta     $0288
-        lda     #$3C
+        sta     $0288 ; start of screen RAM $0400
+        lda     #<$033C
         sta     $B2
-        lda     #$03
-        sta     $B3
-        jsr     LFD15
-        jsr     LFF5B
-        jsr     LE453
-        jsr     L802C
+        lda     #>$033C
+        sta     $B3 ; datasette buffer
+        jsr     LFD15 ; init I/O (same as RESTOR)
+        jsr     LFF5B ; video reset (same as CINT)
+        jsr     LE453 ; assign $0300 BASIC vectors
+        jsr     init_basic_vectors
         cli
         pla
         tax
         pla
-        cpx     #$7F
+        cpx     #$7F ; $DC01 value
         beq     L80C4
         cpx     #$DF
-        beq     L80B1
+        beq     go_desktop
         and     #$7F
-        beq     L80B1
+        beq     go_desktop
         ldy     #$03
 L809D:  lda     $CFFC,y
-        cmp     L80AD,y
+        cmp     mg87_signature,y
         bne     L80AA
         dey
         bpl     L809D
-        bmi     L80B1
+        bmi     go_desktop ; MG87 found
 L80AA:  jmp     (LA000)
 
-L80AD:  .byte   "MG87"
-L80B1:  lda     #$80
-        sta     $02A8
-        jsr     LE3BF
-        lda     #$7F
-        pha
-        lda     #$FF
-        pha
-        lda     #$42
-        jmp     LDE01
+mg87_signature:
+        .byte   "MG87"
 
-L80C4:  ldx     #$4D
+go_desktop:
+        lda     #$80
+        sta     $02A8 ; unused
+        jsr     LE3BF ; init BASIC, print banner
+        lda     #>($8000 - 1)
+        pha
+        lda     #<($8000 - 1)
+        pha
+        lda     #$42 ; bank 2 + 3 $8000-BFFF
+        jmp     jmp_bank ; jump to desktop
+
+L80C4:  ldx     #'M'
         cpx     $CFFC
         bne     L80CE
-        dec     $CFFC
-L80CE:  ldx     #$00
-        ldy     #$A0
-        jsr     LFE2D
-        lda     #$E3
+        dec     $CFFC ; destroy signature
+L80CE:  ldx     #<$A000
+        ldy     #>$A000
+        jsr     LFE2D ; set MEMTOP
+        lda     #>($E397 - 1)
         pha
-        lda     #$96
+        lda     #<($E397 - 1) ; BASIC start
         pha
-        jmp     LDE0F
+        jmp     jmp_bank_0_1
 
-L80DE:  .addr   LDE20
-        .addr   LDE35
-        .addr   LDE41
-        .addr   LA57C
-        .addr   LDE49
-        .addr   LDE73
-        .addr   LDE4F
+L80DE:  .addr   LDE20 ; $0330 LOAD
+        .addr   LDE35 ; $0332 SAVE
+        .addr   LDE41 ; $0302 BASIC direct mode
+        .addr   LA57C ; $0304 tokenization
+        .addr   LDE49 ; $0306 token decoder
+        .addr   LDE73 ; $0308 execute instruction
+        .addr   LDE4F ; $030A execute expression
 L80EC:  ldy     #$1F
 L80EE:  lda     $0314,y
         cmp     $FD30,y
         bne     L810F
         dey
         bpl     L80EE
-L80F9:  jsr     LA004
+
+init_load_save_vectors:
+        jsr     LA004 ; ???
         ldy     #$03
-L80FE:  lda     L80DE,y
+L80FE:  lda     L80DE,y ; overwrite LOAD and SAVE vectors
         sta     $0330,y
         dey
         bpl     L80FE
@@ -449,7 +485,7 @@ L81D8:  pla
         jmp     L81B9
 
 L81DF:  clc
-        jmp     LDE0F
+        jmp     jmp_bank_0_1
 
 L81E3:  lda     #$16
         sta     $0326
@@ -625,7 +661,7 @@ L832F:  cmp     #$E9
         pha
         jmp     LDF1B
 
-L8342:  jmp     LDE0F
+L8342:  jmp     jmp_bank_0_1
 
 L8345:  lda     $D3
         pha
@@ -1418,7 +1454,7 @@ L8986:  jsr     LDED3
         lda     #$85
         pha
         lda     #$F0
-        jmp     LDE01
+        jmp     jmp_bank
 
 L89BC:  rts
 
@@ -1446,7 +1482,7 @@ L89D8:  lda     $DC00
         beq     L89EC
         rts
 
-L89EC:  jmp     L80B1
+L89EC:  jmp     go_desktop
 
 L89EF:  lda     L89FB,x
         beq     L89FA
@@ -2235,7 +2271,7 @@ L901D:  lda     L902F,x
         pha
         lda     #$0C
         pha
-        jmp     LDE0F
+        jmp     jmp_bank_0_1
 
 L902F:  jsr     LA663
         jmp     LE386
@@ -2529,7 +2565,7 @@ L926A:  cmp     #$0D
 
 L927C:  jmp     LDEA9
 
-L927F:  jmp     LDE0F
+L927F:  jmp     jmp_bank_0_1
 
 L9282:  cmp     #$11
         beq     L92DD
@@ -2847,7 +2883,7 @@ L94F9:  sei
         sta     $0314
         lda     #$EA
         sta     $0315
-        jsr     L80F9
+        jsr     init_load_save_vectors
         jsr     L802F
         cli
         jsr     LE3BF
@@ -2941,7 +2977,7 @@ L95C3:  jsr     UNTALK
 L95C6:  lda     #$00
         sta     $0200,x
 L95CB:  pla
-        jmp     LDE01
+        jmp     jmp_bank
 
 L95CF:  jsr     L8131
         bmi     L95CB
@@ -3042,7 +3078,7 @@ L968F:  lda     #$91
         lda     #$FF
         pha
         lda     #$43
-        jmp     LDE01
+        jmp     jmp_bank ; bank 3
 
 L969A:  cpx     #$0B
         beq     L96BF
@@ -3259,7 +3295,7 @@ L9855:  lda     #$AF
         pha
         lda     #$07
 L985A:  pha
-        jmp     LDE0F
+        jmp     jmp_bank_0_1
 
 L985E:  lda     #$B9
         pha
@@ -3325,7 +3361,7 @@ L98C7:  lda     #$E1
         lda     #$74
         pha
         lda     #$00
-        jmp     LDE0F
+        jmp     jmp_bank_0_1
 
         .byte   $DE,$84,$93
         tya
@@ -4020,7 +4056,7 @@ L9E08:  sta     $DFFF
         pha
         lda     #$70
         bne     L9E08
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jmp     LE37B
 
         ora     #$07
@@ -4037,7 +4073,7 @@ L9E08:  sta     $DFFF
         sta     $01
         txa
         ldx     $AE
-        jmp     LDE0F
+        jmp     jmp_bank_0_1
 
         lda     $01
         pha
@@ -4075,20 +4111,20 @@ L9E5D:  jsr     LDE05
 
         jsr     LDF1B
         jsr     L8315
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jmp     LA7AE
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jmp     LA7EF
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LBD7E
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jmp     LAE8D
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LAD8A
         jsr     LB7F7
         jmp     LDE05
@@ -4097,104 +4133,104 @@ L9E5D:  jsr     LDE05
         jsr     L8B54
         jmp     L9881
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jmp     LEB48
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LA96B
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LAB47
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LA68E
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LA82C
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LA533
         beq     L9EE1
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LE257
 L9EE1:  jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LBC49
         jsr     LBDDD
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LB395
         jmp     LDEFF
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LBBA6
         iny
         jsr     LBDD7
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LBDCD
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LA613
         php
         jsr     LDE05
         plp
         rts
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     L0073
         php
         jsr     LDE05
         plp
         rts
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     L0079
         jmp     LDF21
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         lda     ($5A),y
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         lda     ($5F),y
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         lda     ($AE,x)
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         lda     ($7A),y
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         lda     ($7A,x)
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         lda     ($22),y
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         lda     ($8B),y
         jmp     LDE05
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jmp     LA724
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jmp     LA6F3
 
-        jsr     LDE0F
+        jsr     jmp_bank_0_1
         jsr     LE422
         jsr     LDE05
         jmp     L9511
@@ -4259,7 +4295,7 @@ L9EE1:  jmp     LDE05
         .byte   $FF
         jsr     LDE05
         jsr     LA161
-        jmp     LDE0F
+        jmp     jmp_bank_0_1
 
         jsr     LDE05
         jmp     LA19C

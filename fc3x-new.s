@@ -53,6 +53,7 @@ LEB48           := $EB48
 
 LDE00:  rti
 
+jmp_bank:
         sta     LDFFF
         rts
 
@@ -63,8 +64,9 @@ LDE08:  sta     LDFFF
         rts
 
         sty     $01
-LDE0F:  pha
-        lda     #$70
+LDE0F: ; jump_bank_0_1
+        pha
+        lda     #$70 ; bank 0, NMI + GAME + EXROM
         bne     LDE08
         jsr     LDE0F
         jmp     LE37B
@@ -125,18 +127,18 @@ LDE5D:  jsr     LDE05
         jmp     LA7AE
 
         jsr     LDE0F
-        jmp     LA7EF
+        jmp     LA7EF ; execute BASIC statement
 
         jsr     LDE0F
-        jsr     LBD7E
+        jsr     LBD7E ; add A to FAC
         jmp     LDE05
 
         jsr     LDE0F
-        jmp     LAE8D
+        jmp     LAE8D ; get element in expression
 
         jsr     LDE0F
-        jsr     LAD8A
-        jsr     LB7F7
+        jsr     LAD8A ; FRMNUM eval expression, make sure it's numeric
+        jsr     LB7F7 ; GETADR convert FAC into 16 bit int
         jmp     LDE05
 
         jsr     LDE05
@@ -144,29 +146,29 @@ LDE5D:  jsr     LDE05
         jmp     L9881
 
         jsr     LDE0F
-        jmp     LEB48
+        jmp     LEB48 ; evaluate SHIFT/CTRL/C=
 
         jsr     LDE0F
-        jsr     LA96B
+        jsr     LA96B ; get line number
         jmp     LDE05
 
         jsr     LDE0F
-        jsr     LAB47
+        jsr     LAB47 ; print character
         jmp     LDE05
 
         jsr     LDE0F
-        jsr     LA68E
+        jsr     LA68E ; set TXTPTR to start of program
         jmp     LDE05
 
         jsr     LDE0F
-        jsr     LA82C
+        jsr     LA82C ; check for STOP
         jmp     LDE05
 
         jsr     LDE0F
-        jsr     LA533
+        jsr     LA533 ; rebuild BASIC line chaining
         beq     LDEE1
         jsr     LDE0F
-        jsr     LE257
+        jsr     LE257 ; get string from BASIC line, set filename
 LDEE1:  jmp     LDE05
 
         jsr     LDE0F
