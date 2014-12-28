@@ -35,7 +35,6 @@
         .setcpu "6502"
 
 CHRGET          := $0073
-CHRGOT          := $0079
 L0100           := $0100
 L0110           := $0110
 L01B8           := $01B8
@@ -48,48 +47,25 @@ LA000           := $A000
 LA004           := $A004
 LA007           := $A007
 LA00A           := $A00A
-LA161           := $A161
-LA19C           := $A19C
-LA1C5           := $A1C5
-LA1CB           := $A1CB
-LA533           := $A533
 LA57C           := $A57C
 LA612           := $A612
-LA613           := $A613
 LA648           := $A648
 LA659           := $A659
 LA663           := $A663
-LA68E           := $A68E
 LA691           := $A691
 LA694           := $A694
 LA6D5           := $A6D5
-LA6F3           := $A6F3
 LA71B           := $A71B
-LA724           := $A724
 LA762           := $A762
 LA77E           := $A77E
 LA784           := $A784
 LA7A8           := $A7A8
 LA7AE           := $A7AE
 LA7C6           := $A7C6
-LA7EF           := $A7EF
-LA82C           := $A82C
 LA851           := $A851
 LA8FF           := $A8FF
-LA96B           := $A96B
 LA9BB           := $A9BB
 LAB00           := $AB00
-LAB47           := $AB47
-LAD8A           := $AD8A
-LAE8D           := $AE8D
-LB395           := $B395
-LB7F7           := $B7F7
-LBBA6           := $BBA6
-LBC49           := $BC49
-LBD7E           := $BD7E
-LBDCD           := $BDCD
-LBDD7           := $BDD7
-LBDDD           := $BDDD
 LC100           := $C100
 LC194           := $C194
 LC1E5           := $C1E5
@@ -97,13 +73,11 @@ LC1F3           := $C1F3
 LC268           := $C268
 LC8E8           := $C8E8
 LD6D3           := $D6D3
-jmp_bank        := $DE01
-LDE05           := $DE05
+
+_jmp_bank       := $DE01
 LDE0D           := $DE0D
-disable_rom     := $DE0F
-LDE1A           := $DE1A
+_disable_rom    := $DE0F
 LDE20           := $DE20
-LDE2B           := $DE2B
 LDE35           := $DE35
 LDE41           := $DE41
 LDE49           := $DE49
@@ -125,11 +99,9 @@ LDEDB           := $DEDB
 LDEE4           := $DEE4
 LDEF0           := $DEF0
 LDEF9           := $DEF9
-LDEFF           := $DEFF
 LDF06           := $DF06
 LDF0F           := $DF0F
 _CHRGET         := $DF1B
-LDF21           := $DF21
 _CHRGOT         := $DF27
 LDF30           := $DF30
 LDF38           := $DF38
@@ -140,15 +112,13 @@ LDF58           := $DF58
 LDF60           := $DF60
 LDF6E           := $DF6E
 LDF74           := $DF74
+
 LE16F           := $E16F
 LE206           := $E206
-LE257           := $E257
 LE34C           := $E34C
-LE37B           := $E37B
 LE386           := $E386
 LE3B3           := $E3B3
 LE3BF           := $E3BF
-LE422           := $E422
 LE453           := $E453
 LE566           := $E566
 LE56A           := $E56A
@@ -159,8 +129,6 @@ LE9C8           := $E9C8
 LE9F0           := $E9F0
 LE9FF           := $E9FF
 LEA18           := $EA18
-LEB42           := $EB42
-LEB48           := $EB48
 LED09           := $ED09
 LEDBE           := $EDBE
 LEDC7           := $EDC7
@@ -256,7 +224,7 @@ entry:  jmp     entry2
 
         jsr     LA004
         lda     #$43 ; bank 2
-        jmp     jmp_bank
+        jmp     _jmp_bank
 
 init_basic_vectors:
         jsr     init_load_save_vectors
@@ -274,7 +242,7 @@ L803B:  jsr     init_load_save_vectors
         lda     #$F9
         pha
         lda     #$42 ; bank 2
-        jmp     jmp_bank
+        jmp     _jmp_bank
 
 entry2: 
         ; short-circuit startup, skipping memory test
@@ -336,7 +304,7 @@ go_desktop:
         lda     #<($8000 - 1)
         pha
         lda     #$42 ; bank 2 + 3 $8000-BFFF
-        jmp     jmp_bank ; jump to desktop
+        jmp     _jmp_bank ; jump to desktop
 
 L80C4:  ldx     #'M'
         cpx     $CFFC
@@ -349,7 +317,7 @@ L80CE:  ldx     #<$A000
         pha
         lda     #<($E397 - 1) ; BASIC start
         pha
-        jmp     disable_rom
+        jmp     _disable_rom
 
 L80DE:  .addr   LDE20 ; $0330 LOAD
         .addr   LDE35 ; $0332 SAVE
@@ -451,7 +419,7 @@ L8194:  jsr     L8133
 L819A:  ldx     #$05
         jmp     L9873
 
-L819F:  lda     #$00
+        lda     #$00
         sta     $0D
         jsr     _CHRGET
         cmp     #$24
@@ -485,7 +453,7 @@ L81D8:  pla
         jmp     L81B9
 
 L81DF:  clc
-        jmp     disable_rom
+        jmp     _disable_rom
 
 L81E3:  lda     #$16
         sta     $0326
@@ -500,7 +468,7 @@ L81E3:  lda     #$16
         pla
         lda     #$40
 L81FB:  sta     $02A9
-L81FE:  jsr     L8C71
+        jsr     L8C71
         jsr     L80EC
         jsr     L81E3
         jsr     L98BB
@@ -637,7 +605,7 @@ L830B:  sta     $01FD,y
         sta     $7A
         rts
 
-L8315:  beq     L8342
+        beq     L8342
         ldx     $3A
         inx
         beq     L8327
@@ -661,7 +629,7 @@ L832F:  cmp     #$E9
         pha
         jmp     _CHRGET
 
-L8342:  jmp     disable_rom
+L8342:  jmp     _disable_rom
 
 L8345:  lda     $D3
         pha
@@ -1454,7 +1422,7 @@ L8986:  jsr     LDED3
         lda     #$85
         pha
         lda     #$F0
-        jmp     jmp_bank
+        jmp     _jmp_bank
 
 L89BC:  rts
 
@@ -1652,7 +1620,7 @@ L8B3A:  jmp     L9855
         jsr     L8B66
         jmp     L987A
 
-L8B54:  jsr     LA007
+        jsr     LA007
         lda     #$0D
         jsr     BSOUT
         jsr     CLRCH
@@ -1739,7 +1707,7 @@ L8BF5:  tya
         inc     $7B
 L8BFF:  jmp     UNLSTN
 
-L8C02:  tax
+        tax
 L8C03:  lda     $028D
         and     #$02
         bne     L8C03
@@ -2271,7 +2239,7 @@ L901D:  lda     L902F,x
         pha
         lda     #$0C
         pha
-        jmp     disable_rom
+        jmp     _disable_rom
 
 L902F:  jsr     LA663
         jmp     LE386
@@ -2525,8 +2493,8 @@ L9218:  dey
         inc     L0110
         inc     $0156
         bne     L9218
-L9229:  .byte   $A5
-L922A:  cpy     $4FD0
+        lda     $CC
+        bne     L927C
         ldy     $CB
         lda     ($F5),y
         cmp     #$03
@@ -2565,7 +2533,7 @@ L926A:  cmp     #$0D
 
 L927C:  jmp     LDEA9
 
-L927F:  jmp     disable_rom
+L927F:  jmp     _disable_rom
 
 L9282:  cmp     #$11
         beq     L92DD
@@ -2889,7 +2857,7 @@ L94F9:  sei
         jsr     LE3BF
         jmp     LDF74
 
-L9511:  ldx     #$15
+        ldx     #$15
         jsr     L89EF
         ldx     #$FB
         txs
@@ -2977,7 +2945,7 @@ L95C3:  jsr     UNTALK
 L95C6:  lda     #$00
         sta     $0200,x
 L95CB:  pla
-        jmp     jmp_bank
+        jmp     _jmp_bank
 
 L95CF:  jsr     L8131
         bmi     L95CB
@@ -3078,7 +3046,7 @@ L968F:  lda     #$91
         lda     #$FF
         pha
         lda     #$43
-        jmp     jmp_bank ; bank 3
+        jmp     _jmp_bank ; bank 3
 
 L969A:  cpx     #$0B
         beq     L96BF
@@ -3295,7 +3263,7 @@ L9855:  lda     #$AF
         pha
         lda     #$07
 L985A:  pha
-        jmp     disable_rom
+        jmp     _disable_rom
 
 L985E:  lda     #$B9
         pha
@@ -3361,7 +3329,7 @@ L98C7:  lda     #$E1
         lda     #$74
         pha
         lda     #$00
-        jmp     disable_rom
+        jmp     _disable_rom
 
         .byte   $DE,$84,$93
         tya
@@ -3385,11 +3353,9 @@ L98C7:  lda     #$E1
         jsr     LA762
         lda     #$60
         sta     $B9
-        .byte   $20
-L9900:  jmp     $99E3
-
-L9903:  jmp     $9A70
-
+        jsr     LE34C
+        sta     $704C,y
+        txs
 L9906:  pha
 L9907:  bit     $DD00
         bpl     L9907
@@ -4041,295 +4007,3 @@ L9DBB:  inx
         .byte   $00,$08,$08,$08,$00,$00,$00,$00
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF
-        rti
-
-        sta     $DFFF
-        rts
-
-L9E05:  pha
-        lda     #$40
-L9E08:  sta     $DFFF
-        pla
-        rts
-
-        sty     $01
-        pha
-        lda     #$70
-        bne     L9E08
-        jsr     disable_rom
-        jmp     LE37B
-
-        ora     #$07
-        sta     $01
-        bne     L9E05
-        tay
-        tay
-        lda     $01
-        pha
-        jsr     LDE1A
-        jsr     L9900
-        tax
-        pla
-        sta     $01
-        txa
-        ldx     $AE
-        jmp     disable_rom
-
-        lda     $01
-        pha
-        jsr     LDE1A
-        jsr     L9903
-        jmp     LDE2B
-
-        lda     $01
-        jsr     LDE1A
-        jmp     L81FE
-
-        jsr     LDE05
-        jmp     L8C02
-
-        jsr     LDE05
-        jmp     L819F
-
-        lda     $02A7
-        beq     L9E5D
-        jmp     LEB42
-
-L9E5D:  jsr     LDE05
-        jmp     L9229
-
-        sta     $01
-        lda     ($AC),y
-        inc     $01
-        inc     $01
-        rts
-
-        dec     $01
-        lda     ($BB),y
-        inc     $01
-        rts
-
-        jsr     _CHRGET
-        jsr     L8315
-        jsr     disable_rom
-        jmp     LA7AE
-
-        jsr     disable_rom
-        jmp     LA7EF
-
-        jsr     disable_rom
-        jsr     LBD7E
-        jmp     LDE05
-
-        jsr     disable_rom
-        jmp     LAE8D
-
-        jsr     disable_rom
-        jsr     LAD8A
-        jsr     LB7F7
-        jmp     LDE05
-
-        jsr     LDE05
-        jsr     L8B54
-        jmp     L9881
-
-        jsr     disable_rom
-        jmp     LEB48
-
-        jsr     disable_rom
-        jsr     LA96B
-        jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LAB47
-        jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LA68E
-        jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LA82C
-        jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LA533
-        beq     L9EE1
-        jsr     disable_rom
-        jsr     LE257
-L9EE1:  jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LBC49
-        jsr     LBDDD
-        jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LB395
-        jmp     LDEFF
-
-        jsr     disable_rom
-        jsr     LBBA6
-        iny
-        jsr     LBDD7
-        jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LBDCD
-        jmp     LDE05
-
-        jsr     disable_rom
-        jsr     LA613
-        php
-        jsr     LDE05
-        plp
-        rts
-
-        jsr     disable_rom
-        jsr     CHRGET
-        php
-        jsr     LDE05
-        plp
-        rts
-
-        jsr     disable_rom
-        jsr     CHRGOT
-        jmp     LDF21
-
-        jsr     disable_rom
-        lda     ($5A),y
-        jmp     LDE05
-
-        jsr     disable_rom
-        lda     ($5F),y
-        jmp     LDE05
-
-        jsr     disable_rom
-        lda     ($AE,x)
-        jmp     LDE05
-
-        jsr     disable_rom
-        lda     ($7A),y
-        jmp     LDE05
-
-        jsr     disable_rom
-        lda     ($7A,x)
-        jmp     LDE05
-
-        jsr     disable_rom
-        lda     ($22),y
-        jmp     LDE05
-
-        jsr     disable_rom
-        lda     ($8B),y
-        jmp     LDE05
-
-        jsr     disable_rom
-        jmp     LA724
-
-        jsr     disable_rom
-        jmp     LA6F3
-
-        jsr     disable_rom
-        jsr     LE422
-        jsr     LDE05
-        jmp     L9511
-
-        rol     a
-        .byte   $92
-        jsr     LE422
-        jsr     LDE05
-        jmp     L922A
-
-        iny
-        jmp     LBDD7
-
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        jsr     LDE05
-        jsr     LA161
-        jmp     disable_rom
-
-        jsr     LDE05
-        jmp     LA19C
-
-        jsr     LDE05
-        jmp     LA1C5
-
-        jsr     LDE05
-        jmp     LA1CB
-
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF
-        sei
-        lda     #$42
-        sta     $DFFF
-        lda     $DE00
-        pha
-        lda     LA000
-        pha
-        lda     #$41
-        sta     $DFFF
-        .byte   $3A
-        rol     a
-        .byte   $FF
-        .byte   $FF
-        .byte   $FF

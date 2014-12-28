@@ -212,47 +212,50 @@ _CHRGOT: ; $DF27
         jsr     CHRGOT
         jmp     LDF21
 
-_lda_5a_indy:
+_lda_5a_indy: ; $DF30
         jsr     disable_rom
         lda     ($5A),y
         jmp     enable_rom
 
-_lda_5f_indy:
+_lda_5f_indy: ; $DF38
         jsr     disable_rom
         lda     ($5F),y
         jmp     enable_rom
 
-_lda_ae_indx:
+_lda_ae_indx: ; $DF40
         jsr     disable_rom
         lda     ($AE,x)
         jmp     enable_rom
 
-_lda_7a_indy:
+_lda_7a_indy: ; $DF48
         jsr     disable_rom
         lda     ($7A),y
         jmp     enable_rom
 
-_lda_7a_indx:
+_lda_7a_indx: ; DF50
         jsr     disable_rom
         lda     ($7A,x)
         jmp     enable_rom
 
-_lda_22_indy:
+_lda_22_indy: ; $DF58
         jsr     disable_rom
         lda     ($22),y
         jmp     enable_rom
 
-_lda_8b_indy:
+_lda_8b_indy: ; $DF60
         jsr     disable_rom
         lda     ($8B),y
         jmp     enable_rom
 
+_detokenize: ; $DF68
         jsr     disable_rom
         jmp     LA724 ; detokenize
 
+_list: ; $DF6E
         jsr     disable_rom
         jmp     LA6F3 ; part of LIST
 
+; $DF74
         jsr     disable_rom
         jsr     LE422 ; print c64 banner
         jsr     enable_rom
@@ -267,6 +270,7 @@ _lda_8b_indy:
         iny
         jmp     LBDD7; print FAC
 
+;padding
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
@@ -289,9 +293,11 @@ _lda_8b_indy:
         jsr     enable_rom
         jmp     LA1CB
 
+; padding
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF
 
+; unused?
         sei
         lda     #$42 ; bank 2 (Desktop, Freezer/Print)
         sta     LDFFF
@@ -301,6 +307,7 @@ _lda_8b_indy:
         pha
         lda     #$41 ; bank 1 (Notepad, BASIC (Menu Bar))
         sta     LDFFF
+; ???
         .byte   $3A,$2A,$FF,$FF
 LDFFF:  .byte   $FF
 

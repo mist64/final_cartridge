@@ -17,11 +17,13 @@ L80CE           := $80CE
 LC1C8           := $C1C8
 LD227           := $D227
 LDBA5           := $DBA5
+
 LDE0F           := $DE0F
 LDE14           := $DE14
 LDE6C           := $DE6C
 LDF95           := $DF95
 LDFE0           := $DFE0
+
 LE4E0           := $E4E0
 LE50C           := $E50C
 LE60A           := $E60A
