@@ -1,5 +1,5 @@
 ; da65 V2.14 - Git d112322
-; Created:    2014-12-27 11:31:12
+; Created:    2014-12-28 02:30:10
 ; Input file: fc3a.bin
 ; Page:       1
 
@@ -162,23 +162,45 @@ LFE0E           := $FE0E
 LFE2D           := $FE2D
 LFE5E           := $FE5E
 LFF5B           := $FF5B
-LFF93           := $FF93
-LFF96           := $FF96
-LFFA5           := $FFA5
-LFFA8           := $FFA8
-LFFAB           := $FFAB
-LFFAE           := $FFAE
-LFFB1           := $FFB1
-LFFB4           := $FFB4
-LFFBA           := $FFBA
-LFFBD           := $FFBD
-LFFC0           := $FFC0
-LFFC3           := $FFC3
-LFFC9           := $FFC9
-LFFCC           := $FFCC
-LFFD2           := $FFD2
-LFFE4           := $FFE4
-LFFE7           := $FFE7
+CINT            := $FF81
+IOINIT          := $FF84
+RAMTAS          := $FF87
+RESTOR          := $FF8A
+VECTOR          := $FF8D
+SETMSG          := $FF90
+SECOND          := $FF93
+TKSA            := $FF96
+MEMTOP          := $FF99
+MEMBOT          := $FF9C
+SCNKEY          := $FF9F
+SETTMO          := $FFA2
+IECIN           := $FFA5
+IECOUT          := $FFA8
+UNTALK          := $FFAB
+UNLSTN          := $FFAE
+LISTEN          := $FFB1
+TALK            := $FFB4
+READST          := $FFB7
+SETLFS          := $FFBA
+SETNAM          := $FFBD
+OPEN            := $FFC0
+CLOSE           := $FFC3
+CHKIN           := $FFC6
+CKOUT           := $FFC9
+CLRCH           := $FFCC
+BASIN           := $FFCF
+BSOUT           := $FFD2
+LOAD            := $FFD5
+SAVE            := $FFD8
+SETTIM          := $FFDB
+RDTIM           := $FFDE
+STOP            := $FFE1
+GETIN           := $FFE4
+CLALL           := $FFE7
+UDTIM           := $FFEA
+SCREEN          := $FFED
+PLOT            := $FFF0
+IOBASE          := $FFF3
         .addr   L8009
         .addr   LFE5E
         .byte   $C3,$C2,$CD
@@ -316,37 +338,37 @@ L80FE:  lda     L80DE,y
         inc     $0330
 L810F:  rts
 
-L8110:  jsr     LFFA5
+L8110:  jsr     IECIN
         jsr     LE716
         cmp     #$0D
         bne     L8110
-        jmp     LFFAB
+        jmp     UNTALK
 
 L811D:  jsr     L8141
-        jsr     LFFA5
+        jsr     IECIN
         tay
-L8124:  jsr     LFFA5
+L8124:  jsr     IECIN
         cmp     #$0D
         bne     L8124
-        jsr     LFFAB
+        jsr     UNTALK
         cpy     #$30
         rts
 
 L8131:  lda     #$6F
 L8133:  pha
         jsr     L8BC4
-        jsr     LFFB1
+        jsr     LISTEN
         pla
-        jsr     LFF93
+        jsr     SECOND
         lda     $90
         rts
 
 L8141:  lda     #$6F
 L8143:  pha
         jsr     L8BC4
-        jsr     LFFB4
+        jsr     TALK
         pla
-        jmp     LFF96
+        jmp     TKSA
 
 L814E:  sta     $C3
         sty     $C4
@@ -354,18 +376,18 @@ L814E:  sta     $C3
 L8154:  lda     #$57
         jsr     L8180
         tya
-        jsr     LFFA8
+        jsr     IECOUT
         txa
-        jsr     LFFA8
+        jsr     IECOUT
         lda     #$20
-        jsr     LFFA8
+        jsr     IECOUT
 L8166:  lda     ($C3),y
-        jsr     LFFA8
+        jsr     IECOUT
         iny
         tya
         and     #$1F
         bne     L8166
-        jsr     LFFAE
+        jsr     UNLSTN
         tya
         bne     L8154
         inc     $C4
@@ -376,11 +398,11 @@ L8166:  lda     ($C3),y
 L8180:  pha
         jsr     L8192
         lda     #$4D
-        jsr     LFFA8
+        jsr     IECOUT
         lda     #$2D
-        jsr     LFFA8
+        jsr     IECOUT
         pla
-        jmp     LFFA8
+        jmp     IECOUT
 
 L8192:  lda     #$6F
 L8194:  jsr     L8133
@@ -747,14 +769,14 @@ L8449:  .byte   $01,$0A,$64,$E8,$10
 L844E:  .byte   $00,$00,$00,$03,$27
 L8453:  lda     #$60
         jsr     L8143
-        jsr     LFFA5
-        jsr     LFFA5
+        jsr     IECIN
+        jsr     IECIN
 L845E:  jsr     L84C8
-        jsr     LFFA5
-        jsr     LFFA5
-        jsr     LFFA5
+        jsr     IECIN
+        jsr     IECIN
+        jsr     IECIN
         tax
-        jsr     LFFA5
+        jsr     IECIN
         ldy     $90
         bne     L84C0
         jsr     L84DC
@@ -763,7 +785,7 @@ L845E:  jsr     L84C8
         jsr     LDEB8
         ldx     #$18
 L847F:  jsr     L84C8
-        jsr     LFFA5
+        jsr     IECIN
 L8485:  cmp     #$0D
         beq     L848D
         cmp     #$8D
@@ -774,17 +796,17 @@ L848F:  ldy     $90
         jsr     L84DC
         jsr     LDEB8
         inc     $D8
-        jsr     LFFE4
+        jsr     GETIN
         cmp     #$03
         beq     L84C0
         cmp     #$20
         bne     L84AB
-L84A6:  jsr     LFFE4
+L84A6:  jsr     GETIN
         beq     L84A6
 L84AB:  dex
         bpl     L847F
         jsr     L84C8
-        jsr     LFFA5
+        jsr     IECIN
         bne     L8485
         jsr     L84DC
         lda     #$0D
@@ -792,14 +814,14 @@ L84AB:  dex
         bne     L845E
 L84C0:  lda     #$E0
         jsr     L8143
-        jmp     LFFAE
+        jmp     UNLSTN
 
 L84C8:  lda     $9A
         cmp     #$03
         beq     L84DB
         bit     $DD0C
         bmi     L84DB
-        jsr     LFFAE
+        jsr     UNLSTN
         lda     #$60
         jsr     L8143
 L84DB:  rts
@@ -1415,7 +1437,7 @@ L89D8:  lda     $DC00
         and     $DC01
         and     #$10
         beq     L89EC
-        jsr     LFFE4
+        jsr     GETIN
         beq     L89D8
         cmp     #$59
         beq     L89EC
@@ -1460,7 +1482,7 @@ L8A35:  jsr     L8986
         cmp     #$22
         beq     L8A5D
 L8A47:  jsr     L8192
-        jsr     LFFAE
+        jsr     UNLSTN
         jsr     L8141
         jsr     L8110
 L8A53:  rts
@@ -1494,7 +1516,7 @@ L8A87:  iny
         lda     ($7A),y
         cmp     #$3A
         bne     L8A84
-        jsr     LFFAE
+        jsr     UNLSTN
         jsr     L96FB
         beq     L8A97
         rts
@@ -1506,7 +1528,7 @@ L8A9E:  jsr     L8BDB
         beq     L8AB2
         cmp     #$2C
         beq     L8AB2
-        jsr     LFFA8
+        jsr     IECOUT
         iny
         cpy     #$12
         bne     L8A9E
@@ -1517,7 +1539,7 @@ L8AB2:  pha
 L8AB5:  cpy     #$12
         beq     L8AC1
         lda     #$A0
-        jsr     LFFA8
+        jsr     IECOUT
         iny
         bne     L8AB5
 L8AC1:  pla
@@ -1526,13 +1548,13 @@ L8AC1:  pla
         cmp     #$2C
         bne     L8ADF
         lda     #$A0
-        jsr     LFFA8
-        jsr     LFFA8
+        jsr     IECOUT
+        jsr     IECOUT
         iny
         ldx     #$04
 L8AD3:  jsr     L8BDB
         beq     L8ADF
-        jsr     LFFA8
+        jsr     IECOUT
         iny
         dex
         bpl     L8AD3
@@ -1540,8 +1562,8 @@ L8ADF:  jsr     L8BF0
         jsr     L971A
         jsr     L8131
         lda     #$49
-        jsr     LFFA8
-        jmp     LFFAE
+        jsr     IECOUT
+        jmp     UNLSTN
 
 L8AF0:  cmp     #$2C
         bne     L8B04
@@ -1562,16 +1584,16 @@ L8B06:  sta     $B9
 L8B13:  and     #$0F
         ora     #$60
         sta     $B9
-L8B19:  jsr     LFFAE
+L8B19:  jsr     UNLSTN
         lda     #$00
         sta     $90
         lda     #$04
-        jsr     LFFB1
+        jsr     LISTEN
         lda     $B9
         bpl     L8B2E
         jsr     LEDBE
         bne     L8B31
-L8B2E:  jsr     LFF93
+L8B2E:  jsr     SECOND
 L8B31:  lda     $90
         cmp     #$80
 L8B35:  lda     #$04
@@ -1593,8 +1615,8 @@ L8B3A:  jmp     L9855
 
 L8B54:  jsr     LA007
         lda     #$0D
-        jsr     LFFD2
-        jsr     LFFCC
+        jsr     BSOUT
+        jsr     CLRCH
         jsr     LA004
         lda     #$8B
         ldx     #$E3
@@ -1608,21 +1630,21 @@ L8B6D:  lda     #$03
 
         jsr     L8AF0
         bcs     L8B6D
-L8B79:  jsr     LFFAE
+L8B79:  jsr     UNLSTN
         lda     #$F0
         jsr     L8194
         lda     $9A
         cmp     #$04
         bne     L8B92
         lda     #$24
-        jsr     LFFA8
-        jsr     LFFAE
+        jsr     IECOUT
+        jsr     UNLSTN
         jmp     L8B95
 
 L8B92:  jsr     L8BE3
 L8B95:  jsr     L8453
         jsr     LA007
-        jsr     LFFCC
+        jsr     CLRCH
         jsr     LA004
         jmp     L8A53
 
@@ -1635,14 +1657,14 @@ L8BA7:  lda     #$00
 L8BAD:  jsr     L8BBD
         tax
         ldy     #$01
-        jsr     LFFBA
+        jsr     SETLFS
         jsr     LE206
         jsr     LDEDB
         rts
 
 L8BBD:  ldx     #$FB
         ldy     #$DF
-        jsr     LFFBD
+        jsr     SETNAM
 L8BC4:  lda     #$00
         sta     $90
         lda     #$08
@@ -1664,7 +1686,7 @@ L8BE2:  rts
 L8BE3:  ldy     #$00
 L8BE5:  jsr     L8BDB
         beq     L8BF0
-        jsr     LFFA8
+        jsr     IECOUT
         iny
         bne     L8BE5
 L8BF0:  cmp     #$22
@@ -1676,7 +1698,7 @@ L8BF5:  tya
         sta     $7A
         bcc     L8BFF
         inc     $7B
-L8BFF:  jmp     LFFAE
+L8BFF:  jmp     UNLSTN
 
 L8C02:  tax
 L8C03:  lda     $028D
@@ -2768,7 +2790,7 @@ L9473:  lda     #$07
         sta     $AD
         ldx     #$19
 L9488:  lda     #$0D
-        jsr     LFFD2
+        jsr     BSOUT
         ldy     #$00
 L948F:  lda     ($AC),y
         sta     $D7
@@ -2779,7 +2801,7 @@ L948F:  lda     ($AC),y
         ora     #$80
 L949D:  bvs     L94A1
         ora     #$40
-L94A1:  jsr     LFFD2
+L94A1:  jsr     BSOUT
         iny
         cpy     #$28
         bne     L948F
@@ -2792,8 +2814,8 @@ L94A1:  jsr     LFFD2
 L94B3:  dex
         bne     L9488
         lda     #$0D
-        jsr     LFFD2
-        jsr     LFFCC
+        jsr     BSOUT
+        jsr     CLRCH
         jmp     LA004
 
 L94C1:  .byte   $8D
@@ -2881,38 +2903,38 @@ L955E:  tya
 
 L9577:  jsr     L8131
         bmi     L95C6
-        jsr     LFFAE
+        jsr     UNLSTN
         ldx     #$00
         jsr     L96FB
         bne     L95C6
         lda     #$62
         jsr     L8143
         ldx     #$00
-L958D:  jsr     LFFA5
+L958D:  jsr     IECIN
         cmp     #$A0
         beq     L959C
         sta     $0200,x
         inx
         cpx     #$10
         bne     L958D
-L959C:  jsr     LFFAB
+L959C:  jsr     UNTALK
         jsr     L971F
         jmp     L95C6
 
 L95A5:  jsr     L8131
         bmi     L95CB
-        jsr     LFFAE
+        jsr     UNLSTN
         jsr     L8141
         lda     $90
         bmi     L95CB
         ldx     #$00
-L95B6:  jsr     LFFA5
+L95B6:  jsr     IECIN
         cmp     #$0D
         beq     L95C3
         sta     $0200,x
         inx
         bne     L95B6
-L95C3:  jsr     LFFAB
+L95C3:  jsr     UNTALK
 L95C6:  lda     #$00
         sta     $0200,x
 L95CB:  pla
@@ -2931,8 +2953,8 @@ L95E2:  lda     #$F0
         jsr     L8133
         bmi     L95CB
         lda     #$24
-        jsr     LFFA8
-        jsr     LFFAE
+        jsr     IECOUT
+        jsr     UNLSTN
         lda     #$60
         sta     $B9
         jsr     L8143
@@ -2961,7 +2983,7 @@ L9629:  jsr     L9632
         cmp     #$00
         bne     L9629
         beq     L9602
-L9632:  jsr     LFFA5
+L9632:  jsr     IECIN
         ldy     $90
         bne     L963A
         rts
@@ -3029,10 +3051,10 @@ L969A:  cpx     #$0B
         jmp     L95CB
 
 L96AC:  lda     #$0D
-        jsr     LFFD2
-        jsr     LFFE7
+        jsr     BSOUT
+        jsr     CLALL
         lda     #$01
-        jsr     LFFC3
+        jsr     CLOSE
         jsr     LA004
         jmp     L95CB
 
@@ -3040,16 +3062,16 @@ L96BF:  jsr     LA007
         lda     #$01
         ldy     #$07
         ldx     #$04
-        jsr     LFFBA
+        jsr     SETLFS
         lda     #$00
-        jsr     LFFBD
-        jsr     LFFC0
+        jsr     SETNAM
+        jsr     OPEN
         ldx     #$01
-        jsr     LFFC9
+        jsr     CKOUT
         jmp     L95CB
 
 L96DB:  lda     $0200
-        jsr     LFFD2
+        jsr     BSOUT
         jmp     L95CB
 
 L96E4:  lda     #$05
@@ -3059,15 +3081,15 @@ L96E4:  lda     #$05
         ldx     #$04
         jsr     L814E
         lda     #$03
-        jsr     LFFA8
+        jsr     IECOUT
         lda     #$04
-        jmp     LFFA8
+        jmp     IECOUT
 
 L96FB:  lda     #$F2
         jsr     L8133
         lda     #$23
-        jsr     LFFA8
-        jsr     LFFAE
+        jsr     IECOUT
+        jsr     UNLSTN
         ldy     #$00
         jsr     L972A
         jsr     L811D
@@ -3081,17 +3103,17 @@ L971A:  ldy     #$16
         jsr     L972A
 L971F:  lda     #$E2
         jsr     L8133
-        jsr     LFFAE
+        jsr     UNLSTN
         lda     #$01
         rts
 
 L972A:  jsr     L8131
 L972D:  lda     L973B,y
         beq     L9738
-        jsr     LFFA8
+        jsr     IECOUT
         iny
         bne     L972D
-L9738:  jmp     LFFAE
+L9738:  jmp     UNLSTN
 
 L973B:  .byte   "U1:2 0 18 0"
 
@@ -3595,7 +3617,7 @@ L9AE8:  lda     #$FE
         tya
 L9AED:  jmp     L9906
 
-L9AF0:  jsr     LFFAB
+L9AF0:  jsr     UNTALK
         jsr     LA691
         lda     #$06
         sta     $93
@@ -3604,10 +3626,10 @@ L9AF0:  jsr     LFFAB
         ldx     #$04
         jsr     LA6D5
         lda     #$9A
-        jsr     LFFA8
+        jsr     IECOUT
         lda     #$05
-        jsr     LFFA8
-        jsr     LFFAE
+        jsr     IECOUT
+        jsr     UNLSTN
         sei
         lda     $D011
         tax
@@ -3654,7 +3676,7 @@ L9B3D:  bit     $DD00
         sta     $B9
         lda     #$E0
         jsr     LA612
-        jsr     LFFAE
+        jsr     UNLSTN
         plp
         bcs     L9B78
         lda     #$1D
