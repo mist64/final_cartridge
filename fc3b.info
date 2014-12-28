@@ -7,7 +7,7 @@ GLOBAL {
 };
 
 # One segment for the whole stuff
-#SEGMENT { START $A000;  END   $BFFF; NAME fc3b; };
+SEGMENT { START $A000;  END   $BFFF; NAME "fc3b"; };
 
 RANGE { START $A000; END $A003; TYPE AddrTable; };
 RANGE { START $A47B; END $A482; TYPE ByteTable; };

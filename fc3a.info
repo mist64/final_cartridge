@@ -7,7 +7,7 @@ GLOBAL {
 };
 
 # One segment for the whole stuff
-#SEGMENT { START $8000;  END   $FDFF; NAME fc3a; };
+SEGMENT { START $8000;  END   $FDFF; NAME "fc3a"; };
 
 RANGE { START $8000; END $8003; TYPE AddrTable; };
 RANGE { START $8004; END $8008; TYPE TextTable; };
