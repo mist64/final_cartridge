@@ -1,5 +1,5 @@
 ; da65 V2.14 - Git d112322
-; Created:    2014-12-28 14:46:58
+; Created:    2015-01-05 13:48:58
 ; Input file: fc3a.bin
 ; Page:       1
 
@@ -467,7 +467,7 @@ L81E3:  lda     #$16
         sta     $0327
         rts
 
-        jsr     L85F1
+L81EE:  jsr     L85F1
         jsr     L8512
         jsr     L84ED
         pla
@@ -632,7 +632,7 @@ L832F:  cmp     #$E9 ; last new token + 1
         sbc     #$CB
         asl     a
         tay
-        lda     L8694,y
+        lda     L8693+1,y
         pha
         lda     L8693,y
         pha
@@ -682,7 +682,7 @@ L8369:  jsr     LE566
         sta     $D3
 L838C:  rts
 
-        ldx     $3A
+L838D:  ldx     $3A
         inx
         bne     L839D
         lda     $7B
@@ -1058,21 +1058,43 @@ L8606:  .byte   $64,$00,$0A,$00,$FF
         .byte   $C4
         .byte   "MWRIT"
         .byte   $C5
-        brk
-L8693:  .byte   $96
-L8694:  .byte   $89,$ED,$81,$0B,$87,$39,$87,$8C
-        .byte   $83,$C6,$88,$75,$89,$18,$8A,$1B
-        .byte   $8A,$25,$8A,$31,$8A,$2B,$8A,$42
-        .byte   $8A,$A6,$89,$BC,$89,$73,$8B,$3C
-        .byte   $8B,$C1,$89,$D0,$89,$9E,$8C,$4D
-        .byte   $8D,$23,$8E,$BA,$8E,$D0,$8E,$79
-        .byte   $8F,$37,$90,$0B,$90,$CC,$86,$D5
-        .byte   $86
-        jsr     _get_int
+        .byte 0
+
+L8693:  .word   L8997-1
+        .word   L81EE-1
+        .word   L870C-1
+        .word   L873A-1
+        .word   L838D-1
+        .word   L88C7-1
+        .word   L8976-1
+        .word   L8A19-1
+        .word   L8A1C-1
+        .word   L8A26-1
+        .word   L8A32-1
+        .word   L8A2C-1
+        .word   L8A43-1
+        .word   L89A7-1
+        .word   L89BD-1
+        .word   L8B74-1
+        .word   L8B3D-1
+        .word   L89C2-1
+        .word   L89D1-1
+        .word   L8C9F-1
+        .word   L8D4E-1
+        .word   L8E24-1
+        .word   L8EBB-1
+        .word   L8ED1-1
+        .word   L8F7A-1
+        .word   L9038-1
+        .word   L900C-1
+        .word   L86CD-1
+        .word   L86D6-1
+
+L86CD:  jsr     _get_int
         jsr     L86EA
         jmp     L0110
 
-        jsr     _get_int
+L86D6:  jsr     _get_int
         jsr     L86EA
         lda     #$B2
         sta     $0116
@@ -1102,7 +1124,7 @@ L86FD:  dey
         cli
         rts
 
-        jsr     L852F
+L870C:  jsr     L852F
         ldy     #$00
 L8711:  jsr     _lda_5f_indy
         sta     ($7A),y
@@ -1125,7 +1147,7 @@ L8734:  jmp     L985E
 
 L8737:  jmp     L9855
 
-        jsr     L85F1
+L873A:  jsr     L85F1
         jsr     L8512
         beq     L8749
         cmp     #$2C
@@ -1313,7 +1335,7 @@ L88B9:  lda     $5A
 
 L88C4:  jmp     L9855
 
-        ldy     #$00
+L88C7:  ldy     #$00
         sty     $C2
         eor     #$22
         bne     L88D4
@@ -1395,7 +1417,7 @@ L896F:  bit     $C2
         bmi     L897D
         jmp     L9881
 
-        bne     L89BC
+L8976:  bne     L89BC
         lda     #$08
         sta     $0802
 L897D:  jsr     L8986
@@ -1413,7 +1435,7 @@ L8986:  jsr     _relink
         sta     $2E
         rts
 
-        bne     L89BC
+L8997:  bne     L89BC
         sei
         jsr     LFD15
         jsr     LE453
@@ -1421,7 +1443,7 @@ L8986:  jsr     _relink
         cli
         jmp     L9881
 
-        bne     L89BC
+L89A7:  bne     L89BC
         sei
         jsr     LFD15
         jsr     LE453
@@ -1435,10 +1457,10 @@ L8986:  jsr     _relink
 
 L89BC:  rts
 
-        bne     L89BC
+L89BD:  bne     L89BC
         jmp     LAB00
 
-        tax
+L89C2:  tax
         lda     #$00
         cpx     #$CC
         beq     L89CB
@@ -1446,7 +1468,7 @@ L89BC:  rts
 L89CB:  sta     $02A8
         jmp     L9888
 
-        bne     L89BC
+L89D1:  bne     L89BC
         ldx     #$00
         jsr     L89EF
 L89D8:  lda     $DC00
@@ -1474,20 +1496,20 @@ L89FB:  .byte   "ARE YOU SURE (Y/N)?"
         .byte   $0D,$00,$0D
         .byte   "READY."
         .byte   $0D,$00
-        lda     #$00
+L8A19:  lda     #$00
         .byte   $2C
-        lda     #$01
+L8A1C:  lda     #$01
         sta     $0A
         jsr     L8BA4
         jmp     L989A
 
-        jsr     L8BA7
+L8A26:  jsr     L8BA7
         jmp     L98AF
 
-        jsr     L8BA4
+L8A2C:  jsr     L8BA4
         jmp     L8A35
 
-        jsr     L98A9
+L8A32:  jsr     L98A9
 L8A35:  jsr     L8986
         lda     #$00
         sta     $B9
@@ -1495,7 +1517,7 @@ L8A35:  jsr     L8986
         ldy     $23
         jmp     L98C7
 
-        cmp     #$22
+L8A43:  cmp     #$22
         beq     L8A5D
 L8A47:  jsr     L8192
         jsr     UNLSTN
@@ -1618,7 +1640,7 @@ L8B35:  lda     #$04
 
 L8B3A:  jmp     L9855
 
-        jsr     L8AF0
+L8B3D:  jsr     L8AF0
         bcs     L8B6D
         lda     $2B
         ldx     $2C
@@ -1644,7 +1666,7 @@ L8B6D:  lda     #$03
         sta     $9A
         jmp     L819A
 
-        jsr     L8AF0
+L8B74:  jsr     L8AF0
         bcs     L8B6D
 L8B79:  jsr     UNLSTN
         lda     #$F0
@@ -1800,7 +1822,7 @@ L8C96:  sei
         cli
 L8C9E:  rts
 
-        bne     L8C9E
+L8C9F:  bne     L8C9E
         lda     $2D
         ldy     $2E
 L8CA5:  sta     $5F
@@ -1891,7 +1913,7 @@ L8D41:  jsr     _lda_22_indy
         cpy     $26
         bne     L8D41
         beq     L8D0D
-        bne     L8D06
+L8D4E:  bne     L8D06
         ldx     $30
         lda     $2F
 L8D54:  sta     $5F
@@ -1996,7 +2018,7 @@ L8E1D:  jsr     L83BA
 
 L8E23:  rts
 
-        bne     L8E23 ; rts
+L8E24:  bne     L8E23 ; rts
         ldy     #s_basic - s_basic
         lda     #$0C
         ldx     #$00
@@ -2060,7 +2082,7 @@ s_free:
         .byte   "FREE", 0
 s_bytes: .byte   "BYTES", $0D, 0
 
-        tax
+L8EBB:  tax
         lda     $02AA
         cpx     #$CC
         beq     L8EC6
@@ -2072,7 +2094,7 @@ L8EC6:  and     #$FE
 
 L8ECE:  jmp     L852C
 
-        ldy     #$00
+L8ED1:  ldy     #$00
         eor     #$22
         bne     L8EDC
         jsr     L85BF
@@ -2160,7 +2182,7 @@ L8F65:  lda     #$03
 L8F75:  lda     #$01
 L8F77:  jmp     L888D
 
-        bne     L8F64
+L8F7A:  bne     L8F64
 L8F7C:  jsr     _relink
         jsr     _set_txtptr_to_start
         lda     #$00
@@ -2233,7 +2255,7 @@ L8FF9:  sty     $39
         sbc     $3A
 L900B:  rts
 
-        bne     L900B
+L900C:  bne     L900B
         ldx     #$11
 L9010:  lda     L918B,x
         cmp     $0801,x
@@ -2256,7 +2278,7 @@ L902F:  jsr     LA663
 
 L9035:  jmp     L8734
 
-        bne     L900B
+L9038:  bne     L900B
         lda     $2B
         cmp     $2D
         lda     $2C
