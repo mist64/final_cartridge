@@ -75,7 +75,7 @@ LC8E8           := $C8E8
 LD6D3           := $D6D3
 
 _jmp_bank       := $DE01
-LDE0D           := $DE0D
+_disable_rom_set_01 := $DE0D
 _disable_rom    := $DE0F
 LDE20           := $DE20
 LDE35           := $DE35
@@ -3472,7 +3472,7 @@ L99C9:  pla
         pha
         lda     #$A6
         pha
-        jmp     LDE0D
+        jmp     _disable_rom_set_01
 
 L99D6:  pla
         pla
@@ -3482,7 +3482,7 @@ L99D6:  pla
         pha
         lda     #$F2
         pha
-        jmp     LDE0D
+        jmp     _disable_rom_set_01
 
         sty     $93
         tya
