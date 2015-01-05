@@ -14,9 +14,6 @@ L0234           := $0234
 L0564           := $0564
 fast_format     := $800F
 L80CE           := $80CE
-LC1C8           := $C1C8
-LD227           := $D227
-LDBA5           := $DBA5
 
 _disable_rom    := $DE0F
 _basic_warm_start := $DE14
@@ -29,7 +26,6 @@ LDFE0           := $DFE0
 
 LE4E0           := $E4E0
 LE50C           := $E50C
-LE60A           := $E60A
 LE96C           := $E96C
 LEA31           := $EA31
 LED0C           := $ED0C
@@ -37,19 +33,15 @@ LEDB9           := $EDB9
 LEDDD           := $EDDD
 LEDEF           := $EDEF
 LEDFE           := $EDFE
-LEEF4           := $EEF4
-LF11E           := $F11E
 LF1CA           := $F1CA
 LF250           := $F250
 LF279           := $F279
 LF30F           := $F30F
 LF31F           := $F31F
-LF418           := $F418
 LF646           := $F646
 LF654           := $F654
 LF707           := $F707
 LF82E           := $F82E
-LF969           := $F969
 LFB8E           := $FB8E
 CINT            := $FF81
 IOINIT          := $FF84
@@ -95,11 +87,13 @@ IOBASE          := $FFF3
 
         .addr   L80CE
         .addr   _basic_warm_start
-set_io_vectors:
+set_io_vectors_with_hidden_rom:
+        jmp     set_io_vectors_with_hidden_rom2
+
+set_io_vectors:  
         jmp     set_io_vectors2
 
-LA007:  jmp     LA138
-
+LA00A:
         jmp     LA183
 
 LA00D:  pha
@@ -122,6 +116,7 @@ LA021:  sta     $DD01
         sta     $DD00
         rts
 
+; IEC transfer, send
 LA035:  pla
         sta     $A5
         txa
@@ -225,7 +220,9 @@ LA0FF:  lda     $DD0D
         sec
         rts
 
-set_io_vectors2:
+; these routines turn the cartridge ROM on before,
+; and turn it back off afterwards
+set_io_vectors_with_hidden_rom2:
         lda     #<_new_ckout
         ldy     #>_new_ckout
         sta     $0320 ; CKOUT
@@ -244,40 +241,42 @@ set_io_vectors2:
         sty     $032D
         rts
 
-LA138:  lda     #$61
-        ldy     #$A1
-        sta     $0320
+; these routines assume the cartridge ROM is mapped
+set_io_vectors2:
+        lda     #<new_ckout
+        ldy     #>new_ckout
+        sta     $0320 ; CKOUT
         sty     $0321
-        lda     #$A2
-        ldy     #$A1
-        sta     $0326
+        lda     #<new_bsout2
+        ldy     #>new_bsout2
+        sta     $0326 ; BSOUT
         sty     $0327
-        lda     #$D5
-        ldy     #$A1
-        sta     $0322
+        lda     #<new_clrch2
+        ldy     #>new_clrch2
+        sta     $0322 ; CLRCH
         sty     $0323
-        lda     #$D1
-        ldy     #$A1
-        sta     $032C
+        lda     #<new_clall2
+        ldy     #>new_clall2
+        sta     $032C ; CLALL
         sty     $032D
         rts
 
 new_ckout: ; $A161
         txa
         pha
-        jsr     LF30F
+        jsr     LF30F ; find LFN
         beq     LA173
 LA168:  pla
         tax
-        jmp     LF250
+        jmp     LF250 ; KERNAL CKOUT
 
 LA16D:  pla
         lda     #$04
         jmp     LF279
 
-LA173:  jsr     LF31F
+LA173:  jsr     LF31F ; set file par from table
         lda     $BA
-        cmp     #$04
+        cmp     #$04 ; printer
         bne     LA168
         jsr     LA183
         bcs     LA16D
@@ -298,15 +297,16 @@ LA183:  jsr     LA09F
 LA19B:  rts
 
 new_bsout: ; $A19C
-        jsr     LA1A2
+        jsr     new_bsout2
         jmp     _disable_rom
 
-LA1A2:  pha
+new_bsout2:
+        pha
         lda     $9A
         cmp     #$04
         beq     LA1AD
 LA1A9:  pla
-        jmp     LF1CA
+        jmp     LF1CA ; KERNAL BSOUT
 
 LA1AD:  bit     $DD0C
         bpl     LA1A9
@@ -323,17 +323,19 @@ LA1C0:  lda     $95
         rts
 
 new_clall: ; $A1C5
-        jsr     LA1D1
+        jsr     new_clall2
         jmp     _disable_rom
 
-LA1C8:
-        jsr     LA1D5
+LA1C8: ; XXX unused?? should this be "new_clrch"?
+        jsr     new_clrch2
 new_clrch: ; $A1CB
         jmp     _disable_rom
 
-LA1D1:  lda     #$00
+new_clall2:
+        lda     #$00
         sta     $98
-LA1D5:  lda     #$04
+new_clrch2:
+        lda     #$04
         ldx     #$03
         cmp     $9A
         bne     LA1E7
@@ -710,14 +712,15 @@ LA471:  lda     $A5
         bcc     LA445
         rts
 
-LA47B:  .byte   $80,$40,$20,$10,$08,$04,$02,$01
+pow2:  .byte   $80,$40,$20,$10,$08,$04,$02,$01
+
 LA483:  lda     #$33
         sta     $01
 LA487:  lda     ($FB),y
         and     $A4
         beq     LA494
         lda     $A5
-        ora     LA47B,y
+        ora     pow2,y
         sta     $A5
 LA494:  dey
         bpl     LA487
@@ -782,6 +785,9 @@ LA4F0:  rts
         .byte   $FF
         .byte   $FF
         .byte   $FF
+
+; drive code $0500
+LA500:
         lda     $0612
         tax
         lsr     a
@@ -805,9 +811,9 @@ LA522:  lda     $02FC
         lda     $02FA
         bne     LA531
         lda     #$72
-        jmp     LF969
+        jmp     $F969
 
-LA531:  jsr     LF11E
+LA531:  jsr     $F11E ; drive ROM
 LA534:  ldy     #$00
         sty     $94
         lda     $80
@@ -830,7 +836,7 @@ LA542:  jsr     L0564
         cmp     $06,x
         beq     LA510
         sta     $06,x
-        jmp     LF418
+        jmp     $F418 ; drive ROM
 
         lda     #$00
         sta     $1800
@@ -881,7 +887,7 @@ LA5B1:  lda     $F574,x
         inx
         stx     $82
         stx     $83
-        jsr     $DF95 ; Floppy ROM
+        jsr     $DF95 ; drive ROM
         inx
         stx     $1800
 LA5CB:  inx
@@ -903,10 +909,10 @@ LA5E5:  lda     $02
         bcc     LA5DB
         cmp     #$72
         bne     LA5F4
-        jmp     LC1C8
+        jmp     $C1C8 ; drive ROM
 
 LA5F4:  ldx     $0613
-        jmp     LE60A
+        jmp     $E60A
 
 LA5FA:  ldx     #$09
 LA5FC:  lda     $0607,x
@@ -915,9 +921,9 @@ LA5FC:  lda     $0607,x
         bne     LA5FC
         jmp     L0150
 
-        jsr     LDBA5
-        jsr     LEEF4
-        jmp     LD227
+        jsr     $DBA5
+        jsr     $EEF4
+        jmp     $D227
 
         brk
 LA612:  pha
@@ -958,8 +964,8 @@ LA647:  rts
         bne     LA647
         lda     #$07
         sta     $93
-        lda     #$00
-        ldy     #$A5
+        lda     #<LA500
+        ldy     #>LA500
         ldx     #$05
         jsr     LA6D5
         lda     $0330
@@ -1642,7 +1648,7 @@ LAB48:  cld ; <- important :)
         tsx
         stx     $024E
         jsr     set_irq_vector
-        jsr     LA007
+        jsr     set_io_vectors
         jsr     print_cr
         lda     $0251
         cmp     #'C'
@@ -1759,7 +1765,7 @@ cmd_e:
         beq     cmd_mid2
         jmp     syntax_error
 
-fill_prefix_with_csr_right:
+fill_kbd_buffer_with_csr_right:
         lda     #$91 ; UP
         ldx     #$0D ; CR
         jsr     print_a_x
@@ -1814,7 +1820,7 @@ LAC86:  lda     $0252 ; command index (or 'C'/'S')
 
 LACA6:  jsr     LB64D
         bcs     is_mie
-LACAB:  jmp     fill_prefix_with_csr_right
+LACAB:  jmp     fill_kbd_buffer_with_csr_right
 
 is_mie:
         jsr     print_cr
@@ -2115,7 +2121,7 @@ LAF03:  jsr     LB63A
 LAF06:  lda     $0253 ; bank
         bmi     LAF2B
         jsr     set_irq_vector
-        jsr     set_io_vectors
+        jsr     set_io_vectors_with_hidden_rom
         ldx     $024E
         txs
         lda     $C4
@@ -2473,7 +2479,7 @@ LB19B:  jsr     print_up_dot
 ; ----------------------------------------------------------------
 cmd_x:
         jsr     set_irq_vector
-        jsr     set_io_vectors
+        jsr     set_io_vectors_with_hidden_rom
         lda     #$00
         sta     $028A
         ldx     $024E
@@ -2744,7 +2750,7 @@ LB38F:  jsr     LB35C
         ldy     $C2
         jsr     LB42D
         php
-        jsr     LA007
+        jsr     set_io_vectors
         jsr     set_irq_vector
         plp
 LB3A4:  bcc     LB3B3
@@ -2807,7 +2813,7 @@ LB40A:  bne     LB3F0
         dec     $B9
         jsr     LB35C
         jsr     LB438
-        jsr     LA007
+        jsr     set_io_vectors
         jmp     LB3A4
 
 LB42D:  lda     #$DE
@@ -3270,7 +3276,7 @@ irq_handler:
 after_irq:
         lda     $0254
         bne     LB6FA
-        lda     $C6 ; number of characters in prefix
+        lda     $C6 ; number of characters in keyboard buffer
         bne     LB700
 LB6FA:  pla ; XXX JMP $EA81
         tay
@@ -3288,14 +3294,15 @@ LB700:  lda     $0277 ; keyboard buffer
         sta     $0278
         lda     #$0D
         sta     $0279 ; store "@$' + CR into keyboard buffer
-        lda     #$03
+        lda     #$03 ; 3 characters
         sta     $C6
-        bne     LB6FA
-LB71C:  cmp     #$87
+        bne     LB6FA ; always
+
+LB71C:  cmp     #$87 ; F5 key
         bne     LB733
-        ldx     #$18
-        cpx     $D6
-        beq     LB72E
+        ldx     #24
+        cpx     $D6 ; cursor line
+        beq     LB72E ; already on last line
         jsr     LB8D9
         ldy     $D3
         jsr     LE50C
@@ -3308,18 +3315,18 @@ LB733:  cmp     #$86
         beq     LB745
         jsr     LB8D9
         ldy     $D3
-        jsr     LE50C
+        jsr     $E50C ; KERNAL set cursor position
 LB745:  lda     #$91; UP
         sta     $0277 ; kbd buffer
-LB74A:  cmp     #$11
+LB74A:  cmp     #$11 ; DOWN
         beq     LB758
-        cmp     #$91
+        cmp     #$91 ; UP
         bne     LB6FA
-        lda     $D6
-        beq     LB75E
+        lda     $D6 ; cursor line
+        beq     LB75E ; top of screen
         bne     LB6FA
-LB758:  lda     $D6
-        cmp     #$18
+LB758:  lda     $D6 ; cursor line
+        cmp     #24
         bne     LB6FA
 LB75E:  jsr     LB838
         bcc     LB6FA
@@ -3380,13 +3387,13 @@ LB7D1:  ldy     #$00
 
 LB7E1:  jsr     LB8FE
         lda     $020C
-        cmp     #$2C
+        cmp     #','
         beq     LB800
-        cmp     #$5B
+        cmp     #'['
         beq     LB817
-        cmp     #$5D
+        cmp     #']'
         beq     LB822
-        cmp     #$27
+        cmp     #$27 ; "'"
         beq     LB82D
         jsr     LB8EC
         jsr     dump_hex_line
@@ -3424,15 +3431,15 @@ LB838:  lda     $D1
         sta     $020D
 LB845:  ldy     #$01
         jsr     LB88B
-        cmp     #$3A
+        cmp     #':'
         beq     LB884
-        cmp     #$2C
+        cmp     #','
         beq     LB884
-        cmp     #$5B
+        cmp     #'['
         beq     LB884
-        cmp     #$5D
+        cmp     #']'
         beq     LB884
-        cmp     #$27
+        cmp     #$27 ; "'"
         beq     LB884
         dec     $020D
         beq     LB889
@@ -3441,7 +3448,7 @@ LB845:  ldy     #$01
         bne     LB877
         sec
         lda     $C3
-        sbc     #$28
+        sbc     #40
         sta     $C3
         bcs     LB845
         dec     $C4
@@ -3510,7 +3517,7 @@ LB8D4:  lda     #$FF
 LB8D9:  lda     #$FF
         sta     $CC
         lda     $CF
-        beq     LB8EB
+        beq     LB8EB ; rts
         lda     $CE
         ldy     $D3
         sta     ($D1),y

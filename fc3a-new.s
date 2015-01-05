@@ -44,8 +44,8 @@ L04F6           := $04F6
 L0582           := $0582
 L0630           := $0630
 LA000           := $A000
-set_io_vectors  := $A004
-LA007           := $A007
+set_io_vectors_with_hidden_rom := $A004
+set_io_vectors  := $A007
 LA00A           := $A00A
 LA612           := $A612
 LA648           := $A648
@@ -222,7 +222,7 @@ fast_format: ; $A00F
 
         jmp     init_basic_vectors
 
-        jsr     set_io_vectors
+        jsr     set_io_vectors_with_hidden_rom
         lda     #$43 ; bank 2
         jmp     _jmp_bank
 
@@ -340,7 +340,7 @@ L80EE:  lda     $0314,y
         bpl     L80EE
 
 init_load_save_vectors:
-        jsr     set_io_vectors
+        jsr     set_io_vectors_with_hidden_rom
         ldy     #$03
 L80FE:  lda     load_save_vectors,y ; overwrite LOAD and SAVE vectors
         sta     $0330,y
@@ -486,7 +486,7 @@ new_mainloop: ; $81FE
         jsr     L98BB
         stx     $7A ; chrget ptr
         sty     $7B
-        jsr     set_io_vectors
+        jsr     set_io_vectors_with_hidden_rom
         jsr     L8C68
         jsr     CHRGET
         tax
@@ -1630,11 +1630,11 @@ PLIST:  jsr     L8AF0
         jsr     L8B66
         jmp     L987A
 
-        jsr     LA007
+        jsr     set_io_vectors
         lda     #$0D
         jsr     BSOUT
         jsr     CLRCH
-        jsr     set_io_vectors
+        jsr     set_io_vectors_with_hidden_rom
         lda     #$8B
         ldx     #$E3
 L8B66:  sta     $0300
@@ -1660,9 +1660,9 @@ L8B79:  jsr     UNLSTN
 
 L8B92:  jsr     L8BE3
 L8B95:  jsr     L8453
-        jsr     LA007
-        jsr     CLRCH
         jsr     set_io_vectors
+        jsr     CLRCH
+        jsr     set_io_vectors_with_hidden_rom
         jmp     L8A53
 
 L8BA4:  lda     #$02
@@ -2804,7 +2804,7 @@ L946E:  lda     #$03
 L9473:  lda     #$07
         jsr     L8B06
         bcs     L946E
-        jsr     LA007
+        jsr     set_io_vectors
         ldy     #$00
         sty     $AC
         lda     $0288
@@ -2837,7 +2837,7 @@ L94B3:  dex
         lda     #$0D
         jsr     BSOUT
         jsr     CLRCH
-        jmp     set_io_vectors
+        jmp     set_io_vectors_with_hidden_rom
 
 fkey_strings:
         .byte   $8D, "LIST:", $0D, 0
@@ -3066,10 +3066,10 @@ L96AC:  lda     #$0D
         jsr     CLALL
         lda     #$01
         jsr     CLOSE
-        jsr     set_io_vectors
+        jsr     set_io_vectors_with_hidden_rom
         jmp     L95CB
 
-L96BF:  jsr     LA007
+L96BF:  jsr     set_io_vectors
         lda     #$01
         ldy     #$07
         ldx     #$04
