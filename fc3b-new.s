@@ -1721,11 +1721,12 @@ input_loop:
         lda     #$00
         sta     $0254
         jsr     print_cr_dot
-LAC1A:  jsr     basin_if_more
+input_loop2:
+        jsr     basin_if_more
         cmp     #'.'
-        beq     LAC1A ; skip dots
+        beq     input_loop2 ; skip dots
         cmp     #' '
-        beq     LAC1A ; skip spaces
+        beq     input_loop2 ; skip spaces
         ldx     #$1A
 LAC27:  cmp     command_names,x
         bne     LAC3B
@@ -1759,10 +1760,15 @@ LAC59:  sta     $0277,x
         cpx     #$07
         bne     LAC59
         stx     $C6
-        jmp     LAC1A
+        jmp     input_loop2
 
 LAC66:  sta     $0252
-LAC69:  jsr     get_hex_word
+
+; ----------------------------------------------------------------
+; "M"/"D"/"i" - ...
+; ----------------------------------------------------------------
+cmd_mdi:
+        jsr     get_hex_word
         jsr     basin_cmp_cr
         bne     LAC80
         jsr     copy_c3_c4_to_c1_c2
@@ -1884,19 +1890,19 @@ disassemble_line:
 
 LAD6C:  jsr     get_hex_word
         jsr     copy_c3_c4_to_c1_c2
-        jsr     LB4BC
+        jsr     basin_skip_spaces_if_more
         jsr     LB4DB
         ldy     #$00
         jsr     store_byte
         jsr     print_up
         jsr     dump_char_line
         jsr     print_cr_dot
-        jsr     LB677
-        jmp     LAC1A
+        jsr     create_prefix_leftbracket
+        jmp     input_loop2
 
 LAD8C:  jsr     get_hex_word
         jsr     copy_c3_c4_to_c1_c2
-        jsr     LB4BC
+        jsr     basin_skip_spaces_if_more
         jsr     LB4DB
         ldy     #$00
         beq     LAD9F
@@ -1908,25 +1914,32 @@ LAD9F:  jsr     store_byte
         jsr     print_up
         jsr     dump_sprite_line
         jsr     print_cr_dot
-        jsr     LB67A
-        jmp     LAC1A
+        jsr     create_prefix_rightbracket
+        jmp     input_loop2
 
+; ----------------------------------------------------------------
+; "'" - input 32 ASCII characters
+; ----------------------------------------------------------------
 cmd_singlequote:
         jsr     get_hex_word
         jsr     read_ascii
         jsr     print_up
         jsr     dump_ascii_line
         jsr     print_cr_dot
-        jsr     LB67D
-        jmp     LAC1A
+        jsr     create_prefix_singlequote
+        jmp     input_loop2
 
-LADCB:  jsr     get_hex_word
-        jsr     LB5E5
+; ----------------------------------------------------------------
+; ":" - input 8 hex bytes
+; ----------------------------------------------------------------
+cmd_colon:
+        jsr     get_hex_word
+        jsr     read_8_bytes
         jsr     print_up
         jsr     dump_hex_line
         jsr     print_cr_dot
-        jsr     LB671
-        jmp     LAC1A
+        jsr     create_prefix_semicolon
+        jmp     input_loop2
 
 ; ----------------------------------------------------------------
 ; ";" - set registers
@@ -1979,8 +1992,8 @@ LAE40:  jsr     get_hex_word2
         jsr     LB5E7
         lda     #$2C
         jsr     LAE7C
-        jsr     LB66E
-        jmp     LAC1A
+        jsr     create_prefix_comma
+        jmp     input_loop2
 
 LAE53:  jsr     get_hex_word
         jsr     LB030
@@ -1993,10 +2006,10 @@ LAE61:  ldx     $024E
         jsr     LB0AB
         jsr     LB625
         jsr     LB0EF
-        lda     #$41
+        lda     #'A'
         jsr     LAE7C
-        jsr     LB674
-        jmp     LAC1A
+        jsr     create_prefix_a
+        jmp     input_loop2
 
 LAE7C:  pha
         jsr     print_up
@@ -2369,7 +2382,7 @@ LB14E:  jsr     get_hex_word
 LB166:  ldy     #$00
         sty     $C1
         sty     $C2
-        jsr     LB4BC
+        jsr     basin_skip_spaces_if_more
 LB16F:  and     #$0F
         clc
         adc     $C1
@@ -2617,6 +2630,11 @@ LB326:  lda     #$70 ; by default, hide cartridge
 
 LB32E:  jmp     syntax_error
 
+; ----------------------------------------------------------------
+; "O" - set bank
+;       0 to 7 map to a $01 value of $30-$37, "D" switches to drive
+;       memory
+; ----------------------------------------------------------------
 cmd_o:
         jsr     basin_cmp_cr
         beq     LB33F ; without arguments: bank 7
@@ -2662,7 +2680,7 @@ LB371:  ldy     #$02
         sta     $BA
         lda     #$10
         sta     $BB
-        jsr     LB4CB
+        jsr     basin_skip_spaces_cmp_cr
         bne     LB3B6
 LB388:  lda     $0252
         cmp     #$0B
@@ -2726,7 +2744,7 @@ LB3F0:  bne     LB3D6
 LB408:  cmp     #$2C
 LB40A:  bne     LB3F0
         jsr     get_hex_word2
-        jsr     LB4CB
+        jsr     basin_skip_spaces_cmp_cr
         bne     LB40A
         ldx     $C3
         ldy     $C4
@@ -2753,6 +2771,12 @@ LB438:  lda     #$DE
         lda     #$C1
         jmp     SAVE
 
+; ----------------------------------------------------------------
+; "@" - send drive command
+;       without arguments, this reads the drive status
+;       $ shows the directory
+;       F does a fast format
+; ----------------------------------------------------------------
 cmd_at: 
         jsr     listen_command_channel
         jsr     basin_cmp_cr
@@ -2823,7 +2847,8 @@ print_cr:
         lda     #$0D ; CR
         jmp     BSOUT
 
-LB4BC:  jsr     LB4CB
+basin_skip_spaces_if_more:
+        jsr     basin_skip_spaces_cmp_cr
         jmp     LB4C5
 
 ; get a character; if it's CR, return to main input loop
@@ -2834,9 +2859,10 @@ LB4C5:  bne     LB4CA ; rts
 
 LB4CA:  rts
 
-LB4CB:  jsr     BASIN
-        cmp     #$20
-        beq     LB4CB
+basin_skip_spaces_cmp_cr:
+        jsr     BASIN
+        cmp     #' '
+        beq     basin_skip_spaces_cmp_cr ; skip spaces
         cmp     #$0D
         rts
 
@@ -3017,19 +3043,21 @@ LB5E0:  iny
         bne     LB5C8
         rts
 
-LB5E5:  ldx     #$08
+read_8_bytes:
+        ldx     #$08
 LB5E7:  ldy     #$00
         jsr     copy_c3_c4_to_c1_c2
-        jsr     LB4BC
+        jsr     basin_skip_spaces_if_more
         jsr     get_hex_byte2
         jmp     LB607
 
-LB5F5:  jsr     LB60F
-        jsr     LB60F
-        bne     LB604
-        jsr     LB60F
-        bne     LB619
-        beq     LB60A
+LB5F5:  jsr     basin_if_more_cmp_space ; ignore character where space should be
+        jsr     basin_if_more_cmp_space
+        bne     LB604 ; not space
+        jsr     basin_if_more_cmp_space
+        bne     LB619 ; not space, error
+        beq     LB60A ; always
+
 LB604:  jsr     get_hex_byte2
 LB607:  jsr     store_byte
 LB60A:  iny
@@ -3037,11 +3065,12 @@ LB60A:  iny
         bne     LB5F5
         rts
 
-LB60F:  jsr     basin_cmp_cr
+basin_if_more_cmp_space:
+        jsr     basin_cmp_cr
         bne     LB616
         pla
         pla
-LB616:  cmp     #$20
+LB616:  cmp     #' '
         rts
 
 LB619:  jmp     syntax_error
@@ -3102,17 +3131,24 @@ LB655:  jsr     STOP
 LB66C:  clc
         rts
 
-LB66E:  lda     #','
+; ??? what are these for?
+create_prefix_comma:
+        lda     #','
         .byte   $2C
-LB671:  lda     #':'
+create_prefix_semicolon:
+        lda     #':'
         .byte   $2C
-LB674:  lda     #'A'
+create_prefix_a:
+        lda     #'A'
         .byte   $2C
-LB677:  lda     #'['
+create_prefix_leftbracket:
+        lda     #'['
         .byte   $2C
-LB67A:  lda     #']'
+create_prefix_rightbracket:
+        lda     #']'
         .byte   $2C
-LB67D:  lda     #$27 ; "'"
+create_prefix_singlequote:
+        lda     #$27 ; "'"
         sta     $0277
         lda     $C2
         jsr     byte_to_hex_ascii
@@ -3122,9 +3158,9 @@ LB67D:  lda     #$27 ; "'"
         jsr     byte_to_hex_ascii
         sta     $027A
         sty     $027B
-        lda     #$20
+        lda     #' '
         sta     $027C
-        lda     #$06
+        lda     #$06 ; number of characters
         sta     $C6
         rts
 
@@ -3504,9 +3540,9 @@ command_names:
 
 
 function_table:
-        .word   LAC69-1
-        .word   LAC69-1
-        .word   LADCB-1
+        .word   cmd_mdi-1
+        .word   cmd_mdi-1
+        .word   cmd_colon-1
         .word   LAE53-1
         .word   LAEF3-1
         .word   LB1B9-1
@@ -3527,7 +3563,7 @@ function_table:
         .word   LAC40-1
         .word   LAD6C-1
         .word   LAD8C-1
-        .word   LAC69-1
+        .word   cmd_mdi-1
         .word   cmd_singlequote-1
         .word   cmd_semicolon-1
         .word   cmd_b-1
@@ -3542,7 +3578,7 @@ LBA8F:  jsr     listen_command_channel
         cmp     #$52
         bne     LBA8C
 LBAA0:  sta     $C3
-        jsr     LB4BC
+        jsr     basin_skip_spaces_if_more
         jsr     get_hex_byte2
         bcc     LBA8C
         sta     $C1
@@ -3727,7 +3763,7 @@ LBC16:  sta     $0277
         jsr     OPEN
         ldx     $B8
         jsr     CKOUT
-        jmp     LAC1A
+        jmp     input_loop2
 
 LBC39:  lda     $B8
         jsr     CLOSE
