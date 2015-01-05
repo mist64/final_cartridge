@@ -82,14 +82,14 @@ _new_save       := $DE35
 _new_mainloop   := $DE41
 _new_detokenize := $DE49
 _new_expression := $DE4F
-LDE63           := $DE63
-LDE6C           := $DE6C
+_load_ac_indy   := $DE63
+_load_bb_indy   := $DE6C
 _new_execute    := $DE73
-LDE7F           := $DE7F
-LDE85           := $DE85
-LDE8E           := $DE8E
-LDE94           := $DE94
-LDEA9           := $DEA9
+_execute_statement := $DE7F
+_add_A_to_FAC   := $DE85
+_get_element_in_expression := $DE8E
+_get_int        := $DE94
+_evaluate_modifier := $DEA9
 LDEAF           := $DEAF
 LDEB8           := $DEB8
 LDEC1           := $DEC1
@@ -103,15 +103,15 @@ LDF06           := $DF06
 LDF0F           := $DF0F
 _CHRGET         := $DF1B
 _CHRGOT         := $DF27
-LDF30           := $DF30
-LDF38           := $DF38
-LDF40           := $DF40
-LDF48           := $DF48
-LDF50           := $DF50
-LDF58           := $DF58
-LDF60           := $DF60
-LDF6E           := $DF6E
-LDF74           := $DF74
+_lda_5a_indy    := $DF30
+_lda_5f_indy    := $DF38
+_lda_ae_indx    := $DF40
+_lda_7a_indy    := $DF48
+_lda_7a_indx    := $DF50
+_lda_22_indy    := $DF58
+_lda_8b_indy    := $DF60
+_list           := $DF6E
+_print_banner_jmp_9511 := $DF74
 
 LE16F           := $E16F
 LE206           := $E206
@@ -432,7 +432,7 @@ new_expression:
         cmp     #$24
         beq     L81B0
         jsr     _CHRGOT
-        jmp     LDE8E
+        jmp     _get_element_in_expression
 
 L81B0:  lda     #$00
         ldx     #$0A
@@ -456,7 +456,7 @@ L81C4:  sbc     #$2F
 
 L81D6:  sta     $61
 L81D8:  pla
-        jsr     LDE85
+        jsr     _add_A_to_FAC
         jmp     L81B9
 
 L81DF:  clc
@@ -626,7 +626,7 @@ new_execute:
 L8327:  cmp     #$CC
         bcs     L832F
         sec
-L832C:  jmp     LDE7F
+L832C:  jmp     _execute_statement
 
 L832F:  cmp     #$E9
         bcs     L832C
@@ -738,7 +738,7 @@ L83E9:  cmp     $7A
         sta     $B0
         lda     $D6
         sta     $B1
-L83F9:  jsr     LDF38
+L83F9:  jsr     _lda_5f_indy
         beq     L8404
         jsr     L8C11
         jmp     L83D2
@@ -930,10 +930,10 @@ L8568:  lda     $AE
         jsr     LDF0F
         bcc     L858D
         ldy     #$00
-        jsr     LDF38
+        jsr     _lda_5f_indy
         tax
         iny
-        jsr     LDF38
+        jsr     _lda_5f_indy
         sta     $60
         stx     $5F
 L858D:  rts
@@ -966,7 +966,7 @@ L85BF:  inc     $7A
         bne     L85C5
         inc     $7B
 L85C5:  ldx     #$00
-        jsr     LDF50
+        jsr     _lda_7a_indx
         rts
 
 L85CB:  clc
@@ -1069,11 +1069,11 @@ L8694:  .byte   $89,$ED,$81,$0B,$87,$39,$87,$8C
         .byte   $8D,$23,$8E,$BA,$8E,$D0,$8E,$79
         .byte   $8F,$37,$90,$0B,$90,$CC,$86,$D5
         .byte   $86
-        jsr     LDE94
+        jsr     _get_int
         jsr     L86EA
         jmp     L0110
 
-        jsr     LDE94
+        jsr     _get_int
         jsr     L86EA
         lda     #$B2
         sta     $0116
@@ -1105,7 +1105,7 @@ L86FD:  dey
 
         jsr     L852F
         ldy     #$00
-L8711:  jsr     LDF38
+L8711:  jsr     _lda_5f_indy
         sta     ($7A),y
         inc     $5F
         bne     L871C
@@ -1165,10 +1165,10 @@ L878C:  jsr     L85AE
 L878F:  jsr     L85BB
         beq     L87C0
         ldy     #$02
-        jsr     LDF48
+        jsr     _lda_7a_indy
         pha
         dey
-        jsr     LDF48
+        jsr     _lda_7a_indy
         tay
         pla
         jsr     L8FF9
@@ -1254,12 +1254,12 @@ L8844:  jsr     L8508
         stx     $AE
         jsr     _CHRGET
 L8854:  inc     $AE
-        jsr     LDF40
+        jsr     _lda_ae_indx
         beq     L8873
         bcc     L8862
         ldy     #$FF
         jsr     L8882
-L8862:  jsr     LDF40
+L8862:  jsr     _lda_ae_indx
         sta     ($7A,x)
         jsr     L85BF
         cmp     #$3A
@@ -1275,7 +1275,7 @@ L887B:  ldy     #$01
         beq     L8873
 L8882:  lda     #$03
         sta     $15
-        jsr     LDF48
+        jsr     _lda_7a_indy
         bne     L888D
         inc     $15
 L888D:  tax
@@ -1287,7 +1287,7 @@ L888D:  tax
         ldx     #$00
         iny
 L8898:  sta     $14
-        jsr     LDF48
+        jsr     _lda_7a_indy
         pha
         lda     $14
         sta     ($7A,x)
@@ -1331,7 +1331,7 @@ L88DF:  cmp     #$2C
         beq     L88FD
 L88E6:  jsr     L85BF
         inc     $C4
-L88EB:  jsr     LDF50
+L88EB:  jsr     _lda_7a_indx
         beq     L8903
         cmp     #$22
         bne     L88DF
@@ -1376,9 +1376,9 @@ L8937:  ldy     #$00
 L8946:  lda     $9F
         bne     L8937
         ldx     $C3
-L894C:  jsr     LDF30
+L894C:  jsr     _lda_5a_indy
         sta     $02
-        jsr     LDF48
+        jsr     _lda_7a_indy
         cmp     $02
         bne     L8937
         iny
@@ -1521,7 +1521,7 @@ L8A69:  cmp     #$38
         beq     L8A54
         jsr     L8192
 L8A74:  ldy     #$00
-        jsr     LDF48
+        jsr     _lda_7a_indy
         cmp     #$44
         beq     L8A87
         cmp     #$46
@@ -1695,7 +1695,7 @@ L8BD1:  lda     #$09
         bcs     L8BD0
         lda     #$08
         bne     L8BCE
-L8BDB:  jsr     LDF48
+L8BDB:  jsr     _lda_7a_indy
         beq     L8BE2
         cmp     #$22
 L8BE2:  rts
@@ -1724,7 +1724,7 @@ L8C03:  lda     $028D
         bne     L8C03
         txa
         jsr     L8C11
-        jmp     LDF6E
+        jmp     _list
 
 L8C11:  cmp     #$E9
         bcs     L8C5F
@@ -1839,12 +1839,12 @@ L8CDA:  jsr     L83BA
         iny
         bcs     L8CA5
 L8CE9:  ldy     #$00
-        jsr     LDF38
+        jsr     _lda_5f_indy
         tax
         and     #$7F
         jsr     LDEB8
         iny
-        jsr     LDF38
+        jsr     _lda_5f_indy
         tay
         and     #$7F
         beq     L8D00
@@ -1863,30 +1863,30 @@ L8D0D:  lda     #$22
         jmp     LDEB8
 
 L8D12:  ldy     #$00
-        jsr     LDF58
+        jsr     _lda_22_indy
         tax
         iny
-        jsr     LDF58
+        jsr     _lda_22_indy
         tay
         txa
         jmp     LDEF0
 
 L8D21:  jsr     L8D0D
         ldy     #$02
-        jsr     LDF58
+        jsr     _lda_22_indy
         sta     $25
         dey
-        jsr     LDF58
+        jsr     _lda_22_indy
         sta     $24
         dey
-        jsr     LDF58
+        jsr     _lda_22_indy
         sta     $26
         beq     L8D0D
         lda     $24
         sta     $22
         lda     $25
         sta     $23
-L8D41:  jsr     LDF58
+L8D41:  jsr     _lda_22_indy
         jsr     LDEB8
         iny
         cpy     $26
@@ -1908,7 +1908,7 @@ L8D5E:  bcs     L8D06
 L8D67:  sta     $5A
         stx     $5B
         jsr     LDECA
-        jsr     LDF38
+        jsr     _lda_5f_indy
         asl     a
         tay
         adc     $5A
@@ -1931,13 +1931,13 @@ L8D8B:  dey
         inc     $0206,x
         bne     L8D98
         inc     $0205,x
-L8D98:  jsr     LDF30
+L8D98:  jsr     _lda_5a_indy
         sta     $02
         lda     $0205,y
         cmp     $02
         bne     L8DAF
         iny
-        jsr     LDF30
+        jsr     _lda_5a_indy
         sta     $02
         lda     $0205,y
         cmp     $02
@@ -1974,13 +1974,13 @@ L8DCC:  jsr     LDEB8
         sta     $22
         stx     $23
         ldy     #$00
-        jsr     LDF38
+        jsr     _lda_5f_indy
         bpl     L8E02
         jsr     L8D12
         lda     #$02
         bne     L8E14
 L8E02:  iny
-        jsr     LDF38
+        jsr     _lda_5f_indy
         bmi     L8E0F
         jsr     LDEF9
         lda     #$05
@@ -2089,7 +2089,7 @@ L8EE7:  cmp     #$2C
         beq     L8F03
 L8EEE:  jsr     L85BF
         inc     $C3
-L8EF3:  jsr     LDF50
+L8EF3:  jsr     _lda_7a_indx
         beq     L8ECE
         cmp     #$22
         bne     L8EE7
@@ -2130,7 +2130,7 @@ L8F35:  ldy     $60
 L8F41:  ldy     #$00
         ldx     $C4
         beq     L8F5C
-L8F47:  jsr     LDF60
+L8F47:  jsr     _lda_8b_indy
         sta     ($7A),y
         iny
         dex
@@ -2152,7 +2152,7 @@ L8F64:  rts
 
 L8F65:  lda     #$03
         sta     $15
-        jsr     LDF48
+        jsr     _lda_7a_indy
         bne     L8F77
         cpy     #$FF
         beq     L8F75
@@ -2190,7 +2190,7 @@ L8F88:  jsr     L85BB
         sbc     #$00
         sta     $5B
         ldy     #$00
-L8FB6:  jsr     LDF30
+L8FB6:  jsr     _lda_5a_indy
         sta     $033C,y
         iny
         cpy     #$05
@@ -2504,6 +2504,7 @@ L9218:  dey
         inc     L0110
         inc     $0156
         bne     L9218
+L9229: ; <- jmp from $DE60
         lda     $CC
         bne     L927C
         ldy     $CB
@@ -2542,7 +2543,7 @@ L926A:  cmp     #$0D
         jsr     L9473
         jmp     L92CC
 
-L927C:  jmp     LDEA9
+L927C:  jmp     _evaluate_modifier
 
 L927F:  jmp     _disable_rom
 
@@ -2621,10 +2622,10 @@ L9309:  jsr     LDF0F
         beq     L92D5
         bcc     L9322
 L9312:  ldy     #$00
-        jsr     LDF38
+        jsr     _lda_5f_indy
         tax
         iny
-        jsr     LDF38
+        jsr     _lda_5f_indy
         beq     L92D5
         stx     $5F
         sta     $60
@@ -2672,15 +2673,15 @@ L9375:  sta     $7A
         stx     $7B
         ldy     #$FF
 L937C:  iny
-        jsr     LDF48
+        jsr     _lda_7a_indy
 L9380:  tax
         bne     L937C
         iny
-        jsr     LDF48
+        jsr     _lda_7a_indy
         cmp     $5F
         bne     L9380
         iny
-        jsr     LDF48
+        jsr     _lda_7a_indy
         cmp     $60
         bne     L9380
         dey
@@ -2712,7 +2713,7 @@ L93C1:  ldy     $ECF0,x
         ora     $0288
         sta     $7B
         ldy     #$00
-        jsr     LDF48
+        jsr     _lda_7a_indy
         cmp     #$3A
         bcs     L9415
         sbc     #$2F
@@ -2777,13 +2778,13 @@ L943C:  sta     $DA,x
 
 L9448:  ldy     #$01
         sty     $0F
-        jsr     LDF38
+        jsr     _lda_5f_indy
         beq     L9469
         iny
-        jsr     LDF38
+        jsr     _lda_5f_indy
         tax
         iny
-        jsr     LDF38
+        jsr     _lda_5f_indy
         jsr     L8412
         jsr     L83C8
 L9460:  lda     #$00
@@ -2866,8 +2867,9 @@ L94F9:  sei
         jsr     L802F
         cli
         jsr     LE3BF
-        jmp     LDF74
+        jmp     _print_banner_jmp_9511
 
+L9511:
         ldx     #$15
         jsr     L89EF
         ldx     #$FB
@@ -3355,7 +3357,7 @@ L98C7:  lda     #$E1
         bne     L98B9
         lda     $B7
         beq     L98B9
-        jsr     LDE6C
+        jsr     _load_bb_indy
         cmp     #$24
         beq     L98B9
         ldx     $B9
@@ -3512,7 +3514,7 @@ new_load2:
         tay
         lda     $B7
         beq     L99C9
-        jsr     LDE6C
+        jsr     _load_bb_indy
         cmp     #$24
         beq     L99C9
         ldx     $B9
@@ -3603,7 +3605,7 @@ L9AA3:  jsr     L9AD0
         lda     $C2
         jsr     L9AC7
 L9AB0:  lda     #$35
-        jsr     LDE63
+        jsr     _load_ac_indy
         jsr     L9AC7
         bne     L9AB0
         lda     $A4

@@ -44,7 +44,7 @@ LBDCD           := $BDCD
 LBDD7           := $BDD7
 LBDDD           := $BDDD
 LE257           := $E257
-LE37B           := $E37B
+LE37B           := $E37B ; BASIC warm start (NMI)
 LE422           := $E422
 LEB42           := $EB42
 LEB48           := $EB48
@@ -70,8 +70,10 @@ _disable_rom: ; $DE0F
         pha
         lda     #$70 ; no ROM at $8000; BASIC at $A000
         bne     LDE08
+
+_basic_warm_start: ; $DE14
         jsr     _disable_rom
-        jmp     LE37B
+        jmp     LE37B ; BASIC warm start (NMI)
 
 enable_all_roms:  
         ora     #$07
@@ -114,17 +116,18 @@ _new_expression: ; $DE4F
 
         lda     $02A7
         beq     LDE5D
-        jmp     LEB42
-
+        jmp     LEB42 ; LDA #$7F : STA $DC00 : RTS
 LDE5D:  jsr     _enable_rom
         jmp     L9229
 
+_load_ac_indy: ; $DE63
         sta     $01
         lda     ($AC),y
         inc     $01
         inc     $01
         rts
 
+_load_bb_indy: ; $DE6C
         dec     $01
         lda     ($BB),y
         inc     $01
@@ -136,70 +139,87 @@ _new_execute: ; $DE73
         jsr     _disable_rom
         jmp     LA7AE
 
+_execute_statement: ; $DE7F
         jsr     _disable_rom
         jmp     LA7EF ; execute BASIC statement
 
+; $DE85
         jsr     _disable_rom
         jsr     LBD7E ; add A to FAC
         jmp     _enable_rom
 
+; $DE8E
         jsr     _disable_rom
         jmp     LAE8D ; get element in expression
 
+; $DE94
         jsr     _disable_rom
         jsr     LAD8A ; FRMNUM eval expression, make sure it's numeric
         jsr     LB7F7 ; GETADR convert FAC into 16 bit int
         jmp     _enable_rom
 
+; $DEA0 - unused?
         jsr     _enable_rom
         jsr     L8B54
         jmp     L9881
 
+; $DEA9
         jsr     _disable_rom
         jmp     LEB48 ; evaluate SHIFT/CTRL/C=
 
+; $DEAF
         jsr     _disable_rom
         jsr     LA96B ; get line number
         jmp     _enable_rom
 
+; $DEB8
         jsr     _disable_rom
         jsr     LAB47 ; print character
         jmp     _enable_rom
 
+; $DEC1
         jsr     _disable_rom
         jsr     LA68E ; set TXTPTR to start of program
         jmp     _enable_rom
 
+; $DECA
         jsr     _disable_rom
         jsr     LA82C ; check for STOP
         jmp     _enable_rom
 
+; $DED3
         jsr     _disable_rom
         jsr     LA533 ; rebuild BASIC line chaining
         beq     LDEE1
+; $DEDB
         jsr     _disable_rom
         jsr     LE257 ; get string from BASIC line, set filename
 LDEE1:  jmp     _enable_rom
 
+; $DEE4
         jsr     _disable_rom
         jsr     LBC49 ; FLOAT UNSIGNED VALUE IN FAC+1,2
         jsr     LBDDD ; convert FAC to ASCII
         jmp     _enable_rom
 
+; $DEF0
         jsr     _disable_rom
         jsr     LB395 ; convert A/Y to float
         jmp     LDEFF
 
+; $DEF9
         jsr     _disable_rom
         jsr     LBBA6 ; convert $22/$23 to FAC
 LDEFF:  iny
         jsr     LBDD7 ; print FAC
         jmp     _enable_rom
 
+; $DF06
         jsr     _disable_rom
         jsr     LBDCD ; print A/X as integer
         jmp     _enable_rom
 
+; $DF0F
         jsr     _disable_rom
         jsr     LA613 ; search for BASIC line
         php
@@ -263,17 +283,17 @@ _list: ; $DF6E
         jsr     _disable_rom
         jmp     LA6F3 ; part of LIST
 
-; $DF74
+_print_banner_jmp_9511: ; $DF74
         jsr     _disable_rom
         jsr     LE422 ; print c64 banner
         jsr     _enable_rom
         jmp     L9511
 
-        .addr   L922A
+        .addr   L922A ; ??? in the middle of an instruction
 
         jsr     LE422 ; print c64 banner
         jsr     _enable_rom
-        jmp     L922A
+        jmp     L922A ; ??? in the middle of an instruction
 
         iny
         jmp     LBDD7; print FAC

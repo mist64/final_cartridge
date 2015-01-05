@@ -18,10 +18,9 @@ LC1C8           := $C1C8
 LD227           := $D227
 LDBA5           := $DBA5
 
-LDE0F           := $DE0F
-LDE14           := $DE14
-LDE6C           := $DE6C
-LDF95           := $DF95
+_disable_rom    := $DE0F
+_basic_warm_start := $DE14
+_load_bb_indy   := $DE6C
 _new_ckout      := $DFC0
 _new_bsout      := $DFC9
 _new_clall      := $DFCF
@@ -96,7 +95,7 @@ IOBASE          := $FFF3
 .segment        "fc3b": absolute
 
         .addr   L80CE
-        .addr   LDE14
+        .addr   _basic_warm_start
 LA004:  jmp     LA10F
 
 LA007:  jmp     LA138
@@ -299,7 +298,7 @@ LA19B:  rts
 
 new_bsout: ; $A19C
         jsr     LA1A2
-        jmp     LDE0F
+        jmp     _disable_rom
 
 LA1A2:  pha
         lda     $9A
@@ -324,12 +323,12 @@ LA1C0:  lda     $95
 
 new_clall: ; $A1C5
         jsr     LA1D1
-        jmp     LDE0F
+        jmp     _disable_rom
 
 LA1C8:
         jsr     LA1D5
 new_clrch: ; $A1CB
-        jmp     LDE0F
+        jmp     _disable_rom
 
 LA1D1:  lda     #$00
         sta     $98
@@ -881,7 +880,7 @@ LA5B1:  lda     $F574,x
         inx
         stx     $82
         stx     $83
-        jsr     LDF95
+        jsr     $DF95 ; Floppy ROM
         inx
         stx     $1800
 LA5CB:  inx
@@ -1065,7 +1064,7 @@ LA707:  pha
         pla
         jmp     LF707
 
-LA734:  jsr     LDE6C
+LA734:  jsr     _load_bb_indy
         jsr     LEDDD
         iny
         cpy     $B7
@@ -1120,7 +1119,7 @@ LA77E:  jsr     LA7B1
 LA796:  ldy     $B7
         beq     LA7A7
         ldy     #$00
-LA79C:  jsr     LDE6C
+LA79C:  jsr     _load_bb_indy
         jsr     LE716
         iny
         cpy     $B7
@@ -1156,7 +1155,7 @@ LA7C8:  lda     $9A41,x
         jsr     LA75B
         bcc     LA7E2
         lda     #$00
-        jmp     LDE0F
+        jmp     _disable_rom
 
 LA7E2:  jsr     LA77E
         jsr     LA9EA
@@ -1176,7 +1175,7 @@ LA7F6:  lda     $AC,y
         bne     LA7F6
         ldy     #$00
         ldx     #$02
-LA808:  jsr     LDE6C
+LA808:  jsr     _load_bb_indy
         cpy     $B7
         bcc     LA812
         lda     #$20
@@ -1210,7 +1209,7 @@ LA841:  lda     $D7
         dey
         bne     LA841
         jsr     LA912
-        jmp     LDE0F
+        jmp     _disable_rom
 
 LA851:  jsr     LA8C9
         lda     $AB
@@ -1235,7 +1234,7 @@ LA86C:  jsr     LA768
         ldy     $B7
         beq     LA88C
 LA880:  dey
-        jsr     LDE6C
+        jsr     _load_bb_indy
         cmp     $0341,y
         bne     LA851
         tya
@@ -1269,7 +1268,7 @@ LA88C:  sty     $90
         sta     $90
 LA8C2:  ldx     $AE
         ldy     $AF
-        jmp     LDE0F
+        jmp     _disable_rom
 
 LA8C9:  jsr     LA92B
         lda     $BD
@@ -1327,7 +1326,7 @@ LA92B:  jsr     LA742
         pla
         pla
         lda     #$00
-        jmp     LDE0F
+        jmp     _disable_rom
 
 LA939:  jsr     LA9EA
         sty     $D7
@@ -1606,7 +1605,7 @@ LAB25:  sta     $DFFF
         pla
         rts
 
-        jsr     LDE0F
+        jsr     _disable_rom
         sta     $01
         lda     $024B
         rti
@@ -2386,7 +2385,7 @@ LB1B9:  jsr     LB6B3
         sta     $028A
         ldx     $024E
         txs
-        jmp     LDE14
+        jmp     _basic_warm_start
 
 LB1CB:  lda     $C3
         cmp     $C1
