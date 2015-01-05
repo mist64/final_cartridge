@@ -2734,7 +2734,7 @@ cmd_at:
         cmp     #'F'
         bne     LB458
         jsr     fast_format
-        lda     #$46
+        lda     #'F'
 LB458:  jsr     IECOUT
         jsr     _basin_cmp_cr
         bne     LB458

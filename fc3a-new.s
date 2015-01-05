@@ -208,7 +208,7 @@ entry:  jmp     entry2
         jmp     L955E
 
 fast_format: ; $A00F
-        jmp     L96E4
+        jmp     fast_format2
 
         jmp     L96FB
 
@@ -1519,11 +1519,11 @@ L8A69:  cmp     #$38
         jsr     L8192
 L8A74:  ldy     #$00
         jsr     _lda_7a_indy
-        cmp     #$44
+        cmp     #'D'
         beq     L8A87
-        cmp     #$46
+        cmp     #'F'
         bne     L8A84
-        jsr     L96E4
+        jsr     fast_format2
 L8A84:  jmp     L8BE3
 
 L8A87:  iny
@@ -3082,10 +3082,11 @@ L96DB:  lda     $0200
         jsr     BSOUT
         jmp     L95CB
 
-L96E4:  lda     #$05
+fast_format2:
+        lda     #$05
         sta     $93
-        lda     #$5D
-        ldy     #$97
+        lda     #<L975D
+        ldy     #>L975D
         ldx     #$04
         jsr     L814E
         lda     #$03
@@ -3099,39 +3100,39 @@ L96FB:  lda     #$F2
         jsr     IECOUT
         jsr     UNLSTN
         ldy     #$00
-        jsr     L972A
+        jsr     send_drive_cmd
         jsr     L811D
         bne     L971F
-        ldy     #$0C
-        jsr     L972A
+        ldy     #drive_cmd_bp - drive_cmds
+        jsr     send_drive_cmd
         lda     #$00
         rts
 
-L971A:  ldy     #$16
-        jsr     L972A
+L971A:  ldy     #drive_cmd_u2 - drive_cmds
+        jsr     send_drive_cmd
 L971F:  lda     #$E2
         jsr     L8133
         jsr     UNLSTN
         lda     #$01
         rts
 
-L972A:  jsr     L8131
-L972D:  lda     L973B,y
+send_drive_cmd:
+        jsr     L8131
+L972D:  lda     drive_cmds,y
         beq     L9738
         jsr     IECOUT
         iny
         bne     L972D
 L9738:  jmp     UNLSTN
 
-L973B:  .byte   "U1:2 0 18 0"
-
-        .byte   $00
-        .byte   "B-P 2 144"
-
-        .byte   $00
-        .byte   "U2:2 0 18 0"
-
-        .byte   $00
+drive_cmds:
+drive_cmd_u1:
+        .byte   "U1:2 0 18 0", 0
+drive_cmd_bp:
+        .byte   "B-P 2 144", 0
+drive_cmd_u2:
+        .byte   "U2:2 0 18 0", 0
+L975D:
         jmp     L0463
 
         jsr     LC1E5
