@@ -1670,11 +1670,12 @@ LABA0:  jsr     basin_cmp_cr
         bne     syntax_error
 LABA5:  ldx     #$00
 LABA7:  lda     s_regs,x
-        beq     LABB2
+        beq     print_registers
         jsr     BSOUT
         inx
         bne     LABA7
-LABB2:  ldx     #';'
+print_registers:
+        ldx     #';'
         jsr     print_dot_x
         lda     $0248 ; PC hi
         jsr     print_hex_byte2 ; address hi
@@ -1893,7 +1894,7 @@ LAD8C:  jsr     get_hex_word
         jsr     LB4DB
         ldy     #$00
         beq     LAD9F
-LAD9C:  jsr     LB4E0
+LAD9C:  jsr     get_bin_byte
 LAD9F:  jsr     store_byte
         iny
         cpy     #$03
@@ -1920,6 +1921,9 @@ LADCB:  jsr     get_hex_word
         jsr     LB671
         jmp     LAC1A
 
+; ----------------------------------------------------------------
+; ";" - set registers
+; ----------------------------------------------------------------
 cmd_semicolon:
         jsr     get_hex_word
         lda     $C4
@@ -1954,12 +1958,14 @@ LAE20:  jsr     basin_if_more
         cpx     #$04
         bne     LAE20
         jsr     basin_if_more
-        jsr     LB4E0
+        jsr     get_bin_byte
         sta     $024A ; processor status
         jsr     print_up
-        jmp     LABB2
+        jmp     print_registers
 
 LAE3D:  jmp     syntax_error
+
+; ----------------------------------------------------------------
 
 LAE40:  jsr     get_hex_word2
         ldx     #$03
@@ -2584,8 +2590,8 @@ LB306:  pla
         rts
 
 ; ----------------------------------------------------------------
-; B - set cartridge bank (0-3) to be visible at $8000-$BFFF
-;     without arguments, this turns off cartridge visibility
+; "B" - set cartridge bank (0-3) to be visible at $8000-$BFFF
+;       without arguments, this turns off cartridge visibility
 ; ----------------------------------------------------------------
 cmd_b:  jsr     basin_cmp_cr
         beq     LB326 ; without arguments, set $70
@@ -2835,10 +2841,11 @@ basin_cmp_cr:
 LB4DB:  pha
         ldx     #$08
         bne     LB4E6
-LB4E0:  ldx     #$08
+get_bin_byte:
+        ldx     #$08
 LB4E2:  pha
         jsr     basin_if_more
-LB4E6:  cmp     #$2A
+LB4E6:  cmp     #'*'
         beq     LB4EB
         clc
 LB4EB:  pla
