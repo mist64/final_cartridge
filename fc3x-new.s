@@ -17,8 +17,8 @@ L9229           := $9229
 L922A           := $922A
 L9511           := $9511
 L9881           := $9881
-L9900           := $9900
-L9903           := $9903
+new_load        := $9900
+new_save        := $9903
 LA161           := $A161
 LA19C           := $A19C
 LA1C5           := $A1C5
@@ -84,7 +84,7 @@ _new_load: ; $DE20
         lda     $01
         pha
         jsr     enable_all_roms
-        jsr     L9900
+        jsr     new_load
 LDE2B:  tax
         pla
         sta     $01
@@ -96,7 +96,7 @@ _new_save: ; $DE35
         lda     $01
         pha
         jsr     enable_all_roms
-        jsr     L9903
+        jsr     new_save
         jmp     LDE2B
 
 _new_mainloop: ; $DE41

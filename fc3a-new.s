@@ -3360,9 +3360,12 @@ L98C7:  lda     #$E1
         jsr     LA762
         lda     #$60
         sta     $B9
-        jsr     LE34C
-        sta     $704C,y
-        txs
+        .byte $20
+
+new_load: ; $9900
+	jmp new_load2
+new_save: ; $9903
+	jmp new_save2
 L9906:  pha
 L9907:  bit     $DD00
         bpl     L9907
@@ -3491,6 +3494,7 @@ L99D6:  pla
         pha
         jmp     _disable_rom_set_01
 
+new_load2:
         sty     $93
         tya
         ldy     $BA
@@ -3563,6 +3567,7 @@ L9A6A:  jmp     LF5ED
 
 L9A6D:  jmp     LA7C6
 
+new_save2:
         lda     $BA
         cmp     #$07
         beq     L9A6D
