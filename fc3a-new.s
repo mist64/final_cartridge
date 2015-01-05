@@ -47,7 +47,6 @@ LA000           := $A000
 LA004           := $A004
 LA007           := $A007
 LA00A           := $A00A
-LA57C           := $A57C ; pointer into cbmbasic
 LA612           := $A612
 LA648           := $A648
 LA659           := $A659
@@ -324,7 +323,7 @@ load_save_vectors:
         .addr   _new_save       ; $0332 SAVE
 basic_vectors:
         .addr   _new_mainloop   ; $0302 IMAIN  BASIC direct mode
-        .addr   LA57C           ; $0304 ICRNCH tokenization (original value!)
+        .addr   $A57C           ; $0304 ICRNCH tokenization (original value!)
         .addr   _new_detokenize ; $0306 IQPLOP token decoder
         .addr   _new_execute    ; $0308 IGONE  execute instruction
         .addr   _new_expression ; $030A IEVAL  execute expression
@@ -618,17 +617,17 @@ new_execute:
         beq     L8342
         ldx     $3A
         inx
-        beq     L8327
+        beq     L8327 ; direct mode
         ldx     $02AA
         beq     L8327
         jsr     L8345
         jsr     _CHRGOT
-L8327:  cmp     #$CC
+L8327:  cmp     #$CC ; first new token
         bcs     L832F
         sec
 L832C:  jmp     _execute_statement
 
-L832F:  cmp     #$E9
+L832F:  cmp     #$E9 ; last new token + 1
         bcs     L832C
         sbc     #$CB
         asl     a
@@ -1997,32 +1996,33 @@ L8E1D:  jsr     L83BA
 
 L8E23:  rts
 
-        bne     L8E23
-        ldy     #$00
+        bne     L8E23 ; rts
+        ldy     #s_basic - s_basic
         lda     #$0C
         ldx     #$00
-        jsr     L8E59
-        ldy     #$07
+        jsr     print_string_and_int
+        ldy     #s_program - s_basic
         lda     #$02
         ldx     #$00
-        jsr     L8E59
-        ldy     #$0F
+        jsr     print_string_and_int
+        ldy     #s_variables - s_basic
         lda     #$04
         ldx     #$02
-        jsr     L8E59
-        ldy     #$19
+        jsr     print_string_and_int
+        ldy     #s_arrays - s_basic
         lda     #$06
         ldx     #$04
-        jsr     L8E59
-        ldy     #$20
+        jsr     print_string_and_int
+        ldy     #s_strings - s_basic
         lda     #$0C
         ldx     #$08
-        jsr     L8E59
-        ldy     #$28
+        jsr     print_string_and_int
+        ldy     #s_free - s_basic
         lda     #$08
         ldx     #$06
-L8E59:  pha
-        jsr     L8E7B
+print_string_and_int:
+        pha
+        jsr     print_mem_string
         pla
         tay
         lda     $2B,y
@@ -2034,22 +2034,29 @@ L8E59:  pha
         ldx     $C1
         ldy     #$0A
         sty     $D3
-        jsr     _print_ax_int
-        ldy     #$10
+        jsr     _print_ax_int ; print number of bytes
+        ldy     #$10 ; column of next character
         sty     $D3
-        ldy     #s_bytes - s_basic
-L8E7B:  lda     s_basic,y
+        ldy     #s_bytes - s_basic ; print "BYTES"
+print_mem_string:
+        lda     s_basic,y
         beq     L8E86
         jsr     _basic_bsout
         iny
-        bne     L8E7B
+        bne     print_mem_string
 L8E86:  rts
 
-s_basic: .byte   $0D, "BASIC", 0
+s_basic:
+        .byte   $0D, "BASIC", 0
+s_program:
         .byte   "PROGRAM", 0
+s_variables:
         .byte   "VARIABLES", 0
+s_arrays:
         .byte   "ARRAYS", 0
+s_strings:
         .byte   "STRINGS", 0
+s_free:
         .byte   "FREE", 0
 s_bytes: .byte   "BYTES", $0D, 0
 
