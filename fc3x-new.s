@@ -19,10 +19,10 @@ L9511           := $9511
 L9881           := $9881
 new_load        := $9900
 new_save        := $9903
-LA161           := $A161
-LA19C           := $A19C
-LA1C5           := $A1C5
-LA1CB           := $A1CB
+new_ckout       := $A161
+new_bsout       := $A19C
+new_clall       := $A1C5
+new_clrch       := $A1CB
 LA533           := $A533
 LA613           := $A613
 LA68E           := $A68E
@@ -288,18 +288,22 @@ _list: ; $DF6E
         .byte   $FF
 
 ; calls into banks 0+1
+_new_ckout: ; $DFC0
         jsr     _enable_rom
-        jsr     LA161
+        jsr     new_ckout
         jmp     _disable_rom
 
+_new_bsout: ; $DFC9
         jsr     _enable_rom
-        jmp     LA19C
+        jmp     new_bsout
 
+_new_clall: ; $DFCF
         jsr     _enable_rom
-        jmp     LA1C5
+        jmp     new_clall
 
+_new_clrch: ; $DFD5
         jsr     _enable_rom
-        jmp     LA1CB
+        jmp     new_clrch
 
 ; padding
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF

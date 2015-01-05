@@ -328,10 +328,14 @@ basic_vectors:
         .addr   _new_detokenize ; $0306 IQPLOP token decoder
         .addr   _new_execute    ; $0308 IGONE  execute instruction
         .addr   _new_expression ; $030A IEVAL  execute expression
-L80EC:  ldy     #$1F
+
+; update the load and save vectors only if all hardware vectors are
+; the KERNAL defaults
+cond_init_load_save_vectors:
+        ldy     #$1F
 L80EE:  lda     $0314,y
         cmp     $FD30,y
-        bne     L810F
+        bne     L810F ; rts
         dey
         bpl     L80EE
 
@@ -474,10 +478,10 @@ L81FB:  sta     $02A9
 
 new_mainloop: ; $81FE
         jsr     L8C71
-        jsr     L80EC
+        jsr     cond_init_load_save_vectors
         jsr     L81E3
         jsr     L98BB
-        stx     $7A
+        stx     $7A ; chrget ptr
         sty     $7B
         jsr     LA004
         jsr     L8C68
@@ -1414,7 +1418,7 @@ L8986:  jsr     LDED3
         sei
         jsr     LFD15
         jsr     LE453
-        jsr     L80EC
+        jsr     cond_init_load_save_vectors
         cli
         jmp     L9881
 
@@ -3366,6 +3370,7 @@ new_load: ; $9900
 	jmp new_load2
 new_save: ; $9903
 	jmp new_save2
+
 L9906:  pha
 L9907:  bit     $DD00
         bpl     L9907

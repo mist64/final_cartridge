@@ -22,6 +22,10 @@ LDE0F           := $DE0F
 LDE14           := $DE14
 LDE6C           := $DE6C
 LDF95           := $DF95
+_new_ckout      := $DFC0
+_new_bsout      := $DFC9
+_new_clall      := $DFCF
+_new_clrch      := $DFD5
 LDFE0           := $DFE0
 
 LE4E0           := $E4E0
@@ -222,21 +226,21 @@ LA0FF:  lda     $DD0D
         sec
         rts
 
-LA10F:  lda     #$C0
-        ldy     #$DF
-        sta     $0320
+LA10F:  lda     #<_new_ckout
+        ldy     #>_new_ckout
+        sta     $0320 ; CKOUT
         sty     $0321
-        lda     #$C9
-        ldy     #$DF
-        sta     $0326
+        lda     #<_new_bsout
+        ldy     #>_new_bsout
+        sta     $0326 ; BSOUT
         sty     $0327
-        lda     #$D5
-        ldy     #$DF
-        sta     $0322
+        lda     #<_new_clrch
+        ldy     #>_new_clrch
+        sta     $0322 ; CLRCH
         sty     $0323
-        lda     #$CF
-        ldy     #$DF
-        sta     $032C
+        lda     #<_new_clall
+        ldy     #>_new_clall
+        sta     $032C ; CLALL
         sty     $032D
         rts
 
@@ -258,6 +262,7 @@ LA138:  lda     #$61
         sty     $032D
         rts
 
+new_ckout: ; $A161
         txa
         pha
         jsr     LF30F
@@ -292,6 +297,7 @@ LA183:  jsr     LA09F
         clc
 LA19B:  rts
 
+new_bsout: ; $A19C
         jsr     LA1A2
         jmp     LDE0F
 
@@ -316,10 +322,13 @@ LA1C0:  lda     $95
         clc
         rts
 
+new_clall: ; $A1C5
         jsr     LA1D1
         jmp     LDE0F
 
+LA1C8:
         jsr     LA1D5
+new_clrch: ; $A1CB
         jmp     LDE0F
 
 LA1D1:  lda     #$00
