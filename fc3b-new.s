@@ -1904,7 +1904,8 @@ disassemble_line:
         jsr     LAFAF
         jmp     LAFD7
 
-LAD6C:  jsr     get_hex_word
+cmd_leftbracket:
+        jsr     get_hex_word
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_skip_spaces_if_more
         jsr     LB4DB
@@ -1916,7 +1917,8 @@ LAD6C:  jsr     get_hex_word
         jsr     create_prefix_leftbracket
         jmp     input_loop2
 
-LAD8C:  jsr     get_hex_word
+cmd_rightbracket:
+        jsr     get_hex_word
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_skip_spaces_if_more
         jsr     LB4DB
@@ -2399,7 +2401,8 @@ cmd_dollar:
         jsr     LBC50
         jmp     input_loop
 
-LB166:  ldy     #$00
+cmd_hash:
+        ldy     #$00
         sty     $C1
         sty     $C2
         jsr     basin_skip_spaces_if_more
@@ -3580,12 +3583,12 @@ function_table:
         .word   cmd_o-1
         .word   cmd_at-1
         .word   cmd_dollar-1
-        .word   LB166-1
-        .word   LBA8F-1
-        .word   LBBF7-1
+        .word   cmd_hash-1
+        .word   cmd_asterisk-1
+        .word   cmd_p-1
         .word   cmd_e-1
-        .word   LAD6C-1
-        .word   LAD8C-1
+        .word   cmd_leftbracket-1
+        .word   cmd_rightbracket-1
         .word   cmd_mid-1
         .word   cmd_singlequote-1
         .word   cmd_semicolon-1
@@ -3593,7 +3596,8 @@ function_table:
 
 LBA8C:  jmp     syntax_error
 
-LBA8F:  jsr     listen_command_channel
+cmd_asterisk:
+        jsr     listen_command_channel
         jsr     UNLSTN
         jsr     BASIN
         cmp     #$57
@@ -3758,7 +3762,8 @@ iec_send_c1_c2_plus_y:
 
 LBBF4:  jmp     syntax_error
 
-LBBF7:  lda     $0253 ; bank
+cmd_p:
+        lda     $0253 ; bank
         bmi     LBBF4
         ldx     #$FF
         lda     $BA
