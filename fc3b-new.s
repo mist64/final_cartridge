@@ -1666,7 +1666,7 @@ LAB76:  lda     #'B'
         lda     #$80
         sta     $028A
         bne     LABA5
-LABA0:  jsr     _basin_cmp_cr
+LABA0:  jsr     basin_cmp_cr
         bne     syntax_error
 LABA5:  ldx     #$00
 LABA7:  lda     s_regs,x
@@ -1720,7 +1720,7 @@ input_loop:
         lda     #$00
         sta     $0254
         jsr     print_cr_dot
-LAC1A:  jsr     LB4C2
+LAC1A:  jsr     basin_if_more
         cmp     #'.'
         beq     LAC1A ; skip dots
         cmp     #' '
@@ -1761,16 +1761,16 @@ LAC59:  sta     $0277,x
         jmp     LAC1A
 
 LAC66:  sta     $0252
-LAC69:  jsr     LB4F1
-        jsr     _basin_cmp_cr
+LAC69:  jsr     get_hex_word
+        jsr     basin_cmp_cr
         bne     LAC80
         jsr     LB644
         jmp     LAC86
 
 LAC77:  jmp     LAEAC
 
-LAC7A:  jsr     LB4F1
-        jsr     LB4C2
+LAC7A:  jsr     get_hex_word
+        jsr     basin_if_more
 LAC80:  jsr     LB625
         jsr     LB4FD
 LAC86:  lda     $0252
@@ -1818,8 +1818,8 @@ LACDB:  jsr     print_cr
         jsr     LAD49
         jmp     LACD6
 
-LACE4:  jsr     LB4C2
-        jsr     LB508
+LACE4:  jsr     basin_if_more
+        jsr     get_hex_byte
         jsr     LB22E
         jmp     print_cr_then_input_loop
 
@@ -1875,7 +1875,7 @@ LAD5A:  jsr     print_hex_16
         jsr     LAFAF
         jmp     LAFD7
 
-LAD6C:  jsr     LB4F1
+LAD6C:  jsr     get_hex_word
         jsr     LB644
         jsr     LB4BC
         jsr     LB4DB
@@ -1887,7 +1887,7 @@ LAD6C:  jsr     LB4F1
         jsr     LB677
         jmp     LAC1A
 
-LAD8C:  jsr     LB4F1
+LAD8C:  jsr     get_hex_word
         jsr     LB644
         jsr     LB4BC
         jsr     LB4DB
@@ -1904,7 +1904,7 @@ LAD9F:  jsr     store_byte
         jsr     LB67A
         jmp     LAC1A
 
-LADB6:  jsr     LB4F1
+LADB6:  jsr     get_hex_word
         jsr     LB5BE
         jsr     print_up
         jsr     LAD39
@@ -1912,7 +1912,7 @@ LADB6:  jsr     LB4F1
         jsr     LB67D
         jmp     LAC1A
 
-LADCB:  jsr     LB4F1
+LADCB:  jsr     get_hex_word
         jsr     LB5E5
         jsr     print_up
         jsr     LAD28
@@ -1921,39 +1921,39 @@ LADCB:  jsr     LB4F1
         jmp     LAC1A
 
 cmd_semicolon:
-        jsr     LB4F1
+        jsr     get_hex_word
         lda     $C4
         sta     $0248
         lda     $C3
         sta     $0249
-        jsr     LB4C2
+        jsr     basin_if_more
         jsr     LB4FD
         lda     $C3
         sta     $024F
         lda     $C4
         sta     $0250
-        jsr     LB4C2
-        jsr     LB4C2
+        jsr     basin_if_more
+        jsr     basin_if_more
         cmp     #$44
         bne     LAE12
-        jsr     LB4C2
+        jsr     basin_if_more
         cmp     #$52
         bne     LAE3D
         ora     #$80
         bmi     LAE1B
-LAE12:  jsr     LB510
+LAE12:  jsr     get_hex_byte2
         cmp     #$08
         bcs     LAE3D
         ora     #$30
 LAE1B:  sta     $0253 ; bank
         ldx     #$00
-LAE20:  jsr     LB4C2
-        jsr     LB508
+LAE20:  jsr     basin_if_more
+        jsr     get_hex_byte
         sta     $024B,x
         inx
         cpx     #$04
         bne     LAE20
-        jsr     LB4C2
+        jsr     basin_if_more
         jsr     LB4E0
         sta     $024A
         jsr     print_up
@@ -1969,7 +1969,7 @@ LAE40:  jsr     LB4FD
         jsr     LB66E
         jmp     LAC1A
 
-LAE53:  jsr     LB4F1
+LAE53:  jsr     get_hex_word
         jsr     LB030
         jsr     LB05C
         ldx     #$00
@@ -1997,7 +1997,7 @@ LAE88:  jsr     LB655
         jmp     syntax_error
 
 LAE90:  sty     $020A
-        jsr     LB4C2
+        jsr     basin_if_more
         jsr     LB4FD
         lda     $0252
         cmp     #$08
@@ -2008,13 +2008,13 @@ LAE90:  sty     $020A
 LAEA6:  jsr     LB245
         jmp     input_loop
 
-LAEAC:  jsr     LB4C2
+LAEAC:  jsr     basin_if_more
         ldx     #$00
         stx     $020B
-        jsr     LB4C2
+        jsr     basin_if_more
         cmp     #$22
         bne     LAECF
-LAEBB:  jsr     _basin_cmp_cr
+LAEBB:  jsr     basin_cmp_cr
         beq     LAEE7
         cmp     #$22
         beq     LAEE7
@@ -2024,11 +2024,11 @@ LAEBB:  jsr     _basin_cmp_cr
         bne     LAEBB
         jmp     syntax_error
 
-LAECF:  jsr     LB510
+LAECF:  jsr     get_hex_byte2
         bcs     LAEDC
-LAED4:  jsr     _basin_cmp_cr
+LAED4:  jsr     basin_cmp_cr
         beq     LAEE7
-        jsr     LB508
+        jsr     get_hex_byte
 LAEDC:  sta     $0200,x
         inx
         cpx     #$20
@@ -2041,10 +2041,10 @@ LAEE7:  stx     $0252
         jsr     LB293
         jmp     input_loop
 
-LAEF3:  jsr     _basin_cmp_cr
+LAEF3:  jsr     basin_cmp_cr
         beq     LAF03
         jsr     LB4F4
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         beq     LAF06
         jmp     syntax_error
 
@@ -2209,7 +2209,7 @@ LB028:  jsr     LB01B
 
 LB030:  ldx     #$00
         stx     $0211
-LB035:  jsr     LB4C2
+LB035:  jsr     basin_if_more
         cmp     #$20
         beq     LB030
         sta     $0200,x
@@ -2240,7 +2240,7 @@ LB05E:  jsr     BASIN
         beq     LB05E
         jsr     LB61C
         bcs     LB081
-        jsr     LB513
+        jsr     get_hex_byte3
         ldy     $C1
         sty     $C2
         sta     $C1
@@ -2344,7 +2344,7 @@ LB146:  inx
         ldx     $0203
         rts
 
-LB14E:  jsr     LB4F1
+LB14E:  jsr     get_hex_word
         jsr     print_up_dot
         jsr     LB644
         jsr     print_dollar_hex_16
@@ -2587,7 +2587,7 @@ LB306:  pla
 ; B - set cartridge bank (0-3) to be visible at $8000-$BFFF
 ;     without arguments, this turns off cartridge visibility
 ; ----------------------------------------------------------------
-cmd_b:  jsr     _basin_cmp_cr
+cmd_b:  jsr     basin_cmp_cr
         beq     LB326 ; without arguments, set $70
         cmp     #' '
         beq     cmd_b ; skip spaces
@@ -2605,7 +2605,7 @@ LB326:  lda     #$70 ; by default, hide cartridge
 LB32E:  jmp     syntax_error
 
 cmd_o:
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         beq     LB33F ; without arguments: bank 7
         cmp     #' '
         beq     cmd_o
@@ -2674,7 +2674,7 @@ LB3B3:  jmp     input_loop
 
 LB3B6:  cmp     #$22
         bne     LB3CC
-LB3BA:  jsr     _basin_cmp_cr
+LB3BA:  jsr     basin_cmp_cr
         beq     LB388
         cmp     #$22
         beq     LB3CF
@@ -2685,11 +2685,11 @@ LB3BA:  jsr     _basin_cmp_cr
         bne     LB3BA
 LB3CC:  jmp     syntax_error
 
-LB3CF:  jsr     _basin_cmp_cr
+LB3CF:  jsr     basin_cmp_cr
         beq     LB388
         cmp     #$2C
 LB3D6:  bne     LB3CC
-        jsr     LB508
+        jsr     get_hex_byte
         and     #$0F
         beq     LB3CC
         cmp     #$01
@@ -2697,13 +2697,13 @@ LB3D6:  bne     LB3CC
         cmp     #$04
         bcc     LB3CC
 LB3E7:  sta     $BA
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         beq     LB388
         cmp     #$2C
 LB3F0:  bne     LB3D6
         jsr     LB4FD
         jsr     LB625
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         bne     LB408
         lda     $0252
         cmp     #$0B
@@ -2742,7 +2742,7 @@ LB438:  lda     #$DE
 
 cmd_at: 
         jsr     listen_command_channel
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         beq     LB466
         cmp     #'$'
         beq     LB475
@@ -2751,7 +2751,7 @@ cmd_at:
         jsr     fast_format
         lda     #'F'
 LB458:  jsr     IECOUT
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         bne     LB458
         jsr     UNLSTN
         jmp     print_cr_then_input_loop
@@ -2813,8 +2813,10 @@ print_cr:
 LB4BC:  jsr     LB4CB
         jmp     LB4C5
 
-LB4C2:  jsr     _basin_cmp_cr
-LB4C5:  bne     LB4CA
+; get a character; if it's CR, return to main input loop
+basin_if_more:
+        jsr     basin_cmp_cr
+LB4C5:  bne     LB4CA ; rts
         jmp     input_loop
 
 LB4CA:  rts
@@ -2825,7 +2827,8 @@ LB4CB:  jsr     BASIN
         cmp     #$0D
         rts
 
-_basin_cmp_cr:  jsr     BASIN
+basin_cmp_cr:
+        jsr     BASIN
         cmp     #$0D
         rts
 
@@ -2834,7 +2837,7 @@ LB4DB:  pha
         bne     LB4E6
 LB4E0:  ldx     #$08
 LB4E2:  pha
-        jsr     LB4C2
+        jsr     basin_if_more
 LB4E6:  cmp     #$2A
         beq     LB4EB
         clc
@@ -2844,53 +2847,63 @@ LB4EB:  pla
         bne     LB4E2
         rts
 
-LB4F1:  jsr     LB4C2
-LB4F4:  cmp     #$20
-        beq     LB4F1
-        jsr     LB510
-        bcs     LB500
-LB4FD:  jsr     LB508
+; get a 16 bit ASCII hex number from the user, return it in $C3/$C4
+get_hex_word:
+        jsr     basin_if_more
+LB4F4:  cmp     #' ' ; skip spaces
+        beq     get_hex_word
+        jsr     get_hex_byte2
+        bcs     LB500 ; ??? always
+LB4FD:  jsr     get_hex_byte
 LB500:  sta     $C4
-        jsr     LB508
+        jsr     get_hex_byte
         sta     $C3
         rts
 
-LB508:  lda     #$00
-        sta     $0256
-        jsr     LB4C2
-LB510:  jsr     LB536
-LB513:  jsr     LB528
+; get a 8 bit ASCII hex number from the user, return it in A
+get_hex_byte:
+        lda     #$00
+        sta     $0256 ; XXX not necessary?
+        jsr     basin_if_more
+get_hex_byte2:
+        jsr     validate_hex_digit
+get_hex_byte3:
+        jsr     hex_digit_to_nybble
         asl     a
         asl     a
         asl     a
         asl     a
-        sta     $0256
-        jsr     LB533
-        jsr     LB528
+        sta     $0256 ; low nybble
+        jsr     get_hex_digit
+        jsr     hex_digit_to_nybble
         ora     $0256
         sec
         rts
 
-LB528:  cmp     #$3A
+hex_digit_to_nybble:
+        cmp     #'9' + 1
         and     #$0F
         bcc     LB530
-        adc     #$08
+        adc     #'A' - '9'
 LB530:  rts
 
         clc
         rts
 
-LB533:  jsr     LB4C2
-LB536:  cmp     #$30
-        bcc     LB547
-        cmp     #$40
-        bcc     LB546
-        cmp     #$41
-        bcc     LB547
-        cmp     #$47
-        bcs     LB547
+; get character and check for legal ASCII hex digit
+; XXX this also allows ":;<=>?" (0x39-0x3F)!!!
+get_hex_digit:
+        jsr     basin_if_more
+validate_hex_digit:
+        cmp     #'0'
+        bcc     LB547 ; error
+        cmp     #'@' ; XXX should be: '9' + 1
+        bcc     LB546 ; ok
+        cmp     #'A'
+        bcc     LB547 ; error
+        cmp     #'F' + 1
+        bcs     LB547 ; error
 LB546:  rts
-
 LB547:  jmp     syntax_error
 
 print_dollar_hex_16:
@@ -2967,12 +2980,12 @@ LB5AD:  jsr     BSOUT
 LB5BE:  ldx     #$20
         ldy     #$00
         jsr     LB644
-        jsr     LB4C2
+        jsr     basin_if_more
 LB5C8:  sty     $0209
         ldy     $D3
         lda     ($D1),y
         php
-        jsr     LB4C2
+        jsr     basin_if_more
         ldy     $0209
         plp
         bmi     LB5E0
@@ -2988,7 +3001,7 @@ LB5E5:  ldx     #$08
 LB5E7:  ldy     #$00
         jsr     LB644
         jsr     LB4BC
-        jsr     LB510
+        jsr     get_hex_byte2
         jmp     LB607
 
 LB5F5:  jsr     LB60F
@@ -2997,14 +3010,14 @@ LB5F5:  jsr     LB60F
         jsr     LB60F
         bne     LB619
         beq     LB60A
-LB604:  jsr     LB510
+LB604:  jsr     get_hex_byte2
 LB607:  jsr     store_byte
 LB60A:  iny
         dex
         bne     LB5F5
         rts
 
-LB60F:  jsr     _basin_cmp_cr
+LB60F:  jsr     basin_cmp_cr
         bne     LB616
         pla
         pla
@@ -3352,14 +3365,14 @@ LB89D:  jsr     LB88B
         rts
 
 LB8B1:  jsr     LB88B
-        jsr     LB528
+        jsr     hex_digit_to_nybble
         asl     a
         asl     a
         asl     a
         asl     a
         sta     $020B
         jsr     LB88B
-        jsr     LB528
+        jsr     hex_digit_to_nybble
         ora     $020B
         rts
 
@@ -3502,22 +3515,22 @@ LBA8F:  jsr     listen_command_channel
         bne     LBA8C
 LBAA0:  sta     $C3
         jsr     LB4BC
-        jsr     LB510
+        jsr     get_hex_byte2
         bcc     LBA8C
         sta     $C1
-        jsr     LB4C2
-        jsr     LB508
+        jsr     basin_if_more
+        jsr     get_hex_byte
         bcc     LBA8C
         sta     $C2
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         bne     LBAC1
         lda     #$CF
         sta     $C4
         bne     LBACD
-LBAC1:  jsr     LB508
+LBAC1:  jsr     get_hex_byte
         bcc     LBA8C
         sta     $C4
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         bne     LBA8C
 LBACD:  jsr     LBB48
         jsr     LB625
@@ -3664,13 +3677,13 @@ LBBF7:  lda     $0253 ; bank
         lda     $BA
         cmp     #$04
         beq     LBC11
-        jsr     _basin_cmp_cr
+        jsr     basin_cmp_cr
         beq     LBC16
         cmp     #$2C
         bne     LBBF4
-        jsr     LB508
+        jsr     get_hex_byte
         tax
-LBC11:  jsr     _basin_cmp_cr
+LBC11:  jsr     basin_cmp_cr
         bne     LBBF4
 LBC16:  sta     $0277
         inc     $C6
