@@ -44,7 +44,7 @@ L04F6           := $04F6
 L0582           := $0582
 L0630           := $0630
 LA000           := $A000
-LA004           := $A004
+set_io_vectors  := $A004
 LA007           := $A007
 LA00A           := $A00A
 LA612           := $A612
@@ -64,7 +64,7 @@ LA7C6           := $A7C6
 LA851           := $A851
 LA8FF           := $A8FF
 LA9BB           := $A9BB
-LAB00           := $AB00
+monitor         := $AB00
 LC100           := $C100
 LC194           := $C194
 LC1E5           := $C1E5
@@ -221,7 +221,7 @@ entry:  jmp     entry2
 
         jmp     init_basic_vectors
 
-        jsr     LA004
+        jsr     set_io_vectors
         lda     #$43 ; bank 2
         jmp     _jmp_bank
 
@@ -339,7 +339,7 @@ L80EE:  lda     $0314,y
         bpl     L80EE
 
 init_load_save_vectors:
-        jsr     LA004 ; ???
+        jsr     set_io_vectors
         ldy     #$03
 L80FE:  lda     load_save_vectors,y ; overwrite LOAD and SAVE vectors
         sta     $0330,y
@@ -482,7 +482,7 @@ new_mainloop: ; $81FE
         jsr     L98BB
         stx     $7A ; chrget ptr
         sty     $7B
-        jsr     LA004
+        jsr     set_io_vectors
         jsr     L8C68
         jsr     CHRGET
         tax
@@ -1430,7 +1430,7 @@ KILL:   bne     L89BC
 L89BC:  rts
 
 MON:    bne     L89BC
-        jmp     LAB00
+        jmp     monitor
 
 BAR:    tax
         lda     #$00
@@ -1469,10 +1469,10 @@ L89FB:  .byte   "ARE YOU SURE (Y/N)?"
         .byte   $0D,$00,$0D,"READY.",$0D,$00
 
 DLOAD:  
-        lda     #$00
+        lda     #$00 ; load flag
         .byte   $2C
 DVERIFY:
-        lda     #$01
+        lda     #$01 ; verify flag
         sta     $0A
         jsr     L8BA4
         jmp     L989A
@@ -1630,7 +1630,7 @@ PLIST:  jsr     L8AF0
         lda     #$0D
         jsr     BSOUT
         jsr     CLRCH
-        jsr     LA004
+        jsr     set_io_vectors
         lda     #$8B
         ldx     #$E3
 L8B66:  sta     $0300
@@ -1658,7 +1658,7 @@ L8B92:  jsr     L8BE3
 L8B95:  jsr     L8453
         jsr     LA007
         jsr     CLRCH
-        jsr     LA004
+        jsr     set_io_vectors
         jmp     L8A53
 
 L8BA4:  lda     #$02
@@ -2833,7 +2833,7 @@ L94B3:  dex
         lda     #$0D
         jsr     BSOUT
         jsr     CLRCH
-        jmp     LA004
+        jmp     set_io_vectors
 
 fkey_strings:
         .byte   $8D, "LIST:", $0D, 0
@@ -3062,7 +3062,7 @@ L96AC:  lda     #$0D
         jsr     CLALL
         lda     #$01
         jsr     CLOSE
-        jsr     LA004
+        jsr     set_io_vectors
         jmp     L95CB
 
 L96BF:  jsr     LA007

@@ -96,7 +96,8 @@ IOBASE          := $FFF3
 
         .addr   L80CE
         .addr   _basic_warm_start
-LA004:  jmp     LA10F
+set_io_vectors:
+        jmp     set_io_vectors2
 
 LA007:  jmp     LA138
 
@@ -225,7 +226,8 @@ LA0FF:  lda     $DD0D
         sec
         rts
 
-LA10F:  lda     #<_new_ckout
+set_io_vectors2:
+        lda     #<_new_ckout
         ldy     #>_new_ckout
         sta     $0320 ; CKOUT
         sty     $0321
@@ -1577,26 +1579,33 @@ LA9F6:  dex
         .byte   $A4
         .byte   "G"
         .byte   $CF,$00
-        lda     #$3D
+
+monitor: ; $AB00
+        lda     #<(brk_entry - ram_code + L0220)
         sta     $0316
-        lda     #$02
-        sta     $0317
+        lda     #>(brk_entry - ram_code + L0220)
+        sta     $0317 ; BRK vector
         lda     #$43
         sta     $0251
         lda     #$37
         sta     $0253
         lda     #$70
         sta     $0257
-        ldx     #$22
-LAB1B:  lda     LAB25,x
+        ldx     #ram_code_end - ram_code - 1
+LAB1B:  lda     ram_code,x
         sta     L0220,x
         dex
         bpl     LAB1B
-        brk
-LAB25:  sta     $DFFF
+        brk ; <- nice!
+
+; code that will be copied to $0220
+ram_code:
+        sta     $DFFF
         pla
         sta     $01
         lda     ($C1),y
+; $0228
+; enable all ROMs
         pha
         lda     #$37
         sta     $01
@@ -1604,16 +1613,19 @@ LAB25:  sta     $DFFF
         sta     $DFFF
         pla
         rts
-
+; $0234
+; rti
         jsr     _disable_rom
         sta     $01
         lda     $024B
         rti
 
-        jsr     L0228
+brk_entry:
+        jsr     L0228; enable all ROMs
         jmp     LAB48
+ram_code_end:
 
-LAB48:  cld
+LAB48:  cld ; <- important :)
         pla
         sta     $024D
         pla
@@ -1675,9 +1687,9 @@ LABB2:  ldx     #$3B
         jsr     LB4B4
         lda     $0253
         bpl     LABE6
-        lda     #$44
+        lda     #'D'
         jsr     BSOUT
-        lda     #$52
+        lda     #'R'
         jsr     BSOUT
         bne     LABEB
 LABE6:  and     #$0F
@@ -1695,7 +1707,7 @@ LABED:  jsr     LB4B4
         beq     LAC0E
 LAC06:  lda     #$3F
         .byte   $2C
-LAC09:  lda     #$0D
+LAC09:  lda     #$0D ; CR
         jsr     BSOUT
 LAC0E:  ldx     $024E
         txs
@@ -2033,7 +2045,7 @@ LAF03:  jsr     LB63A
 LAF06:  lda     $0253
         bmi     LAF2B
         jsr     LB6B3
-        jsr     LA004
+        jsr     set_io_vectors
         ldx     $024E
         txs
         lda     $C4
@@ -2045,7 +2057,7 @@ LAF06:  lda     $0253
         ldx     $024C
         ldy     $024D
         lda     $0253
-        jmp     L0234
+        jmp     L0234 ; rti
 
 LAF2B:  lda     #$45
         jsr     LBBD0
@@ -2380,7 +2392,7 @@ LB19B:  jsr     LB4A8
         jmp     LAC0E
 
 LB1B9:  jsr     LB6B3
-        jsr     LA004
+        jsr     set_io_vectors
         lda     #$00
         sta     $028A
         ldx     $024E
@@ -2631,7 +2643,7 @@ LB38F:  jsr     LB35C
         plp
 LB3A4:  bcc     LB3B3
 LB3A6:  ldx     #$00
-LB3A8:  lda     $F0BD,x
+LB3A8:  lda     $F0BD,x ; "I/O ERROR"
         jsr     BSOUT
         inx
         cpx     #$0A
@@ -2746,7 +2758,7 @@ LB497:  ldx     #$91
 LB49A:  ldx     #$2E
         lda     #$0D
         .byte   $2C
-LB49F:  lda     #$2E
+LB49F:  lda     #'.'
 LB4A1:  jsr     BSOUT
         txa
         jmp     BSOUT
@@ -2759,7 +2771,7 @@ LB4B1:  lda     #$23
         .byte   $2C
 LB4B4:  lda     #$20
         .byte   $2C
-LB4B7:  lda     #$0D
+LB4B7:  lda     #$0D ; CR
         jmp     BSOUT
 
 LB4BC:  jsr     LB4CB
@@ -2847,7 +2859,7 @@ LB547:  jmp     LAC06
 
 LB54A:  lda     #$24
         .byte   $2C
-LB54D:  lda     #$20
+LB54D:  lda     #' '
         jsr     BSOUT
 LB552:  lda     $C2
         jsr     LB559
@@ -2862,7 +2874,7 @@ LB565:  rol     a
         pha
         lda     #$2A
         bcs     LB56D
-        lda     #$2E
+        lda     #'.'
 LB56D:  jsr     BSOUT
         pla
         dex
@@ -3345,7 +3357,7 @@ LB8FE:  ldx     #$00
         lda     #$94
         sta     $D9
         sta     $DA
-        lda     #$13
+        lda     #$13 ; HOME
         jmp     BSOUT
 
 LB90E:  lda     #$10
