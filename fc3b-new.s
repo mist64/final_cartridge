@@ -30,7 +30,6 @@ LDFE0           := $DFE0
 LE4E0           := $E4E0
 LE50C           := $E50C
 LE60A           := $E60A
-LE716           := $E716
 LE96C           := $E96C
 LEA31           := $EA31
 LED0C           := $ED0C
@@ -935,9 +934,9 @@ LA61C:  lda     #$6F
         jmp     TKSA
 
 LA628:  jsr     LA632
-        jsr     LE716
+        jsr     $E716 ; KERNAL: output character to screen
         tya
-        jmp     LE716
+        jmp     $E716 ; KERNAL: output character to screen
 
 LA632:  pha
         and     #$0F
@@ -1001,7 +1000,7 @@ LA6A7:  rts
 
 LA6A8:  lda     LA6B3,y
         beq     LA6A7
-        jsr     LE716
+        jsr     $E716 ; KERNAL: output character to screen
         iny
         bne     LA6A8
 LA6B3:  .byte   " FROM $"
@@ -1100,7 +1099,7 @@ LA768:  lda     $9D
         jsr     LA7B7
         ldy     #$05
 LA773:  lda     ($B2),y
-        jsr     LE716
+        jsr     $E716 ; KERNAL: output character to screen
         iny
         cpy     #$15
         bne     LA773
@@ -1122,7 +1121,7 @@ LA796:  ldy     $B7
         beq     LA7A7
         ldy     #$00
 LA79C:  jsr     _load_bb_indy
-        jsr     LE716
+        jsr     $E716 ; KERNAL: output character to screen
         iny
         cpy     $B7
         bne     LA79C
@@ -1139,7 +1138,7 @@ LA7B3:  bit     $9D
 LA7B7:  lda     $F0BD,y
         php
         and     #$7F
-        jsr     LE716
+        jsr     $E716 ; KERNAL: output character to screen
         iny
         plp
         bpl     LA7B7
@@ -2744,18 +2743,18 @@ LB458:  jsr     IECOUT
 LB466:  jsr     print_cr
         jsr     UNLSTN
         jsr     talk_cmd_channel
-        jsr     LBCA5
+        jsr     cat_line_iec
         jmp     input_loop
 
 ; show directory
 LB475:  jsr     UNLSTN
         jsr     print_cr
-        lda     #$F0
+        lda     #$F0 ; sec address
         jsr     init_and_listen
-        lda     #$24
+        lda     #'$'
         jsr     IECOUT
         jsr     UNLSTN
-        jsr     LBCD2
+        jsr     directory
         jmp     input_loop
 
 LB48E:  jsr     print_space
@@ -3517,7 +3516,7 @@ LBACD:  jsr     LBB48
         pha
         jsr     print_cr
         pla
-LBAED:  jsr     LE716
+LBAED:  jsr     $E716 ; KERNAL: output character to screen
         jsr     IECIN
         cmp     #$0D
         bne     LBAED
@@ -3703,7 +3702,7 @@ LBC60:  sta     $C2
         lda     $C4
         cmp     $C3
         beq     LBC7D
-        jsr     LE716
+        jsr     $E716 ; KERNAL: output character to screen
         dec     $C3
 LBC7D:  dex
         beq     LBC56
@@ -3729,16 +3728,18 @@ init_and_listen:
 
 talk_cmd_channel:
         lda     #$6F
-LBC9A:  pha
+init_and_talk:
+        pha
         jsr     init_drive
         jsr     TALK
         pla
         jmp     TKSA
 
-LBCA5:  jsr     IECIN
-        jsr     LE716
+cat_line_iec:
+        jsr     IECIN
+        jsr     $E716 ; KERNAL: output character to screen
         cmp     #$0D
-        bne     LBCA5
+        bne     cat_line_iec
         jmp     UNTALK
 
 print_hex_byte:
@@ -3765,47 +3766,48 @@ LBCC8:  clc
 LBCCF:  adc     #$3A
         rts
 
-LBCD2:  lda     #$60
+directory:
+        lda     #$60
         sta     $B9
-        jsr     LBC9A
+        jsr     init_and_talk
         jsr     IECIN
-        jsr     IECIN
+        jsr     IECIN ; skip load address
 LBCDF:  jsr     IECIN
-        jsr     IECIN
+        jsr     IECIN ; skip link word
         jsr     IECIN
         tax
-        jsr     IECIN
+        jsr     IECIN ; line number (=blocks)
         ldy     $90
-        bne     LBD2F
-        jsr     LBC4C
-        lda     #$20
-        jsr     LE716
+        bne     LBD2F ; error
+        jsr     LBC4C ; print A/X decimal
+        lda     #' '
+        jsr     $E716 ; KERNAL: output character to screen
         ldx     #$18
 LBCFA:  jsr     IECIN
 LBCFD:  ldy     $90
-        bne     LBD2F
+        bne     LBD2F ; error
         cmp     #$0D
-        beq     LBD09
+        beq     LBD09 ; convert $0D to $1F
         cmp     #$8D
-        bne     LBD0B
-LBD09:  lda     #$1F
-LBD0B:  jsr     LE716
+        bne     LBD0B ; also convert $8D to $1F
+LBD09:  lda     #$1F ; ???BLUE
+LBD0B:  jsr     $E716 ; KERNAL: output character to screen
         inc     $D8
         jsr     GETIN
         cmp     #$03
-        beq     LBD2F
-        cmp     #$20
+        beq     LBD2F ; STOP
+        cmp     #' '
         bne     LBD20
 LBD1B:  jsr     GETIN
-        beq     LBD1B
+        beq     LBD1B ; space pauses until the next key press
 LBD20:  dex
         bpl     LBCFA
         jsr     IECIN
         bne     LBCFD
-        lda     #$0D
-        jsr     LE716
-LBD2D:  bne     LBCDF
-LBD2F:  jmp     LF646
+        lda     #$0D ; CR
+        jsr     $E716 ; KERNAL: output character to screen
+LBD2D:  bne     LBCDF ; next line
+LBD2F:  jmp     LF646 ; CLOSE
 
 init_drive:
         lda     #$00
@@ -3830,7 +3832,7 @@ LBD4B:  ldy     $90
         cmp     #$8D
         bne     LBD59
 LBD57:  lda     #$1F
-LBD59:  jsr     LE716
+LBD59:  jsr     $E716 ; KERNAL: output character to screen
         inc     $D8
         jsr     GETIN
         cmp     #$03
@@ -3843,8 +3845,8 @@ LBD6E:  dex
         bpl     LBD48
         jsr     IECIN
         bne     LBD4B
-        lda     #$0D
-        jsr     LE716
+        lda     #$0D ; CR
+        jsr     $E716 ; KERNAL: output character to screen
         bne     LBD2D
 LBD7D:  jmp     LF646
 
