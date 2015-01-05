@@ -2872,7 +2872,7 @@ LB559:  sty     $0255
 LB563:  ldx     #$08
 LB565:  rol     a
         pha
-        lda     #$2A
+        lda     #'*'
         bcs     LB56D
         lda     #'.'
 LB56D:  jsr     BSOUT
