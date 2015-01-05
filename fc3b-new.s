@@ -1642,21 +1642,21 @@ LAB48:  cld ; <- important :)
         stx     $024E
         jsr     LB6B3
         jsr     LA007
-        jsr     LB4B7
+        jsr     print_cr
         lda     $0251
-        cmp     #$43
+        cmp     #'C'
         bne     LAB76
-        .byte   $2C
-LAB76:  lda     #$42
-        ldx     #$2A
-        jsr     LB4A1
+        .byte   $2C ; XXX bne + skip = beq + 2
+LAB76:  lda     #'B'
+        ldx     #'*'
+        jsr     print_a_x
         clc
         lda     $0249
         adc     #$FF
         sta     $0249
         lda     $0248
         adc     #$FF
-        sta     $0248
+        sta     $0248 ; decrement $0248/$0249
         lda     $BA
         and     #$FB
         sta     $BA
@@ -1665,26 +1665,26 @@ LAB76:  lda     #$42
         lda     #$80
         sta     $028A
         bne     LABA5
-LABA0:  jsr     LB4D5
+LABA0:  jsr     _basin_cmp_cr
         bne     LAC06
 LABA5:  ldx     #$00
-LABA7:  lda     LBA15,x
+LABA7:  lda     s_regs,x
         beq     LABB2
         jsr     BSOUT
         inx
         bne     LABA7
-LABB2:  ldx     #$3B
-        jsr     LB49F
+LABB2:  ldx     #';'
+        jsr     print_dot_x
         lda     $0248
         jsr     LB559
         lda     $0249
         jsr     LB559
-        jsr     LB4B4
+        jsr     print_space
         lda     $0250
         jsr     LB559
         lda     $024F
         jsr     LB559
-        jsr     LB4B4
+        jsr     print_space
         lda     $0253
         bpl     LABE6
         lda     #'D'
@@ -1695,13 +1695,13 @@ LABB2:  ldx     #$3B
 LABE6:  and     #$0F
         jsr     LB559
 LABEB:  ldy     #$00
-LABED:  jsr     LB4B4
+LABED:  jsr     print_space
         lda     $024B,y
         jsr     LB559
         iny
         cpy     #$04
         bne     LABED
-        jsr     LB4B4
+        jsr     print_space
         lda     $024A
         jsr     LB563
         beq     LAC0E
@@ -1713,7 +1713,7 @@ LAC0E:  ldx     $024E
         txs
         lda     #$00
         sta     $0254
-        jsr     LB49A
+        jsr     print_cr_dot
 LAC1A:  jsr     LB4C2
         cmp     #$2E
         beq     LAC1A
@@ -1742,9 +1742,9 @@ LAC40:  jsr     BASIN
         beq     LAC66
         jmp     LAC06
 
-LAC4E:  lda     #$91
-        ldx     #$0D
-        jsr     LB4A1
+LAC4E:  lda     #$91 ; UP
+        ldx     #$0D ; CR
+        jsr     print_a_x
         lda     #$1D
         ldx     #$00
 LAC59:  sta     $0277,x
@@ -1756,7 +1756,7 @@ LAC59:  sta     $0277,x
 
 LAC66:  sta     $0252
 LAC69:  jsr     LB4F1
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         bne     LAC80
         jsr     LB644
         jmp     LAC86
@@ -1787,7 +1787,7 @@ LACA6:  jsr     LB64D
         bcs     LACAE
 LACAB:  jmp     LAC4E
 
-LACAE:  jsr     LB4B7
+LACAE:  jsr     print_cr
         lda     $0252
         beq     LACC4
         cmp     #$53
@@ -1808,7 +1808,7 @@ LACD0:  jsr     LACF0
 
 LACD6:  jsr     LB64D
         bcc     LACAB
-LACDB:  jsr     LB4B7
+LACDB:  jsr     print_cr
         jsr     LAD49
         jmp     LACD6
 
@@ -1817,10 +1817,10 @@ LACE4:  jsr     LB4C2
         jsr     LB22E
         jmp     LAC09
 
-LACF0:  ldx     #$5D
-        jsr     LB49F
-        jsr     LB552
-        jsr     LB4B4
+LACF0:  ldx     #']'
+        jsr     print_dot_x
+        jsr     print_hex_16
+        jsr     print_space
         ldy     #$00
 LACFD:  jsr     LB2E9
         jsr     LB563
@@ -1831,39 +1831,39 @@ LACFD:  jsr     LB2E9
         tya
         jmp     LB8CA
 
-LAD0F:  ldx     #$5B
-        jsr     LB49F
-        jsr     LB552
-        jsr     LB4B4
+LAD0F:  ldx     #'['
+        jsr     print_dot_x
+        jsr     print_hex_16
+        jsr     print_space
         ldy     #$00
         jsr     LB2E9
         jsr     LB563
         jsr     LB6A8
         jmp     LB575
 
-LAD28:  ldx     #$3A
-        jsr     LB49F
-        jsr     LB552
+LAD28:  ldx     #':'
+        jsr     print_dot_x
+        jsr     print_hex_16
         jsr     LB57E
-        jsr     LB4B4
+        jsr     print_space
         jmp     LB590
 
-LAD39:  ldx     #$27
-        jsr     LB49F
-        jsr     LB552
-        jsr     LB4B4
+LAD39:  ldx     #$27  ; "'"
+        jsr     print_dot_x
+        jsr     print_hex_16
+        jsr     print_space
         ldx     #$20
         jmp     LB592
 
-LAD49:  ldx     #$2C
-LAD4B:  jsr     LB49F
+LAD49:  ldx     #','
+LAD4B:  jsr     print_dot_x
         jsr     LAD5A
         jsr     LB6A8
         lda     $0205
         jmp     LB028
 
-LAD5A:  jsr     LB552
-        jsr     LB4B4
+LAD5A:  jsr     print_hex_16
+        jsr     print_space
         jsr     LAF62
         jsr     LAF40
         jsr     LAFAF
@@ -1875,9 +1875,9 @@ LAD6C:  jsr     LB4F1
         jsr     LB4DB
         ldy     #$00
         jsr     LB2F7
-        jsr     LB497
+        jsr     print_up
         jsr     LAD0F
-        jsr     LB49A
+        jsr     print_cr_dot
         jsr     LB677
         jmp     LAC1A
 
@@ -1892,25 +1892,25 @@ LAD9F:  jsr     LB2F7
         iny
         cpy     #$03
         bne     LAD9C
-        jsr     LB497
+        jsr     print_up
         jsr     LACF0
-        jsr     LB49A
+        jsr     print_cr_dot
         jsr     LB67A
         jmp     LAC1A
 
 LADB6:  jsr     LB4F1
         jsr     LB5BE
-        jsr     LB497
+        jsr     print_up
         jsr     LAD39
-        jsr     LB49A
+        jsr     print_cr_dot
         jsr     LB67D
         jmp     LAC1A
 
 LADCB:  jsr     LB4F1
         jsr     LB5E5
-        jsr     LB497
+        jsr     print_up
         jsr     LAD28
-        jsr     LB49A
+        jsr     print_cr_dot
         jsr     LB671
         jmp     LAC1A
 
@@ -1949,7 +1949,7 @@ LAE20:  jsr     LB4C2
         jsr     LB4C2
         jsr     LB4E0
         sta     $024A
-        jsr     LB497
+        jsr     print_up
         jmp     LABB2
 
 LAE3D:  jmp     LAC06
@@ -1979,11 +1979,11 @@ LAE61:  ldx     $024E
         jmp     LAC1A
 
 LAE7C:  pha
-        jsr     LB497
+        jsr     print_up
         pla
         tax
         jsr     LAD4B
-        jmp     LB49A
+        jmp     print_cr_dot
 
 LAE88:  jsr     LB655
         bcs     LAE90
@@ -2007,7 +2007,7 @@ LAEAC:  jsr     LB4C2
         jsr     LB4C2
         cmp     #$22
         bne     LAECF
-LAEBB:  jsr     LB4D5
+LAEBB:  jsr     _basin_cmp_cr
         beq     LAEE7
         cmp     #$22
         beq     LAEE7
@@ -2019,7 +2019,7 @@ LAEBB:  jsr     LB4D5
 
 LAECF:  jsr     LB510
         bcs     LAEDC
-LAED4:  jsr     LB4D5
+LAED4:  jsr     _basin_cmp_cr
         beq     LAEE7
         jsr     LB508
 LAEDC:  sta     $0200,x
@@ -2034,10 +2034,10 @@ LAEE7:  stx     $0252
         jsr     LB293
         jmp     LAC0E
 
-LAEF3:  jsr     LB4D5
+LAEF3:  jsr     _basin_cmp_cr
         beq     LAF03
         jsr     LB4F4
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         beq     LAF06
         jmp     LAC06
 
@@ -2073,12 +2073,12 @@ LAF40:  pha
 LAF43:  cpy     $0205
         beq     LAF52
         bcc     LAF52
-        jsr     LB4B4
-        jsr     LB4B4
+        jsr     print_space
+        jsr     print_space
         bcc     LAF58
 LAF52:  jsr     LB2E9
         jsr     LB559
-LAF58:  jsr     LB4B4
+LAF58:  jsr     print_space
         iny
         cpy     #$03
         bne     LAF43
@@ -2149,7 +2149,7 @@ LAFC2:  asl     $0208
         jsr     BSOUT
         dex
         bne     LAFBE
-        jmp     LB4B4
+        jmp     print_space
 
 LAFD7:  ldx     #$06
 LAFD9:  cpx     #$03
@@ -2339,11 +2339,11 @@ LB146:  inx
         rts
 
 LB14E:  jsr     LB4F1
-        jsr     LB4A8
+        jsr     print_up_dot
         jsr     LB644
-        jsr     LB54A
+        jsr     print_dollar_hex_16
         jsr     LB48E
-        jsr     LB4B1
+        jsr     print_hash
         jsr     LBC50
         jmp     LAC0E
 
@@ -2376,8 +2376,8 @@ LB17A:  jsr     BASIN
         sta     $C2
         pla
         bcc     LB16F
-LB19B:  jsr     LB4A8
-        jsr     LB4B1
+LB19B:  jsr     print_up_dot
+        jsr     print_hash
         lda     $C1
         pha
         lda     $C2
@@ -2388,7 +2388,7 @@ LB19B:  jsr     LB4A8
         pla
         sta     $C1
         jsr     LB48E
-        jsr     LB54A
+        jsr     print_dollar_hex_16
         jmp     LAC0E
 
 LB1B9:  jsr     LB6B3
@@ -2464,7 +2464,7 @@ LB23F:  jsr     LB575
         bne     LB230
 LB244:  rts
 
-LB245:  jsr     LB4B7
+LB245:  jsr     print_cr
         clc
         lda     $C1
         adc     $0209
@@ -2482,7 +2482,7 @@ LB25B:  jsr     LB2E9
         pla
         cmp     $0252
         beq     LB274
-        jsr     LB54D
+        jsr     print_space_hex_16
 LB274:  jsr     STOP
         beq     LB292
         lda     $C2
@@ -2498,7 +2498,7 @@ LB28D:  jsr     LB575
         bne     LB25B
 LB292:  rts
 
-LB293:  jsr     LB4B7
+LB293:  jsr     print_cr
 LB296:  jsr     LB655
         bcc     LB2B3
         ldy     #$00
@@ -2508,7 +2508,7 @@ LB29D:  jsr     LB2E9
         iny
         cpy     $0252
         bne     LB29D
-        jsr     LB54D
+        jsr     print_space_hex_16
 LB2AE:  jsr     LB575
         bne     LB296
 LB2B3:  rts
@@ -2567,7 +2567,7 @@ LB306:  pla
         pla
         rts
 
-LB310:  jsr     LB4D5
+LB310:  jsr     _basin_cmp_cr
         beq     LB326
         cmp     #$20
         beq     LB310
@@ -2584,7 +2584,7 @@ LB326:  lda     #$70
 
 LB32E:  jmp     LAC06
 
-LB331:  jsr     LB4D5
+LB331:  jsr     _basin_cmp_cr
         beq     LB33F
         cmp     #$20
         beq     LB331
@@ -2652,7 +2652,7 @@ LB3B3:  jmp     LAC0E
 
 LB3B6:  cmp     #$22
         bne     LB3CC
-LB3BA:  jsr     LB4D5
+LB3BA:  jsr     _basin_cmp_cr
         beq     LB388
         cmp     #$22
         beq     LB3CF
@@ -2663,7 +2663,7 @@ LB3BA:  jsr     LB4D5
         bne     LB3BA
 LB3CC:  jmp     LAC06
 
-LB3CF:  jsr     LB4D5
+LB3CF:  jsr     _basin_cmp_cr
         beq     LB388
         cmp     #$2C
 LB3D6:  bne     LB3CC
@@ -2675,13 +2675,13 @@ LB3D6:  bne     LB3CC
         cmp     #$04
         bcc     LB3CC
 LB3E7:  sta     $BA
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         beq     LB388
         cmp     #$2C
 LB3F0:  bne     LB3D6
         jsr     LB4FD
         jsr     LB625
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         bne     LB408
         lda     $0252
         cmp     #$0B
@@ -2719,7 +2719,7 @@ LB438:  lda     #$DE
         jmp     SAVE
 
 LB443:  jsr     LB352
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         beq     LB466
         cmp     #$24
         beq     LB475
@@ -2728,19 +2728,19 @@ LB443:  jsr     LB352
         jsr     L800F
         lda     #$46
 LB458:  jsr     IECOUT
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         bne     LB458
         jsr     UNLSTN
         jmp     LAC09
 
-LB466:  jsr     LB4B7
+LB466:  jsr     print_cr
         jsr     UNLSTN
         jsr     LBC98
         jsr     LBCA5
         jmp     LAC0E
 
 LB475:  jsr     UNLSTN
-        jsr     LB4B7
+        jsr     print_cr
         lda     #$F0
         jsr     LBC8D
         lda     #$24
@@ -2749,35 +2749,46 @@ LB475:  jsr     UNLSTN
         jsr     LBCD2
         jmp     LAC0E
 
-LB48E:  jsr     LB4B4
-        lda     #$3D
-        ldx     #$20
-        bne     LB4A1
-LB497:  ldx     #$91
+LB48E:  jsr     print_space
+        lda     #'='
+        ldx     #' '
+        bne     print_a_x
+
+print_up:
+        ldx     #$91 ; UP
         .byte   $2C
-LB49A:  ldx     #$2E
-        lda     #$0D
+print_cr_dot:
+        ldx     #'.'
+        lda     #$0D ; CR
         .byte   $2C
-LB49F:  lda     #'.'
-LB4A1:  jsr     BSOUT
+print_dot_x:
+        lda     #'.'
+print_a_x:
+        jsr     BSOUT
         txa
         jmp     BSOUT
 
-LB4A8:  jsr     LB497
-        lda     #$2E
-        bit     $1DA9
+print_up_dot:
+        jsr     print_up
+        lda     #'.'
         .byte   $2C
-LB4B1:  lda     #$23
+; XXX unused?
+        lda     #$1D ; CSR RIGHT
         .byte   $2C
-LB4B4:  lda     #$20
+print_hash:
+        lda     #'#'
         .byte   $2C
-LB4B7:  lda     #$0D ; CR
+print_space:
+        lda     #' '
+        .byte   $2C
+print_cr:
+        lda     #$0D ; CR
         jmp     BSOUT
 
 LB4BC:  jsr     LB4CB
         jmp     LB4C5
 
-LB4C2:  jsr     LB4D5
+LB4C2:  jsr     _basin_cmp_cr
 LB4C5:  bne     LB4CA
         jmp     LAC0E
 
@@ -2789,7 +2800,7 @@ LB4CB:  jsr     BASIN
         cmp     #$0D
         rts
 
-LB4D5:  jsr     BASIN
+_basin_cmp_cr:  jsr     BASIN
         cmp     #$0D
         rts
 
@@ -2857,15 +2868,18 @@ LB546:  rts
 
 LB547:  jmp     LAC06
 
-LB54A:  lda     #$24
+print_dollar_hex_16:
+        lda     #'$'
         .byte   $2C
-LB54D:  lda     #' '
+print_space_hex_16:
+        lda     #' '
         jsr     BSOUT
-LB552:  lda     $C2
+print_hex_16:
+        lda     $C2
         jsr     LB559
         lda     $C1
 LB559:  sty     $0255
-        jsr     LBCB2
+        jsr     print_hex_byte
         ldy     $0255
         rts
 
@@ -2890,7 +2904,7 @@ LB57D:  rts
 
 LB57E:  ldx     #$08
         ldy     #$00
-LB582:  jsr     LB4B4
+LB582:  jsr     print_space
         jsr     LB2E9
         jsr     LB559
         iny
@@ -2962,7 +2976,7 @@ LB60A:  iny
         bne     LB5F5
         rts
 
-LB60F:  jsr     LB4D5
+LB60F:  jsr     _basin_cmp_cr
         bne     LB616
         pla
         pla
@@ -3038,11 +3052,11 @@ LB67A:  lda     #$5D
 LB67D:  lda     #$27
         sta     $0277
         lda     $C2
-        jsr     LBCBC
+        jsr     byte_to_hex_ascii
         sta     $0278
         sty     $0279
         lda     $C1
-        jsr     LBCBC
+        jsr     byte_to_hex_ascii
         sta     $027A
         sty     $027B
         lda     #$20
@@ -3165,41 +3179,41 @@ LB75E:  jsr     LB838
         cmp     #$27
         beq     LB7BC
         jsr     LB8C8
-        jsr     LB4B7
+        jsr     print_cr
         jsr     LAD28
         jmp     LB7C7
 
 LB790:  jsr     LAF62
         lda     $0205
         jsr     LB028
-        jsr     LB4B7
+        jsr     print_cr
         jsr     LAD49
         jmp     LB7C7
 
 LB7A2:  jsr     LB575
-        jsr     LB4B7
+        jsr     print_cr
         jsr     LAD0F
         jmp     LB7C7
 
 LB7AE:  lda     #$03
         jsr     LB8CA
-        jsr     LB4B7
+        jsr     print_cr
         jsr     LACF0
         jmp     LB7C7
 
 LB7BC:  lda     #$20
         jsr     LB8CA
-        jsr     LB4B7
+        jsr     print_cr
         jsr     LAD39
-LB7C7:  lda     #$91
-        ldx     #$0D
+LB7C7:  lda     #$91 ; UP
+        ldx     #$0D ; CR
         bne     LB7D1
-LB7CD:  lda     #$0D
-        ldx     #$13
+LB7CD:  lda     #$0D ; CR
+        ldx     #$13 ; HOME
 LB7D1:  ldy     #$00
         sty     $C6
         sty     $0254
-        jsr     LB4A1
+        jsr     print_a_x
         jsr     LB6A2
         jmp     LB6FA
 
@@ -3408,8 +3422,7 @@ LB9D5:  .byte   $D8,$62,$5A,$48,$26,$62,$94,$88
         .byte   $44,$68,$B2,$32,$B2,$00,$22,$00
         .byte   $1A,$1A,$26,$26,$72,$72,$88,$C8
         .byte   $C4,$CA,$26,$48,$44,$44,$A2,$C8
-LBA15:  .byte   $0D
-        .byte   "   PC  IRQ  BK AC XR YR SP NV#B"
+s_regs: .byte   $0D, "   PC  IRQ  BK AC XR YR SP NV#B"
 
 
 
@@ -3464,7 +3477,7 @@ LBAA0:  sta     $C3
         jsr     LB508
         bcc     LBA8C
         sta     $C2
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         bne     LBAC1
         lda     #$CF
         sta     $C4
@@ -3472,7 +3485,7 @@ LBAA0:  sta     $C3
 LBAC1:  jsr     LB508
         bcc     LBA8C
         sta     $C4
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         bne     LBA8C
 LBACD:  jsr     LBB48
         jsr     LB625
@@ -3486,7 +3499,7 @@ LBACD:  jsr     LBB48
         cmp     #$30
         beq     LBB00
         pha
-        jsr     LB4B7
+        jsr     print_cr
         pla
 LBAED:  jsr     LE716
         jsr     IECIN
@@ -3616,13 +3629,13 @@ LBBF7:  lda     $0253
         lda     $BA
         cmp     #$04
         beq     LBC11
-        jsr     LB4D5
+        jsr     _basin_cmp_cr
         beq     LBC16
         cmp     #$2C
         bne     LBBF4
         jsr     LB508
         tax
-LBC11:  jsr     LB4D5
+LBC11:  jsr     _basin_cmp_cr
         bne     LBBF4
 LBC16:  sta     $0277
         inc     $C6
@@ -3707,12 +3720,15 @@ LBCA5:  jsr     IECIN
         bne     LBCA5
         jmp     UNTALK
 
-LBCB2:  jsr     LBCBC
+print_hex_byte:
+        jsr     byte_to_hex_ascii
         jsr     BSOUT
         tya
         jmp     BSOUT
 
-LBCBC:  pha
+; convert byte into hex ASCII in A/Y
+byte_to_hex_ascii:
+        pha
         and     #$0F
         jsr     LBCC8
         tay
