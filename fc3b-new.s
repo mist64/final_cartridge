@@ -2063,9 +2063,8 @@ LAF06:  lda     $0253 ; bank
         ldy     $024D
         lda     $0253 ; bank
         jmp     L0234 ; rti
-
-LAF2B:  lda     #$45
-        jsr     LBBD0
+LAF2B:  lda     #'E' ; send M-E to drive
+        jsr     send_m_dash2
         lda     $C3
         jsr     IECOUT
         lda     $C4
@@ -2518,19 +2517,19 @@ LB2AE:  jsr     LB575
         bne     LB296
 LB2B3:  rts
 
-LB2B4:  lda     #$52
-        jsr     LBBD0
+LB2B4:  lda     #'R' ; send M-R to drive
+        jsr     send_m_dash2
         jsr     LBBE4
         jsr     UNLSTN
-        jsr     LBC98
+        jsr     talk_cmd_channel
         jsr     IECIN
         pha
         jsr     UNTALK
         pla
         rts
 
-LB2CB:  lda     #$57
-        jsr     LBBD0
+LB2CB:  lda     #'W' ; send M-W to drive
+        jsr     send_m_dash2
         jsr     LBBE4
         lda     #$01
         jsr     IECOUT
@@ -2744,7 +2743,7 @@ LB458:  jsr     IECOUT
 ; just print drive status
 LB466:  jsr     print_cr
         jsr     UNLSTN
-        jsr     LBC98
+        jsr     talk_cmd_channel
         jsr     LBCA5
         jmp     input_loop
 
@@ -3511,7 +3510,7 @@ LBACD:  jsr     LBB48
         beq     LBB25
         lda     #$31
         jsr     LBB6E
-        jsr     LBC98
+        jsr     talk_cmd_channel
         jsr     IECIN
         cmp     #$30
         beq     LBB00
@@ -3618,12 +3617,14 @@ LBBB3:  lda     LBBC8,x
 
 LBBC1:  .byte   "U1:2 0 "
 LBBC8:  .byte   "B-P 2 0#"
-LBBD0:  pha
+
+send_m_dash2:
+        pha
         lda     #$6F
         jsr     init_and_listen
-        lda     #$4D
+        lda     #'M'
         jsr     IECOUT
-        lda     #$2D
+        lda     #'-'
         jsr     IECOUT
         pla
         jmp     IECOUT
@@ -3726,7 +3727,8 @@ init_and_listen:
         pla
         jmp     SECOND
 
-LBC98:  lda     #$6F
+talk_cmd_channel:
+        lda     #$6F
 LBC9A:  pha
         jsr     init_drive
         jsr     TALK

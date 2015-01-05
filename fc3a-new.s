@@ -367,7 +367,8 @@ L8124:  jsr     IECIN
         cpy     #$30
         rts
 
-L8131:  lda     #$6F
+open_cmd_channel:
+        lda     #$6F
 L8133:  pha
         jsr     L8BC4
         jsr     LISTEN
@@ -383,16 +384,17 @@ L8143:  pha
         pla
         jmp     TKSA
 
-L814E:  sta     $C3
+m_w_and_m_e:
+        sta     $C3
         sty     $C4
         ldy     #$00
-L8154:  lda     #$57
-        jsr     L8180
+L8154:  lda     #'W'
+        jsr     send_m_dash
         tya
         jsr     IECOUT
         txa
         jsr     IECOUT
-        lda     #$20
+        lda     #' '
         jsr     IECOUT
 L8166:  lda     ($C3),y
         jsr     IECOUT
@@ -407,12 +409,13 @@ L8166:  lda     ($C3),y
         inx
         cpx     $93
         bcc     L8154
-        lda     #$45
-L8180:  pha
+        lda     #'E'
+send_m_dash:
+        pha
         jsr     L8192
-        lda     #$4D
+        lda     #'M'
         jsr     IECOUT
-        lda     #$2D
+        lda     #'-'
         jsr     IECOUT
         pla
         jmp     IECOUT
@@ -1574,7 +1577,7 @@ L8AD3:  jsr     L8BDB
         bpl     L8AD3
 L8ADF:  jsr     L8BF0
         jsr     L971A
-        jsr     L8131
+        jsr     open_cmd_channel
         lda     #$49
         jsr     IECOUT
         jmp     UNLSTN
@@ -2909,7 +2912,7 @@ L955E:  tya
         beq     L94F9
         jmp     L969A
 
-L9577:  jsr     L8131
+L9577:  jsr     open_cmd_channel
         bmi     L95C6
         jsr     UNLSTN
         ldx     #$00
@@ -2929,7 +2932,7 @@ L959C:  jsr     UNTALK
         jsr     L971F
         jmp     L95C6
 
-L95A5:  jsr     L8131
+L95A5:  jsr     open_cmd_channel
         bmi     L95CB
         jsr     UNLSTN
         jsr     L8141
@@ -2948,7 +2951,7 @@ L95C6:  lda     #$00
 L95CB:  pla
         jmp     _jmp_bank
 
-L95CF:  jsr     L8131
+L95CF:  jsr     open_cmd_channel
         bmi     L95CB
         lda     #$00
         sta     $7A
@@ -3084,11 +3087,11 @@ L96DB:  lda     $0200
 
 fast_format2:
         lda     #$05
-        sta     $93
-        lda     #<L975D
-        ldy     #>L975D
-        ldx     #$04
-        jsr     L814E
+        sta     $93 ; times $20 bytes
+        lda     #<fast_format_drive_code
+        ldy     #>fast_format_drive_code
+        ldx     #$04 ; page 4
+        jsr     m_w_and_m_e
         lda     #$03
         jsr     IECOUT
         lda     #$04
@@ -3117,7 +3120,7 @@ L971F:  lda     #$E2
         rts
 
 send_drive_cmd:
-        jsr     L8131
+        jsr     open_cmd_channel
 L972D:  lda     drive_cmds,y
         beq     L9738
         jsr     IECOUT
@@ -3132,7 +3135,8 @@ drive_cmd_bp:
         .byte   "B-P 2 144", 0
 drive_cmd_u2:
         .byte   "U2:2 0 18 0", 0
-L975D:
+
+fast_format_drive_code:
         jmp     L0463
 
         jsr     LC1E5
