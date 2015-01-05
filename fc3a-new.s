@@ -90,17 +90,17 @@ _add_A_to_FAC   := $DE85
 _get_element_in_expression := $DE8E
 _get_int        := $DE94
 _evaluate_modifier := $DEA9
-LDEAF           := $DEAF
-LDEB8           := $DEB8
-LDEC1           := $DEC1
-LDECA           := $DECA
-LDED3           := $DED3
-LDEDB           := $DEDB
-LDEE4           := $DEE4
-LDEF0           := $DEF0
-LDEF9           := $DEF9
-LDF06           := $DF06
-LDF0F           := $DF0F
+_get_line_number := $DEAF
+_basic_bsout    := $DEB8
+_set_txtptr_to_start := $DEC1
+_check_for_stop := $DECA
+_relink         := $DED3
+_get_filename   := $DEDB
+_int_to_ascii   := $DEE4
+_ay_to_float    := $DEF0
+_int_to_fac     := $DEF9
+_print_ax_int   := $DF06
+_search_for_line := $DF0F
 _CHRGET         := $DF1B
 _CHRGOT         := $DF27
 _lda_5a_indy    := $DF30
@@ -496,7 +496,7 @@ new_mainloop: ; $81FE
         jsr     L8253
         jmp     _new_execute
 
-L822B:  jsr     LDEAF
+L822B:  jsr     _get_line_number
         tax
         bne     L8234
         sta     $02A9
@@ -698,26 +698,26 @@ L839D:  ldx     $3A
         beq     L838C
         ldx     $39
         stx     $14
-        jsr     LDF06
-        jsr     LDF0F
+        jsr     _print_ax_int
+        jsr     _search_for_line
         lda     $D3
         sta     $B0
         lda     $D6
         sta     $B1
         jsr     L83C8
-L83BA:  lda     #$0D
-        jsr     LDEB8
+L83BA:  lda     #$0D ; CR
+        jsr     _basic_bsout
         bit     $13
         bpl     L838C
-        lda     #$0A
-        jmp     LDEB8
+        lda     #$0A ; LF
+        jmp     _basic_bsout
 
 L83C8:  ldy     #$03
         sty     $49
         sty     $0F
-        lda     #$20
+        lda     #$20 ; ' '
         and     #$7F
-L83D2:  jsr     LDEB8
+L83D2:  jsr     _basic_bsout
         cmp     #$22
         bne     L83DF
         lda     $0F
@@ -741,7 +741,7 @@ L83E9:  cmp     $7A
 L83F9:  jsr     _lda_5f_indy
         beq     L8404
         jsr     L8C11
-        jmp     L83D2
+        jmp     L83D2 ; loop
 
 L8404:  lda     #$20
         ldy     $D3
@@ -775,7 +775,7 @@ L8426:  sta     $C2
         lda     $C4
         cmp     $C3
         beq     L8443
-        jsr     LDEB8
+        jsr     _basic_bsout
         dec     $C3
 L8443:  dex
         beq     L841C
@@ -798,8 +798,8 @@ L845E:  jsr     L84C8
         bne     L84C0
         jsr     L84DC
         jsr     L8412
-        lda     #$20
-        jsr     LDEB8
+        lda     #$20 ; ' '
+        jsr     _basic_bsout
         ldx     #$18
 L847F:  jsr     L84C8
         jsr     IECIN
@@ -811,7 +811,7 @@ L848D:  lda     #$1F
 L848F:  ldy     $90
         bne     L84C0
         jsr     L84DC
-        jsr     LDEB8
+        jsr     _basic_bsout
         inc     $D8
         jsr     GETIN
         cmp     #$03
@@ -826,8 +826,8 @@ L84AB:  dex
         jsr     IECIN
         bne     L8485
         jsr     L84DC
-        lda     #$0D
-        jsr     LDEB8
+        lda     #$0D ; CR
+        jsr     _basic_bsout
         bne     L845E
 L84C0:  lda     #$E0
         jsr     L8143
@@ -871,7 +871,7 @@ L8508:  sta     $63
         sty     $62
         ldx     #$90
         sec
-        jmp     LDEE4
+        jmp     _int_to_ascii
 
 L8512:  jsr     _CHRGOT
         beq     L8528
@@ -893,7 +893,7 @@ L8531:  php
         ldy     #$00
         jsr     L85A0
         pha
-        jsr     LDF0F
+        jsr     _search_for_line
         pla
         ldx     $AC
         stx     $AE
@@ -927,7 +927,7 @@ L8568:  lda     $AE
         sta     $7A
         lda     $60
         sta     $7B
-        jsr     LDF0F
+        jsr     _search_for_line
         bcc     L858D
         ldy     #$00
         jsr     _lda_5f_indy
@@ -938,7 +938,7 @@ L8568:  lda     $AE
         stx     $5F
 L858D:  rts
 
-L858E:  jsr     LDEAF
+L858E:  jsr     _get_line_number
         lda     $14
         sta     $0334,y
         iny
@@ -947,7 +947,7 @@ L858E:  jsr     LDEAF
         iny
         jmp     _CHRGOT
 
-L85A0:  jsr     LDEAF
+L85A0:  jsr     _get_line_number
         ldx     $14
         stx     $AC,y
         ldx     $15
@@ -958,7 +958,7 @@ L85AE:  lda     $0334
         sta     $AC
         lda     $0335
         sta     $AD
-        jmp     LDEC1
+        jmp     _set_txtptr_to_start
 
 L85BB:  jsr     L85BF
         tay
@@ -1150,7 +1150,7 @@ L8758:  jsr     L85BB
         sta     $14
         jsr     L8FF9
         bcs     L8779
-        jsr     LDF0F
+        jsr     _search_for_line
         bcc     L8779
         beq     L8734
 L8779:  jsr     L85CB
@@ -1219,7 +1219,7 @@ L87F7:  cmp     L8603,x
         bpl     L87F7
         jsr     _CHRGOT
         bcs     L87D4
-        jsr     LDEAF
+        jsr     _get_line_number
         lda     $15
         ldy     $14
         jsr     L8FF9
@@ -1344,7 +1344,7 @@ L88FD:  jsr     _CHRGET
 
 L8903:  sec
 L8904:  jsr     L8531
-        jsr     LDEC1
+        jsr     _set_txtptr_to_start
         bit     $C2
         bmi     L8912
         lda     $C4
@@ -1384,7 +1384,7 @@ L894C:  jsr     _lda_5a_indy
         iny
         dex
         bne     L894C
-        jsr     LDECA
+        jsr     _check_for_stop
         bit     $C2
         bpl     L8966
         jsr     L8F1F
@@ -1404,7 +1404,7 @@ L8980:  ldx     #$FC
         txs
         jmp     L988F
 
-L8986:  jsr     LDED3
+L8986:  jsr     _relink
         clc
         lda     #$02
         adc     $22
@@ -1586,7 +1586,7 @@ L8AF0:  cmp     #$2C
         bne     L8B04
         jsr     _CHRGET
         bcs     L8B3A
-        jsr     LDEAF
+        jsr     _get_line_number
         lda     $15
         bne     L8B3A
         lda     $14
@@ -1676,7 +1676,7 @@ L8BAD:  jsr     L8BBD
         ldy     #$01
         jsr     SETLFS
         jsr     LE206
-        jsr     LDEDB
+        jsr     _get_filename
         rts
 
 L8BBD:  ldx     #$FB
@@ -1759,7 +1759,7 @@ L8C44:  lda     ($22),y
 L8C4A:  iny
 L8C4B:  lda     ($22),y
         bmi     L8C62
-        jsr     LDEB8
+        jsr     _basic_bsout
         jmp     L8C4A
 
 L8C55:  cmp     #$8D
@@ -1815,10 +1815,10 @@ L8CAF:  bcs     L8D06
         iny
 L8CB6:  sta     $22
         sty     $23
-        jsr     LDECA
+        jsr     _check_for_stop
         jsr     L8CE9
-        lda     #$3D
-        jsr     LDEB8
+        lda     #$3D ; '='
+        jsr     _basic_bsout
         txa
         bpl     L8CCE
         jsr     L8D12
@@ -1826,7 +1826,7 @@ L8CB6:  sta     $22
 
 L8CCE:  tya
         bmi     L8CD7
-        jsr     LDEF9
+        jsr     _int_to_fac
         jmp     L8CDA
 
 L8CD7:  jsr     L8D21
@@ -1842,13 +1842,13 @@ L8CE9:  ldy     #$00
         jsr     _lda_5f_indy
         tax
         and     #$7F
-        jsr     LDEB8
+        jsr     _basic_bsout
         iny
         jsr     _lda_5f_indy
         tay
         and     #$7F
         beq     L8D00
-        jsr     LDEB8
+        jsr     _basic_bsout
 L8D00:  txa
         bmi     L8D07
         tya
@@ -1859,8 +1859,8 @@ L8D07:  lda     #$25
         .byte   $2C
 L8D0A:  lda     #$24
         .byte   $2C
-L8D0D:  lda     #$22
-        jmp     LDEB8
+L8D0D:  lda     #$22 ; '"'
+        jmp     _basic_bsout
 
 L8D12:  ldy     #$00
         jsr     _lda_22_indy
@@ -1869,7 +1869,7 @@ L8D12:  ldy     #$00
         jsr     _lda_22_indy
         tay
         txa
-        jmp     LDEF0
+        jmp     _ay_to_float
 
 L8D21:  jsr     L8D0D
         ldy     #$02
@@ -1887,7 +1887,7 @@ L8D21:  jsr     L8D0D
         lda     $25
         sta     $23
 L8D41:  jsr     _lda_22_indy
-        jsr     LDEB8
+        jsr     _basic_bsout
         iny
         cpy     $26
         bne     L8D41
@@ -1907,7 +1907,7 @@ L8D5E:  bcs     L8D06
         inx
 L8D67:  sta     $5A
         stx     $5B
-        jsr     LDECA
+        jsr     _check_for_stop
         jsr     _lda_5f_indy
         asl     a
         tay
@@ -1954,21 +1954,21 @@ L8DAF:  bcc     L8DC5
 
 L8DC5:  jsr     L8CE9
         ldy     $C3
-        lda     #$28
-L8DCC:  jsr     LDEB8
+        lda     #$28 ; '('
+L8DCC:  jsr     _basic_bsout
         lda     $0204,y
         ldx     $0205,y
         sty     $C4
-        jsr     LDF06
+        jsr     _print_ax_int
         lda     #$2C
         ldy     $C4
         dey
         dey
         bpl     L8DCC
-        lda     #$29
-        jsr     LDEB8
-        lda     #$3D
-        jsr     LDEB8
+        lda     #$29 ; ')'
+        jsr     _basic_bsout
+        lda     #$3D ; '='
+        jsr     _basic_bsout
         lda     $C1
         ldx     $C2
         sta     $22
@@ -1982,7 +1982,7 @@ L8DCC:  jsr     LDEB8
 L8E02:  iny
         jsr     _lda_5f_indy
         bmi     L8E0F
-        jsr     LDEF9
+        jsr     _int_to_fac
         lda     #$05
         bne     L8E14
 L8E0F:  jsr     L8D21
@@ -2034,33 +2034,25 @@ L8E59:  pha
         ldx     $C1
         ldy     #$0A
         sty     $D3
-        jsr     LDF06
+        jsr     _print_ax_int
         ldy     #$10
         sty     $D3
-        ldy     #$2D
-L8E7B:  lda     L8E87,y
+        ldy     #s_bytes - s_basic
+L8E7B:  lda     s_basic,y
         beq     L8E86
-        jsr     LDEB8
+        jsr     _basic_bsout
         iny
         bne     L8E7B
 L8E86:  rts
 
-L8E87:  .byte   $0D
-        .byte   "BASIC"
-        .byte   $00
-        .byte   "PROGRAM"
-        .byte   $00
-        .byte   "VARIABLES"
+s_basic: .byte   $0D, "BASIC", 0
+        .byte   "PROGRAM", 0
+        .byte   "VARIABLES", 0
+        .byte   "ARRAYS", 0
+        .byte   "STRINGS", 0
+        .byte   "FREE", 0
+s_bytes: .byte   "BYTES", $0D, 0
 
-        .byte   $00
-        .byte   "ARRAYS"
-        .byte   $00
-        .byte   "STRINGS"
-        .byte   $00
-        .byte   "FREE"
-        .byte   $00
-        .byte   "BYTES"
-        .byte   $0D,$00
         tax
         lda     $02AA
         cpx     #$CC
@@ -2126,7 +2118,7 @@ L8F35:  ldy     $60
         jsr     L8F65
         dec     $61
         bne     L8F35
-        jsr     LDED3
+        jsr     _relink
 L8F41:  ldy     #$00
         ldx     $C4
         beq     L8F5C
@@ -2162,8 +2154,8 @@ L8F75:  lda     #$01
 L8F77:  jmp     L888D
 
         bne     L8F64
-L8F7C:  jsr     LDED3
-        jsr     LDEC1
+L8F7C:  jsr     _relink
+        jsr     _set_txtptr_to_start
         lda     #$00
         lda     $8B
         sta     $8C
@@ -2177,7 +2169,7 @@ L8F88:  jsr     L85BB
         sbc     $8C
         pla
         bcs     L8FEC
-        jsr     LDF0F
+        jsr     _search_for_line
         lda     $5F
         sta     $8D
         lda     $60
@@ -2212,7 +2204,7 @@ L8FD8:  lda     $033C,y
         iny
         cpy     $8F
         bne     L8FD8
-        jsr     LDED3
+        jsr     _relink
         ldx     #$00
         stx     $033C
         beq     L8FF0
@@ -2617,7 +2609,7 @@ L92F7:  dex
         inc     $14
         bne     L9309
         inc     $15
-L9309:  jsr     LDF0F
+L9309:  jsr     _search_for_line
         bcs     L9322
         beq     L92D5
         bcc     L9322
@@ -2657,7 +2649,7 @@ L9350:  inx
         bpl     L9350
         jsr     L93C1
         bcs     L9350
-        jsr     LDF0F
+        jsr     _search_for_line
 L9361:  lda     $5F
         ldx     $60
         cmp     $2B

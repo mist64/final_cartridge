@@ -143,16 +143,16 @@ _execute_statement: ; $DE7F
         jsr     _disable_rom
         jmp     LA7EF ; execute BASIC statement
 
-; $DE85
+_add_A_to_FAC: ; $DE85
         jsr     _disable_rom
         jsr     LBD7E ; add A to FAC
         jmp     _enable_rom
 
-; $DE8E
+_get_element_in_expression: ; $DE8E
         jsr     _disable_rom
         jmp     LAE8D ; get element in expression
 
-; $DE94
+_get_int: ; $DE94
         jsr     _disable_rom
         jsr     LAD8A ; FRMNUM eval expression, make sure it's numeric
         jsr     LB7F7 ; GETADR convert FAC into 16 bit int
@@ -163,60 +163,62 @@ _execute_statement: ; $DE7F
         jsr     L8B54
         jmp     L9881
 
-; $DEA9
+_evaluate_modifier: ; $DEA9
         jsr     _disable_rom
         jmp     LEB48 ; evaluate SHIFT/CTRL/C=
 
-; $DEAF
+_get_line_number: ; $DEAF
         jsr     _disable_rom
         jsr     LA96B ; get line number
         jmp     _enable_rom
 
-; $DEB8
+_basic_bsout: ; $DEB8
         jsr     _disable_rom
         jsr     LAB47 ; print character
         jmp     _enable_rom
 
-; $DEC1
+_set_txtptr_to_start: ; $DEC1
         jsr     _disable_rom
         jsr     LA68E ; set TXTPTR to start of program
         jmp     _enable_rom
 
-; $DECA
+_check_for_stop: ; $DECA
         jsr     _disable_rom
         jsr     LA82C ; check for STOP
         jmp     _enable_rom
 
-; $DED3
+_relink: ; $DED3
         jsr     _disable_rom
         jsr     LA533 ; rebuild BASIC line chaining
-        beq     LDEE1
-; $DEDB
+        beq     LDEE1 ; branch always?
+
+_get_filename: ; $DEDB
         jsr     _disable_rom
         jsr     LE257 ; get string from BASIC line, set filename
 LDEE1:  jmp     _enable_rom
 
-; $DEE4
+_int_to_ascii: ; $DEE4
         jsr     _disable_rom
         jsr     LBC49 ; FLOAT UNSIGNED VALUE IN FAC+1,2
         jsr     LBDDD ; convert FAC to ASCII
         jmp     _enable_rom
 
-; $DEF0
+_ay_to_float: ; $DEF0
         jsr     _disable_rom
         jsr     LB395 ; convert A/Y to float
         jmp     LDEFF
 
-; $DEF9
+_int_to_fac: ; $DEF9
         jsr     _disable_rom
         jsr     LBBA6 ; convert $22/$23 to FAC
 LDEFF:  iny
         jsr     LBDD7 ; print FAC
         jmp     _enable_rom
 
-; $DF06
+
+_print_ax_int: ; $DF06
         jsr     _disable_rom
-        jsr     LBDCD ; print A/X as integer
+        jsr     LBDCD ; LINPRT print A/X as integer
         jmp     _enable_rom
 
 ; $DF0F
