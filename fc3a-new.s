@@ -467,7 +467,7 @@ L81E3:  lda     #$16
         sta     $0327
         rts
 
-L81EE:  jsr     L85F1
+AUTO:   jsr     L85F1
         jsr     L8512
         jsr     L84ED
         pla
@@ -682,7 +682,7 @@ L8369:  jsr     LE566
         sta     $D3
 L838C:  rts
 
-L838D:  ldx     $3A
+HELP:   ldx     $3A
         inx
         bne     L839D
         lda     $7B
@@ -1032,41 +1032,41 @@ L8606:  .byte   $64,$00,$0A,$00,$FF
         .byte   "MWRIT", 'E' + $80
         .byte 0
 
-L8693:  .word   L8997-1
-        .word   L81EE-1
-        .word   L870C-1
-        .word   L873A-1
-        .word   L838D-1
-        .word   L88C7-1
-        .word   L8976-1
-        .word   L8A19-1
-        .word   L8A1C-1
-        .word   L8A26-1
-        .word   L8A32-1
-        .word   L8A2C-1
-        .word   L8A43-1
-        .word   L89A7-1
-        .word   L89BD-1
-        .word   L8B74-1
-        .word   L8B3D-1
-        .word   L89C2-1
-        .word   L89D1-1
-        .word   L8C9F-1
-        .word   L8D4E-1
-        .word   L8E24-1
-        .word   L8EBB-1
-        .word   L8ED1-1
-        .word   L8F7A-1
-        .word   L9038-1
-        .word   L900C-1
-        .word   L86CD-1
-        .word   L86D6-1
+L8693:  .word   OFF-1
+        .word   AUTO-1
+        .word   DEL-1
+        .word   RENUM-1
+        .word   HELP-1
+        .word   FIND-1
+        .word   OLD-1
+        .word   DLOAD-1
+        .word   DVERIFY-1
+        .word   DSAVE-1
+        .word   APPEND-1
+        .word   DAPPEND-1
+        .word   DOS-1
+        .word   KILL-1
+        .word   MON-1
+        .word   PDIR-1
+        .word   PLIST-1
+        .word   BAR-1
+        .word   DESKTOP-1
+        .word   DUMP-1
+        .word   ARRAY-1
+        .word   MEM-1
+        .word   TRACE-1
+        .word   REPLACE-1
+        .word   ORDER-1
+        .word   PACK-1
+        .word   UNPACK-1
+        .word   MREAD-1
+        .word   MWRITE-1
 
-L86CD:  jsr     _get_int
+MREAD:  jsr     _get_int
         jsr     L86EA
         jmp     L0110
 
-L86D6:  jsr     _get_int
+MWRITE: jsr     _get_int
         jsr     L86EA
         lda     #$B2
         sta     $0116
@@ -1096,7 +1096,7 @@ L86FD:  dey
         cli
         rts
 
-L870C:  jsr     L852F
+DEL:    jsr     L852F
         ldy     #$00
 L8711:  jsr     _lda_5f_indy
         sta     ($7A),y
@@ -1119,7 +1119,7 @@ L8734:  jmp     L985E
 
 L8737:  jmp     L9855
 
-L873A:  jsr     L85F1
+RENUM:  jsr     L85F1
         jsr     L8512
         beq     L8749
         cmp     #$2C
@@ -1307,7 +1307,7 @@ L88B9:  lda     $5A
 
 L88C4:  jmp     L9855
 
-L88C7:  ldy     #$00
+FIND:   ldy     #$00
         sty     $C2
         eor     #$22
         bne     L88D4
@@ -1389,7 +1389,7 @@ L896F:  bit     $C2
         bmi     L897D
         jmp     L9881
 
-L8976:  bne     L89BC
+OLD:    bne     L89BC
         lda     #$08
         sta     $0802
 L897D:  jsr     L8986
@@ -1407,7 +1407,7 @@ L8986:  jsr     _relink
         sta     $2E
         rts
 
-L8997:  bne     L89BC
+OFF:    bne     L89BC
         sei
         jsr     LFD15
         jsr     LE453
@@ -1415,7 +1415,7 @@ L8997:  bne     L89BC
         cli
         jmp     L9881
 
-L89A7:  bne     L89BC
+KILL:   bne     L89BC
         sei
         jsr     LFD15
         jsr     LE453
@@ -1429,10 +1429,10 @@ L89A7:  bne     L89BC
 
 L89BC:  rts
 
-L89BD:  bne     L89BC
+MON:    bne     L89BC
         jmp     LAB00
 
-L89C2:  tax
+BAR:    tax
         lda     #$00
         cpx     #$CC
         beq     L89CB
@@ -1440,7 +1440,8 @@ L89C2:  tax
 L89CB:  sta     $02A8
         jmp     L9888
 
-L89D1:  bne     L89BC
+DESKTOP:
+        bne     L89BC
         ldx     #$00
         jsr     L89EF
 L89D8:  lda     $DC00
@@ -1465,23 +1466,25 @@ L89FA:  rts
 L89FB:  .byte   "ARE YOU SURE (Y/N)?"
 
 
-        .byte   $0D,$00,$0D
-        .byte   "READY."
-        .byte   $0D,$00
-L8A19:  lda     #$00
+        .byte   $0D,$00,$0D,"READY.",$0D,$00
+
+DLOAD:  
+        lda     #$00
         .byte   $2C
-L8A1C:  lda     #$01
+DVERIFY:
+        lda     #$01
         sta     $0A
         jsr     L8BA4
         jmp     L989A
 
-L8A26:  jsr     L8BA7
+DSAVE:  jsr     L8BA7
         jmp     L98AF
 
-L8A2C:  jsr     L8BA4
+DAPPEND:
+        jsr     L8BA4
         jmp     L8A35
 
-L8A32:  jsr     L98A9
+APPEND: jsr     L98A9
 L8A35:  jsr     L8986
         lda     #$00
         sta     $B9
@@ -1489,8 +1492,8 @@ L8A35:  jsr     L8986
         ldy     $23
         jmp     L98C7
 
-L8A43:  cmp     #$22
-        beq     L8A5D
+DOS:    cmp     #'"'
+        beq     L8A5D ; DOS with a command
 L8A47:  jsr     L8192
         jsr     UNLSTN
         jsr     L8141
@@ -1612,7 +1615,7 @@ L8B35:  lda     #$04
 
 L8B3A:  jmp     L9855
 
-L8B3D:  jsr     L8AF0
+PLIST:  jsr     L8AF0
         bcs     L8B6D
         lda     $2B
         ldx     $2C
@@ -1638,7 +1641,7 @@ L8B6D:  lda     #$03
         sta     $9A
         jmp     L819A
 
-L8B74:  jsr     L8AF0
+PDIR:   jsr     L8AF0
         bcs     L8B6D
 L8B79:  jsr     UNLSTN
         lda     #$F0
@@ -1794,7 +1797,7 @@ L8C96:  sei
         cli
 L8C9E:  rts
 
-L8C9F:  bne     L8C9E
+DUMP:   bne     L8C9E
         lda     $2D
         ldy     $2E
 L8CA5:  sta     $5F
@@ -1885,7 +1888,8 @@ L8D41:  jsr     _lda_22_indy
         cpy     $26
         bne     L8D41
         beq     L8D0D
-L8D4E:  bne     L8D06
+
+ARRAY:  bne     L8D06
         ldx     $30
         lda     $2F
 L8D54:  sta     $5F
@@ -1990,7 +1994,7 @@ L8E1D:  jsr     L83BA
 
 L8E23:  rts
 
-L8E24:  bne     L8E23 ; rts
+MEM:    bne     L8E23 ; rts
         ldy     #s_basic - s_basic
         lda     #$0C
         ldx     #$00
@@ -2054,7 +2058,7 @@ s_free:
         .byte   "FREE", 0
 s_bytes: .byte   "BYTES", $0D, 0
 
-L8EBB:  tax
+TRACE:  tax
         lda     $02AA
         cpx     #$CC
         beq     L8EC6
@@ -2066,7 +2070,8 @@ L8EC6:  and     #$FE
 
 L8ECE:  jmp     L852C
 
-L8ED1:  ldy     #$00
+REPLACE:
+        ldy     #$00
         eor     #$22
         bne     L8EDC
         jsr     L85BF
@@ -2154,7 +2159,7 @@ L8F65:  lda     #$03
 L8F75:  lda     #$01
 L8F77:  jmp     L888D
 
-L8F7A:  bne     L8F64
+ORDER:  bne     L8F64
 L8F7C:  jsr     _relink
         jsr     _set_txtptr_to_start
         lda     #$00
@@ -2227,7 +2232,7 @@ L8FF9:  sty     $39
         sbc     $3A
 L900B:  rts
 
-L900C:  bne     L900B
+UNPACK: bne     L900B
         ldx     #$11
 L9010:  lda     L918B,x
         cmp     $0801,x
@@ -2250,7 +2255,7 @@ L902F:  jsr     LA663
 
 L9035:  jmp     L8734
 
-L9038:  bne     L900B
+PACK:   bne     L900B
         lda     $2B
         cmp     $2D
         lda     $2C
@@ -2563,14 +2568,14 @@ L9282:  cmp     #$11
         ldx     #$00
         tay
         beq     L92B7
-L92AB:  lda     L94C1,x
+L92AB:  lda     fkey_strings,x
         beq     L92B3
         inx
         bne     L92AB
 L92B3:  inx
         dey
         bne     L92AB
-L92B7:  lda     L94C1,x
+L92B7:  lda     fkey_strings,x
         sta     $0277,y
         beq     L92C3
         inx
@@ -2830,27 +2835,16 @@ L94B3:  dex
         jsr     CLRCH
         jmp     LA004
 
-L94C1:  .byte   $8D
-        .byte   "LIST:"
-        .byte   $0D,$00,$8D
-        .byte   "RUN:"
-        .byte   $0D,$00
-        .byte   "DLOAD"
-        .byte   $0D,$00,$8D,$93
-        .byte   "DOS"
-        .byte   $22
-        .byte   "$"
-        .byte   $0D,$00,$8D
-        .byte   "M"
-        .byte   $CF
-        .byte   ":"
-        .byte   $0D,$00,$8D
-        .byte   "OLD:"
-        .byte   $0D,$00
-        .byte   "DSAVE"
-        .byte   $22,$00
-        .byte   "DOS"
-        .byte   $22,$00
+fkey_strings:
+        .byte   $8D, "LIST:", $0D, 0
+        .byte   $8D, "RUN:", $0D, 0
+        .byte   "DLOAD", $0D, 0
+        .byte   $8D, $93, "DOS",'"', "$",$0D, 0
+        .byte   $8D, "M", 'O' + $80, ":", $0D, 0
+        .byte   $8D, "OLD:", $0D, 0
+        .byte   "DSAVE", '"', 0
+        .byte   "DOS", '"', 0
+
 L94F9:  sei
         lda     #$31
         sta     $0314
