@@ -207,6 +207,7 @@ entry:  jmp     entry2
 
         jmp     L955E
 
+fast_format: ; $A00F
         jmp     L96E4
 
         jmp     L96FB
