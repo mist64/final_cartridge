@@ -1000,64 +1000,36 @@ L85F3:  lda     L8606,x
 L85FD:  .byte   $9B,$8A,$A7,$89,$8D,$CB
 L8603:  .byte   $AB,$A4,$2C
 L8606:  .byte   $64,$00,$0A,$00,$FF
-        .byte   "OF"
-        .byte   $C6
-        .byte   "AUT"
-        .byte   $CF
-        .byte   "DE"
-        .byte   $CC
-        .byte   "RENU"
-        .byte   $CD
-        .byte   "HEL"
-        .byte   $D0
-        .byte   "FIN"
-        .byte   $C4
-        .byte   "OL"
-        .byte   $C4
-        .byte   "DLOA"
-        .byte   $C4
-        .byte   "DVERIF"
-        .byte   $D9
-        .byte   "DSAV"
-        .byte   $C5
-        .byte   "APPEN"
-        .byte   $C4
-        .byte   "DAPPEN"
-        .byte   $C4
-        .byte   "DO"
-        .byte   $D3
-        .byte   "KIL"
-        .byte   $CC
-        .byte   "MO"
-        .byte   $CE
-        .byte   "PDI"
-        .byte   $D2
-        .byte   "PLIS"
-        .byte   $D4
-        .byte   "BA"
-        .byte   $D2
-        .byte   "DESKTO"
-        .byte   $D0
-        .byte   "DUM"
-        .byte   $D0
-        .byte   "ARRA"
-        .byte   $D9
-        .byte   "ME"
-        .byte   $CD
-        .byte   "TRAC"
-        .byte   $C5
-        .byte   "REPLAC"
-        .byte   $C5
-        .byte   "ORDE"
-        .byte   $D2
-        .byte   "PAC"
-        .byte   $CB
-        .byte   "UNPAC"
-        .byte   $CB
-        .byte   "MREA"
-        .byte   $C4
-        .byte   "MWRIT"
-        .byte   $C5
+
+        .byte   "OF", 'F' + $80
+        .byte   "AUT", 'O' + $80
+        .byte   "DE", 'L' + $80
+        .byte   "RENU", 'M' + $80
+        .byte   "HEL", 'P' + $80
+        .byte   "FIN", 'D' + $80
+        .byte   "OL", 'D' + $80
+        .byte   "DLOA", 'D' + $80
+        .byte   "DVERIF", 'Y' + $80
+        .byte   "DSAV", 'E' + $80
+        .byte   "APPEN", 'D' + $80
+        .byte   "DAPPEN", 'D' + $80
+        .byte   "DO", 'S' + $80
+        .byte   "KIL", 'L' + $80
+        .byte   "MO", 'N' + $80
+        .byte   "PDI", 'R' + $80
+        .byte   "PLIS", 'T' + $80
+        .byte   "BA", 'R' + $80
+        .byte   "DESKTO", 'P' + $80
+        .byte   "DUM", 'P' + $80
+        .byte   "ARRA", 'Y' + $80
+        .byte   "ME", 'M' + $80
+        .byte   "TRAC", 'E' + $80
+        .byte   "REPLAC", 'E' + $80
+        .byte   "ORDE", 'R' + $80
+        .byte   "PAC", 'K' + $80
+        .byte   "UNPAC", 'K' + $80
+        .byte   "MREA", 'D' + $80
+        .byte   "MWRIT", 'E' + $80
         .byte 0
 
 L8693:  .word   L8997-1
