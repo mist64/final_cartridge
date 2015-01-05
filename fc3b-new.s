@@ -1641,7 +1641,7 @@ LAB48:  cld ; <- important :)
         sta     $0248 ; PC hi
         tsx
         stx     $024E
-        jsr     LB6B3
+        jsr     set_irq_vector
         jsr     LA007
         jsr     print_cr
         lda     $0251
@@ -1765,7 +1765,7 @@ fill_prefix_with_csr_right:
         jsr     print_a_x
         lda     #$1D ; CSR RIGHT
         ldx     #$00
-LAC59:  sta     $0277,x ; fill prefix with 7 CSR RIGHT characters
+LAC59:  sta     $0277,x ; fill kbd buffer with 7 CSR RIGHT characters
         inx
         cpx     #$07
         bne     LAC59
@@ -1920,7 +1920,7 @@ cmd_leftbracket:
         jsr     print_up
         jsr     dump_char_line
         jsr     print_cr_dot
-        jsr     create_prefix_leftbracket
+        jsr     fill_kbd_buffer_leftbracket
         jmp     input_loop2
 
 ; ----------------------------------------------------------------
@@ -1941,7 +1941,7 @@ LAD9F:  jsr     store_byte
         jsr     print_up
         jsr     dump_sprite_line
         jsr     print_cr_dot
-        jsr     create_prefix_rightbracket
+        jsr     fill_kbd_buffer_rightbracket
         jmp     input_loop2
 
 ; ----------------------------------------------------------------
@@ -1953,7 +1953,7 @@ cmd_singlequote:
         jsr     print_up
         jsr     dump_ascii_line
         jsr     print_cr_dot
-        jsr     create_prefix_singlequote
+        jsr     fill_kbd_buffer_singlequote
         jmp     input_loop2
 
 ; ----------------------------------------------------------------
@@ -1965,7 +1965,7 @@ cmd_colon:
         jsr     print_up
         jsr     dump_hex_line
         jsr     print_cr_dot
-        jsr     create_prefix_semicolon
+        jsr     fill_kbd_buffer_semicolon
         jmp     input_loop2
 
 ; ----------------------------------------------------------------
@@ -2021,7 +2021,7 @@ cmd_comma:
         jsr     LB5E7
         lda     #$2C
         jsr     LAE7C
-        jsr     create_prefix_comma
+        jsr     fill_kbd_buffer_comma
         jmp     input_loop2
 
 ; ----------------------------------------------------------------
@@ -2041,7 +2041,7 @@ LAE61:  ldx     $024E
         jsr     LB0EF
         lda     #'A'
         jsr     LAE7C
-        jsr     create_prefix_a
+        jsr     fill_kbd_buffer_a
         jmp     input_loop2
 
 LAE7C:  pha
@@ -2114,7 +2114,7 @@ cmd_g:
 LAF03:  jsr     LB63A
 LAF06:  lda     $0253 ; bank
         bmi     LAF2B
-        jsr     LB6B3
+        jsr     set_irq_vector
         jsr     set_io_vectors
         ldx     $024E
         txs
@@ -2472,7 +2472,7 @@ LB19B:  jsr     print_up_dot
 ; "X" - exit monitor
 ; ----------------------------------------------------------------
 cmd_x:
-        jsr     LB6B3
+        jsr     set_irq_vector
         jsr     set_io_vectors
         lda     #$00
         sta     $028A
@@ -2739,13 +2739,13 @@ LB388:  lda     $0252 ; command index (or 'C'/'S')
         cmp     #$0B ; 'L'
         bne     LB3CC
 LB38F:  jsr     LB35C
-        jsr     LB6B3
+        jsr     set_irq_vector
         ldx     $C1
         ldy     $C2
         jsr     LB42D
         php
         jsr     LA007
-        jsr     LB6B3
+        jsr     set_irq_vector
         plp
 LB3A4:  bcc     LB3B3
 LB3A6:  ldx     #$00
@@ -3186,25 +3186,24 @@ LB655:  jsr     STOP
 LB66C:  clc
         rts
 
-; ??? what are these for?
-create_prefix_comma:
+fill_kbd_buffer_comma:
         lda     #','
         .byte   $2C
-create_prefix_semicolon:
+fill_kbd_buffer_semicolon:
         lda     #':'
         .byte   $2C
-create_prefix_a:
+fill_kbd_buffer_a:
         lda     #'A'
         .byte   $2C
-create_prefix_leftbracket:
+fill_kbd_buffer_leftbracket:
         lda     #'['
         .byte   $2C
-create_prefix_rightbracket:
+fill_kbd_buffer_rightbracket:
         lda     #']'
         .byte   $2C
-create_prefix_singlequote:
+fill_kbd_buffer_singlequote:
         lda     #$27 ; "'"
-        sta     $0277
+        sta     $0277 ; keyboard buffer
         lda     $C2
         jsr     byte_to_hex_ascii
         sta     $0278
@@ -3234,19 +3233,20 @@ LB6AC:  jsr     BSOUT
         bne     LB6AC
         rts
 
-LB6B3:  lda     $0314
-        cmp     #$E2
+set_irq_vector:
+        lda     $0314
+        cmp     #<irq_handler
         bne     LB6C1
         lda     $0315
-        cmp     #$B6
+        cmp     #>irq_handler
         beq     LB6D3
 LB6C1:  lda     $0314
         ldx     $0315
         sta     $024F ; $0314
         stx     $0250 ; $0315
-        lda     #$E2
-        ldx     #$B6
-        bne     LB6D9
+        lda     #<irq_handler
+        ldx     #>irq_handler
+        bne     LB6D9 ; always
 LB6D3:  lda     $024F ; $0314
         ldx     $0250 ; $0315
 LB6D9:  sei
@@ -3255,37 +3255,39 @@ LB6D9:  sei
         cli
         rts
 
-        lda     #$B6
+irq_handler:
+        lda     #>after_irq ; XXX shouldn't this be "-1"?
         pha
-        lda     #$F1
+        lda     #<after_irq
         pha
-        lda     #$00
-        pha
-        pha
+        lda     #$00 ; fill A/X/Y/P
         pha
         pha
-        jmp     LEA31
+        pha
+        pha
+        jmp     LEA31 ; run normal IRQ handler, then return to this code
 
+after_irq:
         lda     $0254
         bne     LB6FA
-        lda     $C6
+        lda     $C6 ; number of characters in prefix
         bne     LB700
-LB6FA:  pla
+LB6FA:  pla ; XXX JMP $EA81
         tay
         pla
         tax
         pla
         rti
 
-LB700:  lda     $0277
-        cmp     #$88
+LB700:  lda     $0277 ; keyboard buffer
+        cmp     #$88 ; F7 key
         bne     LB71C
-        lda     #$40
+        lda     #'@'
         sta     $0277
-        lda     #$24
+        lda     #'$'
         sta     $0278
         lda     #$0D
-        sta     $0279
+        sta     $0279 ; store "@$' + CR into keyboard buffer
         lda     #$03
         sta     $C6
         bne     LB6FA
@@ -3297,8 +3299,8 @@ LB71C:  cmp     #$87
         jsr     LB8D9
         ldy     $D3
         jsr     LE50C
-LB72E:  lda     #$11
-        sta     $0277
+LB72E:  lda     #$11 ; DOWN
+        sta     $0277 ; kbd buffer
 LB733:  cmp     #$86
         bne     LB74A
         ldx     #$00
@@ -3307,8 +3309,8 @@ LB733:  cmp     #$86
         jsr     LB8D9
         ldy     $D3
         jsr     LE50C
-LB745:  lda     #$91
-        sta     $0277
+LB745:  lda     #$91; UP
+        sta     $0277 ; kbd buffer
 LB74A:  cmp     #$11
         beq     LB758
         cmp     #$91
@@ -3434,8 +3436,8 @@ LB845:  ldy     #$01
         beq     LB884
         dec     $020D
         beq     LB889
-        lda     $0277
-        cmp     #$11
+        lda     $0277 ; kbd buffer
+        cmp     #$11 ; DOWN
         bne     LB877
         sec
         lda     $C3
@@ -3812,7 +3814,7 @@ cmd_p:
         tax
 LBC11:  jsr     basin_cmp_cr
         bne     LBBF4
-LBC16:  sta     $0277
+LBC16:  sta     $0277; kbd buffer
         inc     $C6
         lda     #$04
         cmp     $BA
@@ -4020,7 +4022,8 @@ LBD8D:  lda     #$09
         cmp     $BA
         bcs     LBD8C
         lda     #$08
-        bne     LBD8A
+        bne     LBD8A ; always
+
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
