@@ -47,7 +47,7 @@ LA000           := $A000
 LA004           := $A004
 LA007           := $A007
 LA00A           := $A00A
-LA57C           := $A57C
+LA57C           := $A57C ; pointer into cbmbasic
 LA612           := $A612
 LA648           := $A648
 LA659           := $A659
@@ -77,14 +77,14 @@ LD6D3           := $D6D3
 _jmp_bank       := $DE01
 _disable_rom_set_01 := $DE0D
 _disable_rom    := $DE0F
-LDE20           := $DE20
-LDE35           := $DE35
-LDE41           := $DE41
-LDE49           := $DE49
-LDE4F           := $DE4F
+_new_load       := $DE20
+_new_save       := $DE35
+_new_mainloop   := $DE41
+_new_detokenize := $DE49
+_new_expression := $DE4F
 LDE63           := $DE63
 LDE6C           := $DE6C
-LDE73           := $DE73
+_new_execute    := $DE73
 LDE7F           := $DE7F
 LDE85           := $DE85
 LDE8E           := $DE8E
@@ -229,7 +229,7 @@ entry:  jmp     entry2
 init_basic_vectors:
         jsr     init_load_save_vectors
 L802F:  ldx     #$09
-L8031:  lda     L80DE+4,x ; overwrite BASIC vectors
+L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
         sta     $0302,x
         dex
         bpl     L8031
@@ -319,13 +319,15 @@ L80CE:  ldx     #<$A000
         pha
         jmp     _disable_rom
 
-L80DE:  .addr   LDE20 ; $0330 LOAD
-        .addr   LDE35 ; $0332 SAVE
-        .addr   LDE41 ; $0302 BASIC direct mode
-        .addr   LA57C ; $0304 tokenization
-        .addr   LDE49 ; $0306 token decoder
-        .addr   LDE73 ; $0308 execute instruction
-        .addr   LDE4F ; $030A execute expression
+load_save_vectors:
+        .addr   _new_load       ; $0330 LOAD
+        .addr   _new_save       ; $0332 SAVE
+basic_vectors:
+        .addr   _new_mainloop   ; $0302 IMAIN  BASIC direct mode
+        .addr   LA57C           ; $0304 ICRNCH tokenization (original value!)
+        .addr   _new_detokenize ; $0306 IQPLOP token decoder
+        .addr   _new_execute    ; $0308 IGONE  execute instruction
+        .addr   _new_expression ; $030A IEVAL  execute expression
 L80EC:  ldy     #$1F
 L80EE:  lda     $0314,y
         cmp     $FD30,y
@@ -336,7 +338,7 @@ L80EE:  lda     $0314,y
 init_load_save_vectors:
         jsr     LA004 ; ???
         ldy     #$03
-L80FE:  lda     L80DE,y ; overwrite LOAD and SAVE vectors
+L80FE:  lda     load_save_vectors,y ; overwrite LOAD and SAVE vectors
         sta     $0330,y
         dey
         bpl     L80FE
@@ -419,6 +421,7 @@ L8194:  jsr     L8133
 L819A:  ldx     #$05
         jmp     L9873
 
+new_expression:
         lda     #$00
         sta     $0D
         jsr     _CHRGET
@@ -468,6 +471,8 @@ L81E3:  lda     #$16
         pla
         lda     #$40
 L81FB:  sta     $02A9
+
+new_mainloop: ; $81FE
         jsr     L8C71
         jsr     L80EC
         jsr     L81E3
@@ -485,7 +490,7 @@ L81FB:  sta     $02A9
         stx     $3A
         bcc     L822B
         jsr     L8253
-        jmp     LDE73
+        jmp     _new_execute
 
 L822B:  jsr     LDEAF
         tax
@@ -605,6 +610,7 @@ L830B:  sta     $01FD,y
         sta     $7A
         rts
 
+new_execute:
         beq     L8342
         ldx     $3A
         inx
@@ -1707,6 +1713,7 @@ L8BF5:  tya
         inc     $7B
 L8BFF:  jmp     UNLSTN
 
+new_detokenize: ; $8C02
         tax
 L8C03:  lda     $028D
         and     #$02

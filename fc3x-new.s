@@ -8,11 +8,11 @@
 
 CHRGET          := $0073
 CHRGOT          := $0079
-L819F           := $819F
-L81FE           := $81FE
-L8315           := $8315
+new_expression  := $819F
+new_mainloop    := $81FE
+new_execute     := $8315
 L8B54           := $8B54
-L8C02           := $8C02
+new_detokenize  := $8C02
 L9229           := $9229
 L922A           := $922A
 L9511           := $9511
@@ -73,16 +73,17 @@ _disable_rom: ; $DE0F
         jsr     _disable_rom
         jmp     LE37B
 
-LDE1A:  ora     #$07
+enable_all_roms:  
+        ora     #$07
         sta     $01
         bne     _enable_rom
 
-; $DE20
+_new_load: ; $DE20
         tay
         tay
         lda     $01
         pha
-        jsr     LDE1A
+        jsr     enable_all_roms
         jsr     L9900
 LDE2B:  tax
         pla
@@ -91,21 +92,25 @@ LDE2B:  tax
         ldx     $AE
         jmp     _disable_rom
 
+_new_save: ; $DE35
         lda     $01
         pha
-        jsr     LDE1A
+        jsr     enable_all_roms
         jsr     L9903
         jmp     LDE2B
 
+_new_mainloop: ; $DE41
         lda     $01
-        jsr     LDE1A
-        jmp     L81FE
+        jsr     enable_all_roms
+        jmp     new_mainloop
 
+_new_detokenize: ; $DE49
         jsr     _enable_rom
-        jmp     L8C02
+        jmp     new_detokenize
 
+_new_expression: ; $DE4F
         jsr     _enable_rom
-        jmp     L819F
+        jmp     new_expression
 
         lda     $02A7
         beq     LDE5D
@@ -125,8 +130,9 @@ LDE5D:  jsr     _enable_rom
         inc     $01
         rts
 
+_new_execute: ; $DE73
         jsr     _CHRGET
-        jsr     L8315
+        jsr     new_execute
         jsr     _disable_rom
         jmp     LA7AE
 
