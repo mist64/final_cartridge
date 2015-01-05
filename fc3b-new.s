@@ -1765,7 +1765,7 @@ LAC66:  sta     $0252
 LAC69:  jsr     get_hex_word
         jsr     basin_cmp_cr
         bne     LAC80
-        jsr     LB644
+        jsr     copy_c3_c4_to_c1_c2
         jmp     LAC86
 
 LAC77:  jmp     LAEAC
@@ -1801,22 +1801,22 @@ LACAE:  jsr     print_cr
         beq     LACD0
         cmp     #$43
         beq     LACCA
-        jsr     LAD39
+        jsr     dump_ascii_line
         jmp     LACA6
 
-LACC4:  jsr     LAD28
+LACC4:  jsr     dump_hex_line
         jmp     LACA6
 
-LACCA:  jsr     LAD0F
+LACCA:  jsr     dump_char_line
         jmp     LACA6
 
-LACD0:  jsr     LACF0
+LACD0:  jsr     dump_sprite_line
         jmp     LACA6
 
 LACD6:  jsr     LB64D
         bcc     LACAB
 LACDB:  jsr     print_cr
-        jsr     LAD49
+        jsr     dump_assembly_line
         jmp     LACD6
 
 LACE4:  jsr     basin_if_more
@@ -1824,7 +1824,8 @@ LACE4:  jsr     basin_if_more
         jsr     LB22E
         jmp     print_cr_then_input_loop
 
-LACF0:  ldx     #']'
+dump_sprite_line:
+        ldx     #']'
         jsr     print_dot_x
         jsr     print_hex_16
         jsr     print_space
@@ -1834,42 +1835,47 @@ LACFD:  jsr     load_byte
         iny
         cpy     #$03
         bne     LACFD
-        jsr     LB6A8
-        tya
-        jmp     LB8CA
+        jsr     print_8_spaces
+        tya ; 3
+        jmp     add_a_to_c1_c2
 
-LAD0F:  ldx     #'['
+dump_char_line:
+        ldx     #'['
         jsr     print_dot_x
         jsr     print_hex_16
         jsr     print_space
         ldy     #$00
         jsr     load_byte
         jsr     print_bin
-        jsr     LB6A8
-        jmp     LB575
+        jsr     print_8_spaces
+        jmp     inc_c1_c2
 
-LAD28:  ldx     #':'
+dump_hex_line:
+        ldx     #':'
         jsr     print_dot_x
         jsr     print_hex_16
-        jsr     LB57E
+        jsr     dump_8_hex_bytes
         jsr     print_space
-        jmp     LB590
+        jmp     dump_8_ascii_characters
 
-LAD39:  ldx     #$27  ; "'"
+dump_ascii_line:
+        ldx     #$27  ; "'"
         jsr     print_dot_x
         jsr     print_hex_16
         jsr     print_space
         ldx     #$20
-        jmp     LB592
+        jmp     dump_ascii_characters
 
-LAD49:  ldx     #','
+dump_assembly_line:
+        ldx     #','
 LAD4B:  jsr     print_dot_x
-        jsr     LAD5A
-        jsr     LB6A8
+        jsr     disassemble_line; XXX why not inline?
+        jsr     print_8_spaces
         lda     $0205
         jmp     LB028
 
-LAD5A:  jsr     print_hex_16
+disassemble_line:
+        jsr     print_hex_16
         jsr     print_space
         jsr     LAF62
         jsr     LAF40
@@ -1877,19 +1883,19 @@ LAD5A:  jsr     print_hex_16
         jmp     LAFD7
 
 LAD6C:  jsr     get_hex_word
-        jsr     LB644
+        jsr     copy_c3_c4_to_c1_c2
         jsr     LB4BC
         jsr     LB4DB
         ldy     #$00
         jsr     store_byte
         jsr     print_up
-        jsr     LAD0F
+        jsr     dump_char_line
         jsr     print_cr_dot
         jsr     LB677
         jmp     LAC1A
 
 LAD8C:  jsr     get_hex_word
-        jsr     LB644
+        jsr     copy_c3_c4_to_c1_c2
         jsr     LB4BC
         jsr     LB4DB
         ldy     #$00
@@ -1900,15 +1906,16 @@ LAD9F:  jsr     store_byte
         cpy     #$03
         bne     LAD9C
         jsr     print_up
-        jsr     LACF0
+        jsr     dump_sprite_line
         jsr     print_cr_dot
         jsr     LB67A
         jmp     LAC1A
 
-LADB6:  jsr     get_hex_word
-        jsr     LB5BE
+cmd_singlequote:
+        jsr     get_hex_word
+        jsr     read_ascii
         jsr     print_up
-        jsr     LAD39
+        jsr     dump_ascii_line
         jsr     print_cr_dot
         jsr     LB67D
         jmp     LAC1A
@@ -1916,7 +1923,7 @@ LADB6:  jsr     get_hex_word
 LADCB:  jsr     get_hex_word
         jsr     LB5E5
         jsr     print_up
-        jsr     LAD28
+        jsr     dump_hex_line
         jsr     print_cr_dot
         jsr     LB671
         jmp     LAC1A
@@ -2352,7 +2359,7 @@ LB146:  inx
 
 LB14E:  jsr     get_hex_word
         jsr     print_up_dot
-        jsr     LB644
+        jsr     copy_c3_c4_to_c1_c2
         jsr     print_dollar_hex_16
         jsr     LB48E
         jsr     print_hash
@@ -2472,7 +2479,7 @@ LB230:  jsr     store_byte
         ldx     $C2
         cpx     $C4
         beq     LB244
-LB23F:  jsr     LB575
+LB23F:  jsr     inc_c1_c2
         bne     LB230
 LB244:  rts
 
@@ -2506,7 +2513,7 @@ LB274:  jsr     STOP
 LB287:  inc     $C3
         bne     LB28D
         inc     $C4
-LB28D:  jsr     LB575
+LB28D:  jsr     inc_c1_c2
         bne     LB25B
 LB292:  rts
 
@@ -2521,7 +2528,7 @@ LB29D:  jsr     load_byte
         cpy     $0252
         bne     LB29D
         jsr     print_space_hex_16
-LB2AE:  jsr     LB575
+LB2AE:  jsr     inc_c1_c2
         bne     LB296
 LB2B3:  rts
 
@@ -2944,14 +2951,16 @@ LB56D:  jsr     BSOUT
         bne     LB565
         rts
 
-LB575:  clc
+inc_c1_c2:
+        clc
         inc     $C1
         bne     LB57D
         inc     $C2
         sec
 LB57D:  rts
 
-LB57E:  ldx     #$08
+dump_8_hex_bytes:
+        ldx     #$08
         ldy     #$00
 LB582:  jsr     print_space
         jsr     load_byte
@@ -2961,8 +2970,10 @@ LB582:  jsr     print_space
         bne     LB582
         rts
 
-LB590:  ldx     #$08
-LB592:  ldy     #$00
+dump_8_ascii_characters:
+       ldx     #$08
+dump_ascii_characters:
+        ldy     #$00
 LB594:  jsr     load_byte
         cmp     #$20
         bcs     LB59F
@@ -2982,12 +2993,13 @@ LB5AD:  jsr     BSOUT
         iny
         dex
         bne     LB594
-        tya
-        jmp     LB8CA
+        tya ; number of bytes consumed
+        jmp     add_a_to_c1_c2
 
-LB5BE:  ldx     #$20
+read_ascii:
+        ldx     #$20
         ldy     #$00
-        jsr     LB644
+        jsr     copy_c3_c4_to_c1_c2
         jsr     basin_if_more
 LB5C8:  sty     $0209
         ldy     $D3
@@ -3007,7 +3019,7 @@ LB5E0:  iny
 
 LB5E5:  ldx     #$08
 LB5E7:  ldy     #$00
-        jsr     LB644
+        jsr     copy_c3_c4_to_c1_c2
         jsr     LB4BC
         jsr     get_hex_byte2
         jmp     LB607
@@ -3060,7 +3072,9 @@ LB63A:  lda     $0248 ; PC hi
         sta     $C4
         lda     $0249 ; PC lo
         sta     $C3
-LB644:  lda     $C3
+
+copy_c3_c4_to_c1_c2:
+        lda     $C3
         sta     $C1
         lda     $C4
         sta     $C2
@@ -3088,17 +3102,17 @@ LB655:  jsr     STOP
 LB66C:  clc
         rts
 
-LB66E:  lda     #$2C
+LB66E:  lda     #','
         .byte   $2C
-LB671:  lda     #$3A
+LB671:  lda     #':'
         .byte   $2C
-LB674:  lda     #$41
+LB674:  lda     #'A'
         .byte   $2C
-LB677:  lda     #$5B
+LB677:  lda     #'['
         .byte   $2C
-LB67A:  lda     #$5D
+LB67A:  lda     #']'
         .byte   $2C
-LB67D:  lda     #$27
+LB67D:  lda     #$27 ; "'"
         sta     $0277
         lda     $C2
         jsr     byte_to_hex_ascii
@@ -3116,8 +3130,13 @@ LB67D:  lda     #$27
 
 LB6A2:  lda     #$1D
         ldx     #$07
-        bne     LB6AC
-LB6A8:  lda     #$20
+        bne     LB6AC ; always
+
+; print 8 spaces - this is used to clear some leftover characters
+; on the screen when re-dumping a line with proper spacing after the
+; user may have entered it with condensed spacing
+print_8_spaces:
+        lda     #' '
         ldx     #$08
 LB6AC:  jsr     BSOUT
         dex
@@ -3229,31 +3248,31 @@ LB75E:  jsr     LB838
         beq     LB7BC
         jsr     LB8C8
         jsr     print_cr
-        jsr     LAD28
+        jsr     dump_hex_line
         jmp     LB7C7
 
 LB790:  jsr     LAF62
         lda     $0205
         jsr     LB028
         jsr     print_cr
-        jsr     LAD49
+        jsr     dump_assembly_line
         jmp     LB7C7
 
-LB7A2:  jsr     LB575
+LB7A2:  jsr     inc_c1_c2
         jsr     print_cr
-        jsr     LAD0F
+        jsr     dump_char_line
         jmp     LB7C7
 
 LB7AE:  lda     #$03
-        jsr     LB8CA
+        jsr     add_a_to_c1_c2
         jsr     print_cr
-        jsr     LACF0
+        jsr     dump_sprite_line
         jmp     LB7C7
 
 LB7BC:  lda     #$20
-        jsr     LB8CA
+        jsr     add_a_to_c1_c2
         jsr     print_cr
-        jsr     LAD39
+        jsr     dump_ascii_line
 LB7C7:  lda     #$91 ; UP
         ldx     #$0D ; CR
         bne     LB7D1
@@ -3277,7 +3296,7 @@ LB7E1:  jsr     LB8FE
         cmp     #$27
         beq     LB82D
         jsr     LB8EC
-        jsr     LAD28
+        jsr     dump_hex_line
         jmp     LB7CD
 
 LB800:  jsr     LB625
@@ -3286,22 +3305,22 @@ LB800:  jsr     LB625
         lda     $0205
         eor     #$FF
         jsr     LB028
-        jsr     LAD49
+        jsr     dump_assembly_line
         clc
         bcc     LB7CD
 LB817:  lda     #$01
         jsr     LB8EE
-        jsr     LAD0F
+        jsr     dump_char_line
         jmp     LB7CD
 
 LB822:  lda     #$03
         jsr     LB8EE
-        jsr     LACF0
+        jsr     dump_sprite_line
         jmp     LB7CD
 
 LB82D:  lda     #$20
         jsr     LB8EE
-        jsr     LAD39
+        jsr     dump_ascii_line
         jmp     LB7CD
 
 LB838:  lda     $D1
@@ -3385,7 +3404,8 @@ LB8B1:  jsr     LB88B
         rts
 
 LB8C8:  lda     #$08
-LB8CA:  clc
+add_a_to_c1_c2:
+        clc
         adc     $C1
         sta     $C1
         bcc     LB8D3
@@ -3508,7 +3528,7 @@ function_table:
         .word   LAD6C-1
         .word   LAD8C-1
         .word   LAC69-1
-        .word   LADB6-1
+        .word   cmd_singlequote-1
         .word   cmd_semicolon-1
         .word   cmd_b-1
 
