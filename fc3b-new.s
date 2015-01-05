@@ -1618,7 +1618,7 @@ ram_code:
 ; rti
         jsr     _disable_rom
         sta     $01
-        lda     $024B
+        lda     $024B ; A register
         rti
 
 brk_entry:
@@ -1628,17 +1628,17 @@ ram_code_end:
 
 LAB48:  cld ; <- important :)
         pla
-        sta     $024D
+        sta     $024D ; Y
         pla
-        sta     $024C
+        sta     $024C ; X
         pla
-        sta     $024B
+        sta     $024B ; A
         pla
-        sta     $024A
+        sta     $024A ; P
         pla
-        sta     $0249
+        sta     $0249 ; PC lo
         pla
-        sta     $0248
+        sta     $0248 ; PC hi
         tsx
         stx     $024E
         jsr     LB6B3
@@ -1652,12 +1652,12 @@ LAB76:  lda     #'B'
         ldx     #'*'
         jsr     print_a_x
         clc
-        lda     $0249
+        lda     $0249 ; PC lo
         adc     #$FF
-        sta     $0249
+        sta     $0249 ; PC lo
         lda     $0248
         adc     #$FF
-        sta     $0248 ; decrement $0248/$0249
+        sta     $0248 ; decrement PC
         lda     $BA
         and     #$FB
         sta     $BA
@@ -1676,14 +1676,14 @@ LABA7:  lda     s_regs,x
         bne     LABA7
 LABB2:  ldx     #';'
         jsr     print_dot_x
-        lda     $0248
+        lda     $0248 ; PC hi
         jsr     print_hex_byte2 ; address hi
-        lda     $0249
+        lda     $0249 ; PC lo
         jsr     print_hex_byte2 ; address lo
         jsr     print_space
-        lda     $0250
+        lda     $0250 ; $0315
         jsr     print_hex_byte2 ; IRQ hi
-        lda     $024F
+        lda     $024F ; $0314
         jsr     print_hex_byte2 ; IRQ lo
         jsr     print_space
         lda     $0253 ; bank
@@ -1772,7 +1772,7 @@ LAC77:  jmp     LAEAC
 LAC7A:  jsr     get_hex_word
         jsr     basin_if_more
 LAC80:  jsr     LB625
-        jsr     LB4FD
+        jsr     get_hex_word2
 LAC86:  lda     $0252
         beq     LACAE
         cmp     #$17
@@ -1923,45 +1923,45 @@ LADCB:  jsr     get_hex_word
 cmd_semicolon:
         jsr     get_hex_word
         lda     $C4
-        sta     $0248
+        sta     $0248 ; PC hi
         lda     $C3
-        sta     $0249
+        sta     $0249 ; PC lo
         jsr     basin_if_more
-        jsr     LB4FD
+        jsr     get_hex_word2
         lda     $C3
-        sta     $024F
+        sta     $024F ; $0314
         lda     $C4
-        sta     $0250
+        sta     $0250 ; $0315
+        jsr     basin_if_more ; skip upper nybble of bank
         jsr     basin_if_more
-        jsr     basin_if_more
-        cmp     #$44
+        cmp     #'D' ; "drive"
         bne     LAE12
         jsr     basin_if_more
-        cmp     #$52
+        cmp     #'R'
         bne     LAE3D
-        ora     #$80
-        bmi     LAE1B
+        ora     #$80 ; XXX why not lda #$80?
+        bmi     LAE1B ; always
 LAE12:  jsr     get_hex_byte2
         cmp     #$08
-        bcs     LAE3D
+        bcs     LAE3D ; syntax error
         ora     #$30
 LAE1B:  sta     $0253 ; bank
         ldx     #$00
 LAE20:  jsr     basin_if_more
         jsr     get_hex_byte
-        sta     $024B,x
+        sta     $024B,x ; registers
         inx
         cpx     #$04
         bne     LAE20
         jsr     basin_if_more
         jsr     LB4E0
-        sta     $024A
+        sta     $024A ; processor status
         jsr     print_up
         jmp     LABB2
 
 LAE3D:  jmp     syntax_error
 
-LAE40:  jsr     LB4FD
+LAE40:  jsr     get_hex_word2
         ldx     #$03
         jsr     LB5E7
         lda     #$2C
@@ -1998,7 +1998,7 @@ LAE88:  jsr     LB655
 
 LAE90:  sty     $020A
         jsr     basin_if_more
-        jsr     LB4FD
+        jsr     get_hex_word2
         lda     $0252
         cmp     #$08
         beq     LAEA6
@@ -2059,7 +2059,7 @@ LAF06:  lda     $0253 ; bank
         pha
         lda     $C3
         pha
-        lda     $024A
+        lda     $024A; processor status
         pha
         ldx     $024C
         ldy     $024D
@@ -2701,7 +2701,7 @@ LB3E7:  sta     $BA
         beq     LB388
         cmp     #$2C
 LB3F0:  bne     LB3D6
-        jsr     LB4FD
+        jsr     get_hex_word2
         jsr     LB625
         jsr     basin_cmp_cr
         bne     LB408
@@ -2712,7 +2712,7 @@ LB3F0:  bne     LB3D6
         beq     LB38F
 LB408:  cmp     #$2C
 LB40A:  bne     LB3F0
-        jsr     LB4FD
+        jsr     get_hex_word2
         jsr     LB4CB
         bne     LB40A
         ldx     $C3
@@ -2854,7 +2854,8 @@ LB4F4:  cmp     #' ' ; skip spaces
         beq     get_hex_word
         jsr     get_hex_byte2
         bcs     LB500 ; ??? always
-LB4FD:  jsr     get_hex_byte
+get_hex_word2:
+        jsr     get_hex_byte
 LB500:  sta     $C4
         jsr     get_hex_byte
         sta     $C3
@@ -3048,9 +3049,9 @@ LB625:  lda     $C4
         sta     $C1
         rts
 
-LB63A:  lda     $0248
+LB63A:  lda     $0248 ; PC hi
         sta     $C4
-        lda     $0249
+        lda     $0249 ; PC lo
         sta     $C3
 LB644:  lda     $C3
         sta     $C1
@@ -3124,13 +3125,13 @@ LB6B3:  lda     $0314
         beq     LB6D3
 LB6C1:  lda     $0314
         ldx     $0315
-        sta     $024F
-        stx     $0250
+        sta     $024F ; $0314
+        stx     $0250 ; $0315
         lda     #$E2
         ldx     #$B6
         bne     LB6D9
-LB6D3:  lda     $024F
-        ldx     $0250
+LB6D3:  lda     $024F ; $0314
+        ldx     $0250 ; $0315
 LB6D9:  sei
         sta     $0314
         stx     $0315
