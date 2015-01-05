@@ -1667,6 +1667,9 @@ LAB76:  lda     #'B'
         sta     $028A
         bne     LABA5 ; always
 
+; ----------------------------------------------------------------
+; "R" - dump registers
+; ----------------------------------------------------------------
 cmd_r:
         jsr     basin_cmp_cr
         bne     syntax_error
@@ -1904,6 +1907,9 @@ disassemble_line:
         jsr     LAFAF
         jmp     LAFD7
 
+; ----------------------------------------------------------------
+; "[" - input character data
+; ----------------------------------------------------------------
 cmd_leftbracket:
         jsr     get_hex_word
         jsr     copy_c3_c4_to_c1_c2
@@ -1917,6 +1923,9 @@ cmd_leftbracket:
         jsr     create_prefix_leftbracket
         jmp     input_loop2
 
+; ----------------------------------------------------------------
+; "]" - input sprite data
+; ----------------------------------------------------------------
 cmd_rightbracket:
         jsr     get_hex_word
         jsr     copy_c3_c4_to_c1_c2
@@ -2004,7 +2013,8 @@ LAE20:  jsr     basin_if_more
 LAE3D:  jmp     syntax_error
 
 ; ----------------------------------------------------------------
-
+; "," - input up to three hex values
+; ----------------------------------------------------------------
 cmd_comma:
         jsr     get_hex_word2
         ldx     #$03
@@ -2014,6 +2024,9 @@ cmd_comma:
         jsr     create_prefix_comma
         jmp     input_loop2
 
+; ----------------------------------------------------------------
+; "A" - assemble
+; ----------------------------------------------------------------
 cmd_a:
         jsr     get_hex_word
         jsr     LB030
@@ -2087,6 +2100,9 @@ LAEE7:  stx     $0252 ; command index (or 'C'/'S')
         jsr     LB293
         jmp     input_loop
 
+; ----------------------------------------------------------------
+; "G" - run code
+; ----------------------------------------------------------------
 cmd_g:
         jsr     basin_cmp_cr
         beq     LAF03
@@ -2391,6 +2407,9 @@ LB146:  inx
         ldx     $0203
         rts
 
+; ----------------------------------------------------------------
+; "$" - convert hex to decimal
+; ----------------------------------------------------------------
 cmd_dollar:
         jsr     get_hex_word
         jsr     print_up_dot
@@ -2401,6 +2420,9 @@ cmd_dollar:
         jsr     LBC50
         jmp     input_loop
 
+; ----------------------------------------------------------------
+; "#" - convert decimal to hex
+; ----------------------------------------------------------------
 cmd_hash:
         ldy     #$00
         sty     $C1
@@ -2446,6 +2468,9 @@ LB19B:  jsr     print_up_dot
         jsr     print_dollar_hex_16
         jmp     input_loop
 
+; ----------------------------------------------------------------
+; "X" - exit monitor
+; ----------------------------------------------------------------
 cmd_x:
         jsr     LB6B3
         jsr     set_io_vectors
@@ -2694,6 +2719,9 @@ LB35C:  lda     #$16
         sta     $0323
         rts
 
+; ----------------------------------------------------------------
+; "L"/"S" - load/save file
+; ----------------------------------------------------------------
 cmd_ls:
         ldy     #$02
         sty     $BC
@@ -2805,7 +2833,7 @@ LB438:  lda     #$DE
 cmd_at: 
         jsr     listen_command_channel
         jsr     basin_cmp_cr
-        beq     LB466
+        beq     print_drive_status
         cmp     #'$'
         beq     LB475
         cmp     #'F'
@@ -2819,7 +2847,8 @@ LB458:  jsr     IECOUT
         jmp     print_cr_then_input_loop
 
 ; just print drive status
-LB466:  jsr     print_cr
+print_drive_status:
+        jsr     print_cr
         jsr     UNLSTN
         jsr     talk_cmd_channel
         jsr     cat_line_iec
@@ -3553,17 +3582,11 @@ LB9D5:  .byte   $D8,$62,$5A,$48,$26,$62,$94,$88
         .byte   $44,$68,$B2,$32,$B2,$00,$22,$00
         .byte   $1A,$1A,$26,$26,$72,$72,$88,$C8
         .byte   $C4,$CA,$26,$48,$44,$44,$A2,$C8
-s_regs: .byte   $0D, "   PC  IRQ  BK AC XR YR SP NV#B"
 
-
-
-        .byte   "DIZC"
-        .byte   $0D,$00
+s_regs: .byte   $0D, "   PC  IRQ  BK AC XR YR SP NV#BDIZC", $0D, 0
 
 command_names:
         .byte   "MD:AGXFHCTRLS,O@$#*PE[]I';B"
-
-
 
 function_table:
         .word   cmd_mid-1
@@ -3596,15 +3619,18 @@ function_table:
 
 LBA8C:  jmp     syntax_error
 
+; ----------------------------------------------------------------
+; "*R"/"*W" - read/write sector
+; ----------------------------------------------------------------
 cmd_asterisk:
         jsr     listen_command_channel
         jsr     UNLSTN
         jsr     BASIN
-        cmp     #$57
+        cmp     #'W'
         beq     LBAA0
-        cmp     #$52
-        bne     LBA8C
-LBAA0:  sta     $C3
+        cmp     #'R'
+        bne     LBA8C ; syntax error
+LBAA0:  sta     $C3 ; save 'R'/'W' mode
         jsr     basin_skip_spaces_if_more
         jsr     get_hex_byte2
         bcc     LBA8C
@@ -3626,27 +3652,27 @@ LBAC1:  jsr     get_hex_byte
 LBACD:  jsr     LBB48
         jsr     swap_c1_c2_and_c3_c4
         lda     $C1
-        cmp     #$57
+        cmp     #'W'
         beq     LBB25
-        lda     #$31
+        lda     #'1'
         jsr     LBB6E
         jsr     talk_cmd_channel
         jsr     IECIN
-        cmp     #$30
-        beq     LBB00
+        cmp     #'0'
+        beq     LBB00 ; no error
         pha
         jsr     print_cr
         pla
 LBAED:  jsr     $E716 ; KERNAL: output character to screen
         jsr     IECIN
-        cmp     #$0D
+        cmp     #$0D ; print drive status until CR (XXX redundant?)
         bne     LBAED
         jsr     UNTALK
-        jsr     LBB5C
+        jsr     close_2
         jmp     input_loop
 
 LBB00:  jsr     IECIN
-        cmp     #$0D
+        cmp     #$0D ; receive all bytes (XXX not necessary?)
         bne     LBB00
         jsr     UNTALK
         jsr     LBBAE
@@ -3655,11 +3681,11 @@ LBB00:  jsr     IECIN
         ldy     #$00
         sty     $C1
 LBB16:  jsr     IECIN
-        jsr     store_byte
+        jsr     store_byte ; receive block
         iny
         bne     LBB16
         jsr     CLRCH
-        jmp     LBB42
+        jmp     LBB42 ; close 2 and print drive status
 
 LBB25:  jsr     LBBAE
         ldx     #$02
@@ -3667,14 +3693,14 @@ LBB25:  jsr     LBBAE
         ldy     #$00
         sty     $C1
 LBB31:  jsr     load_byte
-        jsr     IECOUT
+        jsr     IECOUT ; send block
         iny
         bne     LBB31
         jsr     CLRCH
-        lda     #$32
+        lda     #'2'
         jsr     LBB6E
-LBB42:  jsr     LBB5C
-        jmp     LB466
+LBB42:  jsr     close_2
+        jmp     print_drive_status
 
 LBB48:  lda     #$02
         tay
@@ -3686,7 +3712,8 @@ LBB48:  lda     #$02
         jsr     SETNAM
         jmp     OPEN
 
-LBB5C:  lda     #$02
+close_2:
+        lda     #$02
         jmp     CLOSE
 
 LBB61:  ldx     #$30
@@ -3700,10 +3727,10 @@ LBB6B:  adc     #$3A
 
 LBB6E:  pha
         ldx     #$00
-LBB71:  lda     LBBC1,x
+LBB71:  lda     s_u1,x
         sta     $0200,x
         inx
-        cpx     #$07
+        cpx     #s_u1_end - s_u1
         bne     LBB71
         pla
         sta     $0201
@@ -3728,15 +3755,20 @@ LBBA0:  lda     $0200,x
 
 LBBAE:  jsr     listen_command_channel
         ldx     #$00
-LBBB3:  lda     LBBC8,x
+LBBB3:  lda     s_bp,x
         jsr     IECOUT
         inx
-        cpx     #$07
+        cpx     #s_bp_end - s_bp
         bne     LBBB3
         jmp     UNLSTN
 
-LBBC1:  .byte   "U1:2 0 "
-LBBC8:  .byte   "B-P 2 0#"
+s_u1:
+        .byte   "U1:2 0 "
+s_u1_end:
+s_bp:
+        .byte   "B-P 2 0"
+s_bp_end:
+        .byte   "#" ; ???
 
 send_m_dash2:
         pha
@@ -3762,17 +3794,20 @@ iec_send_c1_c2_plus_y:
 
 LBBF4:  jmp     syntax_error
 
+; ----------------------------------------------------------------
+; "P" - set output to printer
+; ----------------------------------------------------------------
 cmd_p:
         lda     $0253 ; bank
-        bmi     LBBF4
+        bmi     LBBF4 ; drive? syntax error
         ldx     #$FF
-        lda     $BA
+        lda     $BA ; device number
         cmp     #$04
-        beq     LBC11
+        beq     LBC11 ; printer
         jsr     basin_cmp_cr
-        beq     LBC16
-        cmp     #$2C
-        bne     LBBF4
+        beq     LBC16 ; no argument
+        cmp     #','
+        bne     LBBF4 ; syntax error
         jsr     get_hex_byte
         tax
 LBC11:  jsr     basin_cmp_cr
@@ -3781,9 +3816,9 @@ LBC16:  sta     $0277
         inc     $C6
         lda     #$04
         cmp     $BA
-        beq     LBC39
+        beq     LBC39 ; printer
         stx     $B9
-        sta     $BA
+        sta     $BA ; set device 4
         sta     $B8
         ldx     #$00
         stx     $B7
