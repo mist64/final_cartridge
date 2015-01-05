@@ -1587,9 +1587,9 @@ monitor: ; $AB00
         lda     #$43
         sta     $0251
         lda     #$37
-        sta     $0253 ; bank
+        sta     $0253 ; bank 7
         lda     #$70
-        sta     $0257
+        sta     $0257 ; value of $DFFF, by default, hide cartridge
         ldx     #ram_code_end - ram_code - 1
 LAB1B:  lda     ram_code,x
         sta     L0220,x
@@ -1599,17 +1599,19 @@ LAB1B:  lda     ram_code,x
 
 ; code that will be copied to $0220
 ram_code:
-        sta     $DFFF
+; $0220
+; read from memory with a specific ROM and cartridge config
+        sta     $DFFF ; set cartridge config
         pla
-        sta     $01
-        lda     ($C1),y
+        sta     $01 ; set ROM config
+        lda     ($C1),y ; read
 ; $0228
 ; enable all ROMs
         pha
         lda     #$37
-        sta     $01
+        sta     $01 ; restore ROM config
         lda     #$40
-        sta     $DFFF
+        sta     $DFFF ; resture cartridge config
         pla
         rts
 ; $0234
@@ -1826,7 +1828,7 @@ LACF0:  ldx     #']'
         jsr     print_hex_16
         jsr     print_space
         ldy     #$00
-LACFD:  jsr     LB2E9
+LACFD:  jsr     load_byte
         jsr     print_bin
         iny
         cpy     #$03
@@ -1840,7 +1842,7 @@ LAD0F:  ldx     #'['
         jsr     print_hex_16
         jsr     print_space
         ldy     #$00
-        jsr     LB2E9
+        jsr     load_byte
         jsr     print_bin
         jsr     LB6A8
         jmp     LB575
@@ -1878,7 +1880,7 @@ LAD6C:  jsr     LB4F1
         jsr     LB4BC
         jsr     LB4DB
         ldy     #$00
-        jsr     LB2F7
+        jsr     store_byte
         jsr     print_up
         jsr     LAD0F
         jsr     print_cr_dot
@@ -1892,7 +1894,7 @@ LAD8C:  jsr     LB4F1
         ldy     #$00
         beq     LAD9F
 LAD9C:  jsr     LB4E0
-LAD9F:  jsr     LB2F7
+LAD9F:  jsr     store_byte
         iny
         cpy     #$03
         bne     LAD9C
@@ -1918,7 +1920,8 @@ LADCB:  jsr     LB4F1
         jsr     LB671
         jmp     LAC1A
 
-LADE0:  jsr     LB4F1
+cmd_semicolon:
+        jsr     LB4F1
         lda     $C4
         sta     $0248
         lda     $C3
@@ -2079,7 +2082,7 @@ LAF43:  cpy     $0205
         jsr     print_space
         jsr     print_space
         bcc     LAF58
-LAF52:  jsr     LB2E9
+LAF52:  jsr     load_byte
         jsr     print_hex_byte2
 LAF58:  jsr     print_space
         iny
@@ -2089,7 +2092,7 @@ LAF58:  jsr     print_space
         rts
 
 LAF62:  ldy     #$00
-        jsr     LB2E9
+        jsr     load_byte
 LAF67:  tay
         lsr     a
         bcc     LAF76
@@ -2162,7 +2165,7 @@ LAFD9:  cpx     #$03
 LAFE2:  lda     $0207
         cmp     #$E8
         php
-        jsr     LB2E9
+        jsr     load_byte
         plp
         bcs     LB00B
         jsr     print_hex_byte2
@@ -2316,11 +2319,11 @@ LB112:  dex
         ldy     $0205
         bne     LB11D
 LB11A:  lda     $C2,y
-LB11D:  jsr     LB2F7
+LB11D:  jsr     store_byte
         dey
         bne     LB11A
 LB123:  lda     $0206
-        jsr     LB2F7
+        jsr     store_byte
         rts
 
 LB12A:  jmp     input_loop
@@ -2409,11 +2412,11 @@ LB1CB:  lda     $C3
         bcs     LB1FC
         ldy     #$00
         ldx     #$00
-LB1D9:  jsr     LB2E9
+LB1D9:  jsr     load_byte
         pha
         jsr     LB625
         pla
-        jsr     LB2F7
+        jsr     store_byte
         jsr     LB625
         cpx     $020A
         bne     LB1F1
@@ -2437,11 +2440,11 @@ LB1FC:  clc
         adc     $C4
         sta     $C4
         ldy     $0209
-LB20E:  jsr     LB2E9
+LB20E:  jsr     load_byte
         pha
         jsr     LB625
         pla
-        jsr     LB2F7
+        jsr     store_byte
         jsr     LB625
         cpy     #$00
         bne     LB229
@@ -2456,7 +2459,7 @@ LB229:  dey
 LB22D:  rts
 
 LB22E:  ldy     #$00
-LB230:  jsr     LB2F7
+LB230:  jsr     store_byte
         ldx     $C1
         cpx     $C3
         bne     LB23F
@@ -2476,10 +2479,10 @@ LB245:  jsr     print_cr
         adc     $020A
         sta     $020A
         ldy     #$00
-LB25B:  jsr     LB2E9
+LB25B:  jsr     load_byte
         sta     $0252
         jsr     LB625
-        jsr     LB2E9
+        jsr     load_byte
         pha
         jsr     LB625
         pla
@@ -2505,7 +2508,7 @@ LB293:  jsr     print_cr
 LB296:  jsr     LB655
         bcc     LB2B3
         ldy     #$00
-LB29D:  jsr     LB2E9
+LB29D:  jsr     load_byte
         cmp     $0200,y
         bne     LB2AE
         iny
@@ -2516,20 +2519,26 @@ LB2AE:  jsr     LB575
         bne     LB296
 LB2B3:  rts
 
+; ----------------------------------------------------------------
+; memory load/store
+; ----------------------------------------------------------------
+
+; loads a byte at ($C1),y from drive RAM
 LB2B4:  lda     #'R' ; send M-R to drive
         jsr     send_m_dash2
-        jsr     LBBE4
+        jsr     iec_send_c1_c2_plus_y
         jsr     UNLSTN
         jsr     talk_cmd_channel
-        jsr     IECIN
+        jsr     IECIN ; read byte
         pha
         jsr     UNTALK
         pla
         rts
 
+; stores a byte at ($C1),y in drive RAM
 LB2CB:  lda     #'W' ; send M-W to drive
         jsr     send_m_dash2
-        jsr     LBBE4
+        jsr     iec_send_c1_c2_plus_y
         lda     #$01
         jsr     IECOUT
         pla
@@ -2546,42 +2555,50 @@ LB2CB:  lda     #'W' ; send M-W to drive
         sta     ($C1),y
         rts
 
-LB2E9:  sei
+; loads a byte at ($C1),y from RAM with the correct ROM config
+load_byte:
+        sei
         lda     $0253 ; bank
-        bmi     LB2B4
+        bmi     LB2B4 ; drive
         clc
         pha
-        lda     $0257
-        jmp     L0220
+        lda     $0257 ; value for $DFFF
+        jmp     L0220 ; "lda ($C1),y" with ROM and cartridge config
 
-LB2F7:  sei
+; stores a byte at ($C1),y in RAM with the correct ROM config
+store_byte:
+        sei
         pha
         lda     $0253 ; bank
-        bmi     LB2CB
+        bmi     LB2CB ; drive
         cmp     #$35
-        bcs     LB306
-        lda     #$33
-        sta     $01
+        bcs     LB306 ; I/O on
+        lda     #$33 ; ROM at $A000, $D000 and $E000
+        sta     $01 ; ??? why?
 LB306:  pla
-        sta     ($C1),y
+        sta     ($C1),y ; store
         pha
         lda     #$37
-        sta     $01
+        sta     $01 ; restore ROM config
         pla
         rts
 
-LB310:  jsr     _basin_cmp_cr
-        beq     LB326
-        cmp     #$20
-        beq     LB310
-        cmp     #$30
-        bcc     LB32E
-        cmp     #$34
-        bcs     LB32E
-        and     #$03
-        ora     #$40
+; ----------------------------------------------------------------
+; B - set cartridge bank (0-3) to be visible at $8000-$BFFF
+;     without arguments, this turns off cartridge visibility
+; ----------------------------------------------------------------
+cmd_b:  jsr     _basin_cmp_cr
+        beq     LB326 ; without arguments, set $70
+        cmp     #' '
+        beq     cmd_b ; skip spaces
+        cmp     #'0'
+        bcc     LB32E ; syntax error
+        cmp     #'4'
+        bcs     LB32E ; syntax error
+        and     #$03 ; XXX no effect
+        ora     #$40 ; make $40 - $43
         .byte   $2C
-LB326:  lda     #$70
+LB326:  lda     #$70 ; by default, hide cartridge
         sta     $0257
         jmp     print_cr_then_input_loop
 
@@ -2916,7 +2933,7 @@ LB57D:  rts
 LB57E:  ldx     #$08
         ldy     #$00
 LB582:  jsr     print_space
-        jsr     LB2E9
+        jsr     load_byte
         jsr     print_hex_byte2
         iny
         dex
@@ -2925,7 +2942,7 @@ LB582:  jsr     print_space
 
 LB590:  ldx     #$08
 LB592:  ldy     #$00
-LB594:  jsr     LB2E9
+LB594:  jsr     load_byte
         cmp     #$20
         bcs     LB59F
         inc     $C7
@@ -2961,7 +2978,7 @@ LB5C8:  sty     $0209
         bmi     LB5E0
         cmp     #$60
         bcs     LB5E0
-        jsr     LB2F7
+        jsr     store_byte
 LB5E0:  iny
         dex
         bne     LB5C8
@@ -2981,7 +2998,7 @@ LB5F5:  jsr     LB60F
         bne     LB619
         beq     LB60A
 LB604:  jsr     LB510
-LB607:  jsr     LB2F7
+LB607:  jsr     store_byte
 LB60A:  iny
         dex
         bne     LB5F5
@@ -3471,8 +3488,8 @@ function_table:
         .word   LAD8C-1
         .word   LAC69-1
         .word   LADB6-1
-        .word   LADE0-1
-        .word   LB310-1
+        .word   cmd_semicolon-1
+        .word   cmd_b-1
 
 LBA8C:  jmp     syntax_error
 
@@ -3534,7 +3551,7 @@ LBB00:  jsr     IECIN
         ldy     #$00
         sty     $C1
 LBB16:  jsr     IECIN
-        jsr     LB2F7
+        jsr     store_byte
         iny
         bne     LBB16
         jsr     CLRCH
@@ -3545,7 +3562,7 @@ LBB25:  jsr     LBBAE
         jsr     CKOUT
         ldy     #$00
         sty     $C1
-LBB31:  jsr     LB2E9
+LBB31:  jsr     load_byte
         jsr     IECOUT
         iny
         bne     LBB31
@@ -3628,7 +3645,8 @@ send_m_dash2:
         pla
         jmp     IECOUT
 
-LBBE4:  tya
+iec_send_c1_c2_plus_y:
+        tya
         clc
         adc     $C1
         php
