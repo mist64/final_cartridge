@@ -1665,8 +1665,10 @@ LAB76:  lda     #'B'
         sta     $0251
         lda     #$80
         sta     $028A
-        bne     LABA5
-LABA0:  jsr     basin_cmp_cr
+        bne     LABA5 ; always
+
+cmd_r:
+        jsr     basin_cmp_cr
         bne     syntax_error
 LABA5:  ldx     #$00
 LABA7:  lda     s_regs,x
@@ -1730,7 +1732,7 @@ input_loop2:
         ldx     #$1A
 LAC27:  cmp     command_names,x
         bne     LAC3B
-        stx     $0252
+        stx     $0252 ; save command index
         txa
         asl     a
         tax
@@ -1743,69 +1745,81 @@ LAC3B:  dex
         bpl     LAC27
         bmi     syntax_error ; always
 
-LAC40:  jsr     BASIN
-        cmp     #$43
-        beq     LAC66
-        cmp     #$53
-        beq     LAC66
+; ----------------------------------------------------------------
+; "EC"/"ES"/"D" - dump character or sprite data
+; ----------------------------------------------------------------
+cmd_e:
+        jsr     BASIN
+        cmp     #'C'
+        beq     cmd_mid2
+        cmp     #'S'
+        beq     cmd_mid2
         jmp     syntax_error
 
-LAC4E:  lda     #$91 ; UP
+fill_prefix_with_csr_right:
+        lda     #$91 ; UP
         ldx     #$0D ; CR
         jsr     print_a_x
-        lda     #$1D
+        lda     #$1D ; CSR RIGHT
         ldx     #$00
-LAC59:  sta     $0277,x
+LAC59:  sta     $0277,x ; fill prefix with 7 CSR RIGHT characters
         inx
         cpx     #$07
         bne     LAC59
-        stx     $C6
+        stx     $C6 ; 7
         jmp     input_loop2
 
-LAC66:  sta     $0252
+cmd_mid2:
+        sta     $0252 ; write 'C' or 'S' into command index
 
 ; ----------------------------------------------------------------
-; "M"/"D"/"i" - ...
+; "M"/"I"/"D" - dump 8 hex byes, 32 ASCII bytes, or disassemble
+;               ("EC" and "ES" also end up here)
 ; ----------------------------------------------------------------
-cmd_mdi:
+cmd_mid:
         jsr     get_hex_word
         jsr     basin_cmp_cr
-        bne     LAC80
+        bne     LAC80 ; second argument
         jsr     copy_c3_c4_to_c1_c2
         jmp     LAC86
 
-LAC77:  jmp     LAEAC
+is_h:   jmp     LAEAC
 
-LAC7A:  jsr     get_hex_word
+; ----------------------------------------------------------------
+; "F"/"H"/"C"/"T" - find, hunt, compare, transfer
+; ----------------------------------------------------------------
+cmd_fhct:
+        jsr     get_hex_word
         jsr     basin_if_more
-LAC80:  jsr     LB625
+LAC80:  jsr     swap_c1_c2_and_c3_c4
         jsr     get_hex_word2
-LAC86:  lda     $0252
-        beq     LACAE
+LAC86:  lda     $0252 ; command index (or 'C'/'S')
+        beq     is_mie ; 'M' (hex dump)
         cmp     #$17
-        beq     LACAE
+        beq     is_mie ; 'I' (ASCII dump)
         cmp     #$01
-        beq     LACDB
+        beq     is_d ; 'D' (disassemble)
         cmp     #$06
-        beq     LACE4
+        beq     is_f ; 'F' (fill)
         cmp     #$07
-        beq     LAC77
-        cmp     #$43
-        beq     LACAE
-        cmp     #$53
-        beq     LACAE
+        beq     is_h ; 'H' (hunt)
+        cmp     #'C'
+        beq     is_mie ; 'EC'
+        cmp     #'S'
+        beq     is_mie ; 'ES'
         jmp     LAE88
 
 LACA6:  jsr     LB64D
-        bcs     LACAE
-LACAB:  jmp     LAC4E
+        bcs     is_mie
+LACAB:  jmp     fill_prefix_with_csr_right
 
-LACAE:  jsr     print_cr
-        lda     $0252
-        beq     LACC4
-        cmp     #$53
+is_mie:
+        jsr     print_cr
+        lda     $0252 ; command index (or 'C'/'S')
+        beq     LACC4 ; 'M'
+        cmp     #'S'
         beq     LACD0
-        cmp     #$43
+        cmp     #'C'
         beq     LACCA
         jsr     dump_ascii_line
         jmp     LACA6
@@ -1813,19 +1827,21 @@ LACAE:  jsr     print_cr
 LACC4:  jsr     dump_hex_line
         jmp     LACA6
 
+; EC
 LACCA:  jsr     dump_char_line
         jmp     LACA6
 
+; ES
 LACD0:  jsr     dump_sprite_line
         jmp     LACA6
 
 LACD6:  jsr     LB64D
         bcc     LACAB
-LACDB:  jsr     print_cr
+is_d:   jsr     print_cr
         jsr     dump_assembly_line
         jmp     LACD6
 
-LACE4:  jsr     basin_if_more
+is_f:   jsr     basin_if_more
         jsr     get_hex_byte
         jsr     LB22E
         jmp     print_cr_then_input_loop
@@ -1987,7 +2003,8 @@ LAE3D:  jmp     syntax_error
 
 ; ----------------------------------------------------------------
 
-LAE40:  jsr     get_hex_word2
+cmd_comma:
+        jsr     get_hex_word2
         ldx     #$03
         jsr     LB5E7
         lda     #$2C
@@ -1995,7 +2012,8 @@ LAE40:  jsr     get_hex_word2
         jsr     create_prefix_comma
         jmp     input_loop2
 
-LAE53:  jsr     get_hex_word
+cmd_a:
+        jsr     get_hex_word
         jsr     LB030
         jsr     LB05C
         ldx     #$00
@@ -2004,7 +2022,7 @@ LAE61:  ldx     $024E
         txs
         jsr     LB08D
         jsr     LB0AB
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         jsr     LB0EF
         lda     #'A'
         jsr     LAE7C
@@ -2025,8 +2043,8 @@ LAE88:  jsr     LB655
 LAE90:  sty     $020A
         jsr     basin_if_more
         jsr     get_hex_word2
-        lda     $0252
-        cmp     #$08
+        lda     $0252 ; command index (or 'C'/'S')
+        cmp     #$08 ; 'C'
         beq     LAEA6
         jsr     LB1CB
         jmp     print_cr_then_input_loop
@@ -2061,13 +2079,14 @@ LAEDC:  sta     $0200,x
         bne     LAED4
 LAEE4:  jmp     syntax_error
 
-LAEE7:  stx     $0252
+LAEE7:  stx     $0252 ; command index (or 'C'/'S')
         txa
         beq     LAEE4
         jsr     LB293
         jmp     input_loop
 
-LAEF3:  jsr     basin_cmp_cr
+cmd_g:
+        jsr     basin_cmp_cr
         beq     LAF03
         jsr     LB4F4
         jsr     basin_cmp_cr
@@ -2370,7 +2389,8 @@ LB146:  inx
         ldx     $0203
         rts
 
-LB14E:  jsr     get_hex_word
+cmd_dollar:
+        jsr     get_hex_word
         jsr     print_up_dot
         jsr     copy_c3_c4_to_c1_c2
         jsr     print_dollar_hex_16
@@ -2423,7 +2443,8 @@ LB19B:  jsr     print_up_dot
         jsr     print_dollar_hex_16
         jmp     input_loop
 
-LB1B9:  jsr     LB6B3
+cmd_x:
+        jsr     LB6B3
         jsr     set_io_vectors
         lda     #$00
         sta     $028A
@@ -2440,10 +2461,10 @@ LB1CB:  lda     $C3
         ldx     #$00
 LB1D9:  jsr     load_byte
         pha
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         pla
         jsr     store_byte
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         cpx     $020A
         bne     LB1F1
         cpy     $0209
@@ -2468,10 +2489,10 @@ LB1FC:  clc
         ldy     $0209
 LB20E:  jsr     load_byte
         pha
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         pla
         jsr     store_byte
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         cpy     #$00
         bne     LB229
         cpx     #$00
@@ -2506,13 +2527,13 @@ LB245:  jsr     print_cr
         sta     $020A
         ldy     #$00
 LB25B:  jsr     load_byte
-        sta     $0252
-        jsr     LB625
+        sta     $0252 ; command index (or 'C'/'S')
+        jsr     swap_c1_c2_and_c3_c4
         jsr     load_byte
         pha
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         pla
-        cmp     $0252
+        cmp     $0252 ; command index (or 'C'/'S')
         beq     LB274
         jsr     print_space_hex_16
 LB274:  jsr     STOP
@@ -2538,7 +2559,7 @@ LB29D:  jsr     load_byte
         cmp     $0200,y
         bne     LB2AE
         iny
-        cpy     $0252
+        cpy     $0252 ; command index (or 'C'/'S')
         bne     LB29D
         jsr     print_space_hex_16
 LB2AE:  jsr     inc_c1_c2
@@ -2670,7 +2691,8 @@ LB35C:  lda     #$16
         sta     $0323
         rts
 
-LB371:  ldy     #$02
+cmd_ls:
+        ldy     #$02
         sty     $BC
         dey
         sty     $B9
@@ -2682,8 +2704,8 @@ LB371:  ldy     #$02
         sta     $BB
         jsr     basin_skip_spaces_cmp_cr
         bne     LB3B6
-LB388:  lda     $0252
-        cmp     #$0B
+LB388:  lda     $0252 ; command index (or 'C'/'S')
+        cmp     #$0B ; 'L'
         bne     LB3CC
 LB38F:  jsr     LB35C
         jsr     LB6B3
@@ -2733,11 +2755,11 @@ LB3E7:  sta     $BA
         cmp     #$2C
 LB3F0:  bne     LB3D6
         jsr     get_hex_word2
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         jsr     basin_cmp_cr
         bne     LB408
-        lda     $0252
-        cmp     #$0B
+        lda     $0252 ; command index (or 'C'/'S')
+        cmp     #$0B ; 'L'
         bne     LB3F0
         dec     $B9
         beq     LB38F
@@ -2748,8 +2770,8 @@ LB40A:  bne     LB3F0
         bne     LB40A
         ldx     $C3
         ldy     $C4
-        lda     $0252
-        cmp     #$0C
+        lda     $0252 ; command index (or 'C'/'S')
+        cmp     #$0C ; 'S'
         bne     LB40A
         dec     $B9
         jsr     LB35C
@@ -3083,7 +3105,8 @@ LB61C:  cmp     #$30
 LB623:  sec
         rts
 
-LB625:  lda     $C4
+swap_c1_c2_and_c3_c4:
+        lda     $C4
         pha
         lda     $C2
         sta     $C4
@@ -3121,10 +3144,10 @@ LB655:  jsr     STOP
         ldy     $C4
         sec
         sbc     $C1
-        sta     $0209
+        sta     $0209 ; $C3 - $C1
         tya
-        sbc     $C2
-        tay
+        sbc     $C2 
+        tay ; $C4 - $C2
         ora     $0209
         rts
 
@@ -3335,7 +3358,7 @@ LB7E1:  jsr     LB8FE
         jsr     dump_hex_line
         jmp     LB7CD
 
-LB800:  jsr     LB625
+LB800:  jsr     swap_c1_c2_and_c3_c4
         jsr     LB90E
         inc     $0205
         lda     $0205
@@ -3540,30 +3563,30 @@ command_names:
 
 
 function_table:
-        .word   cmd_mdi-1
-        .word   cmd_mdi-1
+        .word   cmd_mid-1
+        .word   cmd_mid-1
         .word   cmd_colon-1
-        .word   LAE53-1
-        .word   LAEF3-1
-        .word   LB1B9-1
-        .word   LAC7A-1
-        .word   LAC7A-1
-        .word   LAC7A-1
-        .word   LAC7A-1
-        .word   LABA0-1
-        .word   LB371-1
-        .word   LB371-1
-        .word   LAE40-1
+        .word   cmd_a-1
+        .word   cmd_g-1
+        .word   cmd_x-1
+        .word   cmd_fhct-1
+        .word   cmd_fhct-1
+        .word   cmd_fhct-1
+        .word   cmd_fhct-1
+        .word   cmd_r-1
+        .word   cmd_ls-1
+        .word   cmd_ls-1
+        .word   cmd_comma-1
         .word   cmd_o-1
         .word   cmd_at-1
-        .word   LB14E-1
+        .word   cmd_dollar-1
         .word   LB166-1
         .word   LBA8F-1
         .word   LBBF7-1
-        .word   LAC40-1
+        .word   cmd_e-1
         .word   LAD6C-1
         .word   LAD8C-1
-        .word   cmd_mdi-1
+        .word   cmd_mid-1
         .word   cmd_singlequote-1
         .word   cmd_semicolon-1
         .word   cmd_b-1
@@ -3597,7 +3620,7 @@ LBAC1:  jsr     get_hex_byte
         jsr     basin_cmp_cr
         bne     LBA8C
 LBACD:  jsr     LBB48
-        jsr     LB625
+        jsr     swap_c1_c2_and_c3_c4
         lda     $C1
         cmp     #$57
         beq     LBB25
