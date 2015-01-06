@@ -243,7 +243,7 @@ L805A:  sta     $02,y
         tax
         pla
         cpx     #$7F ; $DC01 value
-        beq     L80C4
+        beq     L80C4 ; 1988-13 changes this to "bne" to start into BASIC
         cpx     #$DF
         beq     go_desktop
         and     #$7F
