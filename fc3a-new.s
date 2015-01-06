@@ -88,6 +88,7 @@ _execute_statement := $DE7F
 _add_A_to_FAC   := $DE85
 _get_element_in_expression := $DE8E
 _get_int        := $DE94
+_new_warmstart  := $DEA0
 _evaluate_modifier := $DEA9
 _get_line_number := $DEAF
 _basic_bsout    := $DEB8
@@ -1625,9 +1626,9 @@ PLIST:  jsr     L8AF0
         ldx     $2C
         sta     $5F
         stx     $60
-        lda     #$A0
-        ldx     #$DE
-        jsr     L8B66
+        lda     #<_new_warmstart
+        ldx     #>_new_warmstart
+        jsr     L8B66 ; set $0300 vector
         jmp     L987A
 
         jsr     set_io_vectors
@@ -1635,10 +1636,10 @@ PLIST:  jsr     L8AF0
         jsr     BSOUT
         jsr     CLRCH
         jsr     set_io_vectors_with_hidden_rom
-        lda     #$8B
-        ldx     #$E3
+        lda     #<$E38B
+        ldx     #>$E38B ; default value
 L8B66:  sta     $0300
-        stx     $0301
+        stx     $0301 ; $0300 IERROR basic warm start
         rts
 
 L8B6D:  lda     #$03

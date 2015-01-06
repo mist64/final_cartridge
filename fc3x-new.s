@@ -158,7 +158,7 @@ _get_int: ; $DE94
         jsr     LB7F7 ; GETADR convert FAC into 16 bit int
         jmp     _enable_rom
 
-; $DEA0 - unused?
+_new_warmstart:
         jsr     _enable_rom
         jsr     L8B54
         jmp     L9881
@@ -221,7 +221,7 @@ _print_ax_int: ; $DF06
         jsr     LBDCD ; LINPRT print A/X as integer
         jmp     _enable_rom
 
-; $DF0F
+_search_for_line: ; $DF0F
         jsr     _disable_rom
         jsr     LA613 ; search for BASIC line
         php

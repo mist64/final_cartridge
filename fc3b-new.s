@@ -27,7 +27,6 @@ LDFE0           := $DFE0
 
 LE4E0           := $E4E0
 LE50C           := $E50C
-LE96C           := $E96C
 LEA31           := $EA31
 LED0C           := $ED0C
 LEDB9           := $EDB9
@@ -1603,7 +1602,7 @@ LA9F6:  dex
         .byte   $CF,$00
 
 ; ----------------------------------------------------------------
-; Monitor
+; Monitor (~4750 bytes)
 ; ----------------------------------------------------------------
 monitor: ; $AB00
         lda     #<(brk_entry - ram_code + L0220)
@@ -1821,7 +1820,7 @@ cmd_fhct:
         jsr     get_hex_word
         jsr     basin_if_more
 LAC80:  jsr     swap_c1_c2_and_c3_c4
-        jsr     get_hex_word2
+        jsr     get_hex_word3
 LAC86:  lda     $0252 ; command index (or 'C'/'S')
         beq     is_mie ; 'M' (hex dump)
         cmp     #$17
@@ -2004,7 +2003,7 @@ cmd_semicolon:
         lda     $C3
         sta     $0249 ; PC lo
         jsr     basin_if_more
-        jsr     get_hex_word2
+        jsr     get_hex_word3
         lda     $C3
         sta     $024F ; $0314
         lda     $C4
@@ -2042,7 +2041,7 @@ LAE3D:  jmp     syntax_error
 ; "," - input up to three hex values
 ; ----------------------------------------------------------------
 cmd_comma:
-        jsr     get_hex_word2
+        jsr     get_hex_word3
         ldx     #$03
         jsr     LB5E7
         lda     #$2C
@@ -2083,7 +2082,7 @@ LAE88:  jsr     LB655
 
 LAE90:  sty     $020A
         jsr     basin_if_more
-        jsr     get_hex_word2
+        jsr     get_hex_word3
         lda     $0252 ; command index (or 'C'/'S')
         cmp     #$08 ; 'C'
         beq     LAEA6
@@ -2132,14 +2131,14 @@ LAEE7:  stx     $0252 ; command index (or 'C'/'S')
 cmd_g:
         jsr     basin_cmp_cr
         beq     LAF03
-        jsr     LB4F4
+        jsr     get_hex_word2
         jsr     basin_cmp_cr
         beq     LAF06
         jmp     syntax_error
 
-LAF03:  jsr     LB63A
+LAF03:  jsr     copy_pc_to_c3_c4_and_c1_c2
 LAF06:  lda     $0253 ; bank
-        bmi     LAF2B
+        bmi     LAF2B ; drive
         jsr     set_irq_vector
         jsr     set_io_vectors_with_hidden_rom
         ldx     $024E
@@ -2163,6 +2162,9 @@ LAF2B:  lda     #'E' ; send M-E to drive
         jsr     UNLSTN
         jmp     print_cr_then_input_loop
 
+; ----------------------------------------------------------------
+; assembler/disassembler
+; ----------------------------------------------------------------
 LAF40:  pha
         ldy     #$00
 LAF43:  cpy     $0205
@@ -2193,7 +2195,7 @@ LAF67:  tay
         ora     #$80
 LAF76:  lsr     a
         tax
-        lda     LB937,x
+        lda     asmtab1,x
         bcs     LAF81
         lsr     a
         lsr     a
@@ -2204,7 +2206,7 @@ LAF81:  and     #$0F
 LAF85:  ldy     #$80
         lda     #$00
 LAF89:  tax
-        lda     LB97B,x
+        lda     asmtab2,x
         sta     $0207
         and     #$03
         sta     $0205
@@ -2228,9 +2230,9 @@ LAFAB:  dey
         rts
 
 LAFAF:  tay
-        lda     LB995,y
+        lda     nmemos1,y
         sta     $020A
-        lda     LB9D5,y
+        lda     nmemos2,y
         sta     $0208
         ldx     #$03
 LAFBE:  lda     #$00
@@ -2262,9 +2264,9 @@ LAFE2:  lda     $0207
         bne     LAFE2
 LAFF4:  asl     $0207
         bcc     LB007
-        lda     LB988,x
+        lda     asmtab3,x
         jsr     BSOUT
-        lda     LB98E,x
+        lda     asmtab4,x
         beq     LB007
         jsr     BSOUT
 LB007:  dex
@@ -2350,9 +2352,9 @@ LB08D:  ldx     #$00
         ldx     $0207
         stx     $0208
         tax
-        lda     LB9D5,x
+        lda     nmemos2,x
         jsr     LB130
-        lda     LB995,x
+        lda     nmemos1,x
         jmp     LB130
 
 LB0AB:  ldx     #$06
@@ -2369,9 +2371,9 @@ LB0B6:  lda     $0207
         bne     LB0B6
 LB0C5:  asl     $0207
         bcc     LB0D8
-        lda     LB988,x
+        lda     asmtab3,x
         jsr     LB130
-        lda     LB98E,x
+        lda     asmtab4,x
         beq     LB0D8
         jsr     LB130
 LB0D8:  dex
@@ -2811,7 +2813,7 @@ LB3E7:  sta     $BA
         beq     LB388
         cmp     #$2C
 LB3F0:  bne     LB3D6
-        jsr     get_hex_word2
+        jsr     get_hex_word3
         jsr     swap_c1_c2_and_c3_c4
         jsr     basin_cmp_cr
         bne     LB408
@@ -2822,7 +2824,7 @@ LB3F0:  bne     LB3D6
         beq     LB38F
 LB408:  cmp     #$2C
 LB40A:  bne     LB3F0
-        jsr     get_hex_word2
+        jsr     get_hex_word3
         jsr     basin_skip_spaces_cmp_cr
         bne     LB40A
         ldx     $C3
@@ -2970,11 +2972,12 @@ LB4EB:  pla
 ; get a 16 bit ASCII hex number from the user, return it in $C3/$C4
 get_hex_word:
         jsr     basin_if_more
-LB4F4:  cmp     #' ' ; skip spaces
+get_hex_word2:
+        cmp     #' ' ; skip spaces
         beq     get_hex_word
         jsr     get_hex_byte2
         bcs     LB500 ; ??? always
-get_hex_word2:
+get_hex_word3:
         jsr     get_hex_byte
 LB500:  sta     $C4
         jsr     get_hex_byte
@@ -3178,7 +3181,8 @@ swap_c1_c2_and_c3_c4:
         sta     $C1
         rts
 
-LB63A:  lda     $0248 ; PC hi
+copy_pc_to_c3_c4_and_c1_c2:
+        lda     $0248 ; PC hi
         sta     $C4
         lda     $0249 ; PC lo
         sta     $C3
@@ -3260,7 +3264,7 @@ LB6AC:  jsr     BSOUT
         rts
 
 ; ----------------------------------------------------------------
-; IRQ logic to handle F keys
+; IRQ logic to handle F keys and scrolling
 ; ----------------------------------------------------------------
 set_irq_vector:
         lda     $0314
@@ -3559,7 +3563,7 @@ LB8EE:  sta     $020E
 LB8FD:  rts
 
 LB8FE:  ldx     #$00
-        jsr     LE96C
+        jsr     $E96C ; insert line at top of screen
         lda     #$94
         sta     $D9
         sta     $DA
@@ -3585,7 +3589,11 @@ LB921:  jsr     LAF62
         bne     LB913
 LB936:  rts
 
-LB937:  .byte   $40,$02,$45,$03,$D0,$08,$40,$09
+; ----------------------------------------------------------------
+; assembler tables
+; ----------------------------------------------------------------
+asmtab1:
+        .byte   $40,$02,$45,$03,$D0,$08,$40,$09
         .byte   $30,$22,$45,$33,$D0,$08,$40,$09
         .byte   $40,$02,$45,$33,$D0,$08,$40,$09
         .byte   $40,$02,$45,$B3,$D0,$08,$40,$09
@@ -3594,11 +3602,22 @@ LB937:  .byte   $40,$02,$45,$03,$D0,$08,$40,$09
         .byte   $10,$22,$44,$33,$D0,$08,$40,$09
         .byte   $10,$22,$44,$33,$D0,$08,$40,$09
         .byte   $62,$13,$78,$A9
-LB97B:  .byte   $00,$21,$81,$82,$00,$00,$59,$4D
+asmtab2:
+        .byte   $00,$21,$81,$82,$00,$00,$59,$4D
         .byte   $91,$92,$86,$4A,$85
-LB988:  .byte   $9D,$2C,$29,$2C,$23,$28
-LB98E:  .byte   $24,$59,$00,$58,$24,$24,$00
-LB995:  .byte   $1C,$8A,$1C,$23,$5D,$8B,$1B,$A1
+
+asmtab3:
+        .byte   $9D ; CSR LEFT
+        .byte   ',', ')', ',', '#', '('
+
+asmtab4:
+        .byte   '$', 'Y', 0, 'X', '$', '$', 0
+
+; encoded mnemos:
+; every combination of a byte of nmemos1 and nmemos2
+; encodes 3 ascii characters
+nmemos1:
+        .byte   $1C,$8A,$1C,$23,$5D,$8B,$1B,$A1
         .byte   $9D,$8A,$1D,$23,$9D,$8B,$1D,$A1
         .byte   $00,$29,$19,$AE,$69,$A8,$19,$23
         .byte   $24,$53,$1B,$23,$24,$53,$19,$A1
@@ -3606,7 +3625,8 @@ LB995:  .byte   $1C,$8A,$1C,$23,$5D,$8B,$1B,$A1
         .byte   $AE,$AE,$A8,$AD,$29,$00,$7C,$00
         .byte   $15,$9C,$6D,$9C,$A5,$69,$29,$53
         .byte   $84,$13,$34,$11,$A5,$69,$23,$A0
-LB9D5:  .byte   $D8,$62,$5A,$48,$26,$62,$94,$88
+nmemos2:
+        .byte   $D8,$62,$5A,$48,$26,$62,$94,$88
         .byte   $54,$44,$C8,$54,$68,$44,$E8,$94
         .byte   $00,$B4,$08,$84,$74,$B4,$28,$6E
         .byte   $74,$F4,$CC,$4A,$72,$F2,$A4,$8A
@@ -3615,7 +3635,11 @@ LB9D5:  .byte   $D8,$62,$5A,$48,$26,$62,$94,$88
         .byte   $1A,$1A,$26,$26,$72,$72,$88,$C8
         .byte   $C4,$CA,$26,$48,$44,$44,$A2,$C8
 
+; ----------------------------------------------------------------
+
 s_regs: .byte   $0D, "   PC  IRQ  BK AC XR YR SP NV#BDIZC", $0D, 0
+
+; ----------------------------------------------------------------
 
 command_names:
         .byte   "MD:AGXFHCTRLS,O@$#*PE[]I';B"
@@ -3648,6 +3672,8 @@ function_table:
         .word   cmd_singlequote-1
         .word   cmd_semicolon-1
         .word   cmd_b-1
+
+; ----------------------------------------------------------------
 
 LBA8C:  jmp     syntax_error
 
@@ -4054,6 +4080,10 @@ LBD8D:  lda     #$09
         lda     #$08
         bne     LBD8A ; always
 
+; ----------------------------------------------------------------
+; end monitor
+; ----------------------------------------------------------------
+
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
@@ -4120,6 +4150,11 @@ LBD8D:  lda     #$09
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF
+
+; ----------------------------------------------------------------
+
+; ??? unreferenced?
+; $BFA8
         sei
         pha
         lda     $00
