@@ -15,6 +15,7 @@ L8B54           := $8B54
 new_detokenize  := $8C02
 L9229           := $9229
 L922A           := $922A
+L94C9           := $94C9
 L9511           := $9511
 L9881           := $9881
 new_load        := $9900
@@ -46,7 +47,6 @@ LBDDD           := $BDDD
 LE257           := $E257
 LE37B           := $E37B ; BASIC warm start (NMI)
 LE422           := $E422
-LEB42           := $EB42
 LEB48           := $EB48
 
 .segment        "fc3x": absolute
@@ -116,9 +116,10 @@ _new_expression: ; $DE4F
 
         lda     $02A7
         beq     LDE5D
-        jmp     LEB42 ; LDA #$7F : STA $DC00 : RTS
-LDE5D:  jsr     _enable_rom
-        jmp     L9229
+        jmp     $EB42 ; LDA #$7F : STA $DC00 : RTS
+
+LDE5D:  lda     $A000
+        jmp     LDF80
 
 _load_ac_indy: ; $DE63
         sta     $01
@@ -291,14 +292,16 @@ _print_banner_jmp_9511: ; $DF74
         jsr     _enable_rom
         jmp     L9511
 
-        .addr   L922A ; ??? in the middle of an instruction
-
-        jsr     LE422 ; print c64 banner
+LDF80:  .addr   L94C9
+        bne     LDF8A
         jsr     _enable_rom
-        jmp     L922A ; ??? in the middle of an instruction
+        jmp     L9229
 
-        iny
-        jmp     LBDD7; print FAC
+LDF8A:  jmp     LEB48
+
+_new_tokenize: ; $DF8D
+        jsr     _enable_rom
+        .byte   $20,$53,$82,$4C,$0F,$DE,$FF,$FF
 
 ;padding
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
@@ -306,8 +309,6 @@ _print_banner_jmp_9511: ; $DF74
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF
 
 ; calls into banks 0+1
 _new_ckout: ; $DFC0

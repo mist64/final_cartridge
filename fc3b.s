@@ -1,5 +1,5 @@
 ; da65 V2.14 - Git d112322
-; Created:    2014-12-28 23:59:20
+; Created:    2015-01-06 18:50:57
 ; Input file: fc3b.bin
 ; Page:       1
 
@@ -1183,7 +1183,7 @@ LA812:  jsr     LA9BB
         sty     $D7
         ldx     #$05
 LA82B:  jsr     L0110
-        ldx     #$02
+        ldx     #$03
         inc     $AC
         bne     LA837
         inc     $AD

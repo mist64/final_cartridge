@@ -116,6 +116,7 @@ _lda_7a_indx    := $DF50
 _lda_22_indy    := $DF58
 _lda_8b_indy    := $DF60
 _list           := $DF6E
+_new_tokenize   := $DF8D
 _print_banner_jmp_9511 := $DF74
 
 ; ----------------------------------------------------------------
@@ -289,7 +290,7 @@ load_save_vectors:
         .addr   _new_save       ; $0332 SAVE
 basic_vectors:
         .addr   _new_mainloop   ; $0302 IMAIN  BASIC direct mode
-        .addr   $A57C           ; $0304 ICRNCH tokenization (original value!)
+        .addr   _new_tokenize   ; $0304 ICRNCH tokenization
         .addr   _new_detokenize ; $0306 IQPLOP token decoder
         .addr   _new_execute    ; $0308 IGONE  execute instruction
         .addr   _new_expression ; $030A IEVAL  execute expression
@@ -478,7 +479,9 @@ L8234:  bit     $02A9
         adc     $0337
         sta     $0335
         jsr     L84ED
-L824D:  jsr     L8253
+L824D:  nop
+        nop
+        nop ; used to be "jsr L8253" in 1988-05
         jmp     L9865
 
 L8253:  ldx     $7A
@@ -3250,7 +3253,7 @@ L985E:  lda     #$B9
         bne     L985A
 L9865:  lda     #$A4
         pha
-        lda     #$A1
+        lda     #$9E ; used to be "#$A1" in 1988-05
         bne     L985A
         lda     #$A7
         pha
@@ -3672,7 +3675,7 @@ L9B3D:  bit     $DD00
         jsr     LA612
         jsr     UNLSTN
         plp
-        bcs     L9B78
+        bvs     L9B78 ; used to be "bcs" in 1988-05
         lda     #$1D
         sec
         rts
