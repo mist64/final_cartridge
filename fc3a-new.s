@@ -60,18 +60,15 @@ LA77E           := $A77E
 LA784           := $A784
 LA7A8           := $A7A8
 LA7AE           := $A7AE
-LA7C6           := $A7C6
 LA851           := $A851
 LA8FF           := $A8FF
 LA9BB           := $A9BB
 monitor         := $AB00
-LC100           := $C100
 LC194           := $C194
-LC1E5           := $C1E5
-LC1F3           := $C1F3
-LC268           := $C268
-LC8E8           := $C8E8
-LD6D3           := $D6D3
+
+; bank 2 symbols
+L8000           := $8000
+LBFFA           := $BFFA
 
 _jmp_bank       := $DE01
 _disable_rom_set_01 := $DE0D
@@ -122,7 +119,6 @@ LE3BF           := $E3BF
 LE453           := $E453
 LE566           := $E566
 LE56A           := $E56A
-LE60A           := $E60A
 LE716           := $E716
 LE88C           := $E88C
 LE9C8           := $E9C8
@@ -133,28 +129,14 @@ LED09           := $ED09
 LEDBE           := $EDBE
 LEDC7           := $EDC7
 LEE13           := $EE13
-LEE40           := $EE40
-LEE46           := $EE46
 LF40B           := $F40B
 LF418           := $F418
 LF497           := $F497
-LF530           := $F530
-LF556           := $F556
-LF5A9           := $F5A9
-LF5ED           := $F5ED
-LF636           := $F636
-LF646           := $F646
 LF6D0           := $F6D0
-LF7E8           := $F7E8
-LF99C           := $F99C
 LFB8E           := $FB8E
-LFCB1           := $FCB1
 LFCDB           := $FCDB
 LFD15           := $FD15
 LFDA3           := $FDA3
-LFDD3           := $FDD3
-LFE00           := $FE00
-LFE0E           := $FE0E
 LFE2D           := $FE2D
 LFE5E           := $FE5E
 LFF5B           := $FF5B
@@ -238,9 +220,9 @@ L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
 
 L803B:  jsr     init_load_save_vectors
         jsr     L802F
-        lda     #$BF
+        lda     #>(LBFFA - 1)
         pha
-        lda     #$F9
+        lda     #<(LBFFA - 1)
         pha
         lda     #$42 ; bank 2
         jmp     _jmp_bank
@@ -300,11 +282,11 @@ go_desktop:
         lda     #$80
         sta     $02A8 ; unused
         jsr     LE3BF ; init BASIC, print banner
-        lda     #>($8000 - 1)
+        lda     #>(L8000 - 1)
         pha
-        lda     #<($8000 - 1)
+        lda     #<(L8000 - 1)
         pha
-        lda     #$42 ; bank 2 + 3 $8000-BFFF
+        lda     #$42 ; bank 2
         jmp     _jmp_bank ; jump to desktop
 
 L80C4:  ldx     #'M'
@@ -1425,11 +1407,11 @@ KILL:   bne     L89BC
         jsr     LFD15
         jsr     LE453
         cli
-        lda     #$E3
+        lda     #>$E385
         pha
-        lda     #$85
+        lda     #<$E385 ; BASIC warm start
         pha
-        lda     #$F0
+        lda     #$F0 ; cartridge off
         jmp     _jmp_bank
 
 L89BC:  rts
@@ -1521,15 +1503,17 @@ L8A69:  cmp     #$38
         cmp     #$39
         beq     L8A54
         jsr     L8192
-L8A74:  ldy     #$00
+send_drive_command:
+        ldy     #$00
         jsr     _lda_7a_indy
-        cmp     #'D'
+        cmp     #'D' ; drive command "D"
         beq     L8A87
-        cmp     #'F'
+        cmp     #'F' ; drive command "F"
         bne     L8A84
         jsr     fast_format2
 L8A84:  jmp     L8BE3
 
+; drive command "D"
 L8A87:  iny
         lda     ($7A),y
         cmp     #$3A
@@ -1707,7 +1691,7 @@ L8BE5:  jsr     L8BDB
         jsr     IECOUT
         iny
         bne     L8BE5
-L8BF0:  cmp     #$22
+L8BF0:  cmp     #'"'
         bne     L8BF5
         iny
 L8BF5:  tya
@@ -2273,7 +2257,7 @@ PACK:   bne     L900B
         txs
         lda     #$00
         tay
-L9050:  sta     LFE00,y
+L9050:  sta     $FE00,y
         sta     $FF00,y
         iny
         bne     L9050
@@ -2330,7 +2314,7 @@ L907A:  lda     L918B,y
 L90C6:  sta     $01
 L90C8:  lda     ($AE),y
         tax
-        inc     LFE00,x
+        inc     $FE00,x
         bne     L90D3
         inc     $FF00,x
 L90D3:  iny
@@ -2346,8 +2330,8 @@ L90E4:  lda     $FF00,x
         cmp     $FF00,y
         bcc     L90F8
         bne     L90F6
-        lda     LFE00,x
-        cmp     LFE00,y
+        lda     $FE00,x
+        cmp     $FE00,y
         bcc     L90F8
 L90F6:  tya
         tax
@@ -2906,7 +2890,7 @@ L955E:  tya
         cpx     #$02
         beq     L95CF
         cpx     #$03
-        beq     L95A5
+        beq     read_cmd_channel
         cpx     #$04
         beq     L9577
         cpx     #$05
@@ -2933,37 +2917,39 @@ L959C:  jsr     UNTALK
         jsr     L971F
         jmp     L95C6
 
-L95A5:  jsr     open_cmd_channel
-        bmi     L95CB
+read_cmd_channel:
+        jsr     open_cmd_channel
+        bmi     jmp_bank_from_stack
         jsr     UNLSTN
         jsr     L8141
         lda     $90
-        bmi     L95CB
+        bmi     jmp_bank_from_stack
         ldx     #$00
 L95B6:  jsr     IECIN
-        cmp     #$0D
+        cmp     #$0D ; CR
         beq     L95C3
-        sta     $0200,x
+        sta     $0200,x ; read command channel
         inx
         bne     L95B6
 L95C3:  jsr     UNTALK
 L95C6:  lda     #$00
-        sta     $0200,x
-L95CB:  pla
+        sta     $0200,x ; zero terminate
+jmp_bank_from_stack:
+        pla
         jmp     _jmp_bank
 
 L95CF:  jsr     open_cmd_channel
-        bmi     L95CB
+        bmi     jmp_bank_from_stack
         lda     #$00
         sta     $7A
         lda     #$02
         sta     $7B
-        jsr     L8A74
-        jmp     L95CB
+        jsr     send_drive_command
+        jmp     jmp_bank_from_stack
 
 L95E2:  lda     #$F0
         jsr     L8133
-        bmi     L95CB
+        bmi     jmp_bank_from_stack
         lda     #$24
         jsr     IECOUT
         jsr     UNLSTN
@@ -3003,8 +2989,8 @@ L9632:  jsr     IECIN
 L963A:  pla
         pla
         jsr     L967E
-        jsr     LF646
-        jmp     L95CB
+        jsr     $F646 ; close file
+        jmp     jmp_bank_from_stack
 
 L9645:  stx     $C1
         sta     $C2
@@ -3060,7 +3046,7 @@ L969A:  cpx     #$0B
         cpx     #$0D
         beq     L96AC
         jsr     L968F
-        jmp     L95CB
+        jmp     jmp_bank_from_stack
 
 L96AC:  lda     #$0D
         jsr     BSOUT
@@ -3068,7 +3054,7 @@ L96AC:  lda     #$0D
         lda     #$01
         jsr     CLOSE
         jsr     set_io_vectors_with_hidden_rom
-        jmp     L95CB
+        jmp     jmp_bank_from_stack
 
 L96BF:  jsr     set_io_vectors
         lda     #$01
@@ -3080,11 +3066,11 @@ L96BF:  jsr     set_io_vectors
         jsr     OPEN
         ldx     #$01
         jsr     CKOUT
-        jmp     L95CB
+        jmp     jmp_bank_from_stack
 
 L96DB:  lda     $0200
         jsr     BSOUT
-        jmp     L95CB
+        jmp     jmp_bank_from_stack
 
 fast_format2:
         lda     #$05
@@ -3137,21 +3123,23 @@ drive_cmd_bp:
 drive_cmd_u2:
         .byte   "U2:2 0 18 0", 0
 
+; ----------------------------------------------------------------
+
 fast_format_drive_code:
         jmp     L0463
 
-        jsr     LC1E5
+        jsr     $C1E5 ; drive ROM
         bne     L9768
-        jmp     LC1F3
+        jmp     $C1F3 ; drive ROM
 
 L9768:  sty     $027A
         lda     #$A0
-        jsr     LC268
-        jsr     LC100
+        jsr     $C268 ; drive ROM
+        jsr     $C100 ; drive ROM
         ldy     $027B
         cpy     $0274
         bne     L977E
-        jmp     LEE46
+        jmp     $EE46 ; drive ROM
 
 L977E:  lda     $0200,y
         sta     $12
@@ -3167,7 +3155,7 @@ L978A:  lda     $FC35,x
         lda     #$01
         sta     $80
         sta     $51
-        jsr     LD6D3
+        jsr     $D6D3 ; drive ROM
         lda     $22
         bne     L97AA
         lda     #$C0
@@ -3176,9 +3164,9 @@ L97AA:  lda     #$E0
         jsr     L045C
         cmp     #$02
         bcc     L97B6
-        jmp     LC8E8
+        jmp     $C8E8 ; drive ROM
 
-L97B6:  jmp     LEE40
+L97B6:  jmp     $EE40 ; drive ROM
 
         sta     $01
 L97BB:  lda     $01
@@ -3189,7 +3177,7 @@ L97BB:  lda     $01
         cmp     ($32),y
         beq     L97CB
         sta     ($32),y
-        jmp     LF99C
+        jmp     $F99C ; drive ROM
 
 L97CB:  ldx     #$04
 L97CD:  cmp     $FED7,x
@@ -3197,7 +3185,7 @@ L97CD:  cmp     $FED7,x
         dex
         bcs     L97CD
         bcc     L9838
-L97D7:  jsr     LFE0E
+L97D7:  jsr     $FE0E ; drive ROM
         lda     #$FF
         sta     $1C01
 L97DF:  bvc     L97DF
@@ -3205,7 +3193,7 @@ L97DF:  bvc     L97DF
         inx
         cpx     #$05
         bcc     L97DF
-        jsr     LFE00
+        jsr     $FE00 ; drive ROM
 L97EA:  lda     $1C00
         bpl     L97FD
         bvc     L97EA
@@ -3215,7 +3203,7 @@ L97EA:  lda     $1C00
         iny
         bpl     L97EA
 L97F8:  lda     #$03
-        jmp     LFDD3
+        jmp     $FDD3 ; drive ROM
 
 L97FD:  sty     $C0
         stx     $C1
@@ -3264,7 +3252,9 @@ L9838:  jsr     L0630
 L984D:  bvc     L984D
         inx
         bne     L984D
-        jmp     LFCB1
+        jmp     $FCB1 ; drive ROM
+
+; ----------------------------------------------------------------
 
 L9855:  lda     #$AF
         pha
@@ -3473,7 +3463,7 @@ L99BA:  lda     L9A50,x
         bpl     L99BA
 L99C3:  jmp     LA851
 
-L99C6:  jmp     LF530
+L99C6:  jmp     $F530 ; IEC LOAD - used in the error case
 
 L99C9:  pla
         pla
@@ -3564,11 +3554,13 @@ L9A5C:  eor     $D7
         sta     $01
         jmp     LA8FF
 
-L9A67:  jmp     LF636
+L9A67:  jmp     $F636 ; LDA #0 : SEC : RTS
 
-L9A6A:  jmp     LF5ED
+L9A6A:  jmp     $F5ED ; default SAVE vector
 
-L9A6D:  jmp     LA7C6
+L9A6D:  jmp     $A7C6 ; interpreter loop
+
+; ----------------------------------------------------------------
 
 new_save2:
         lda     $BA
@@ -3706,7 +3698,7 @@ L9B3D:  bit     $DD00
 L9B78:  lda     #$40
         sta     $90
         jsr     LA694
-        jmp     LF5A9
+        jmp     $F5A9 ; LOAD done
 
 L9B82:  bvs     L9B3D
         lda     #$20
@@ -3774,6 +3766,8 @@ L9BED:  iny
         bmi     L9BDC
 L9BF7:  jmp     L9B3D
 
+; ----------------------------------------------------------------
+; drive code
         lda     $43
         sta     $C1
 L9BFE:  jsr     L0582
@@ -3784,7 +3778,7 @@ L9C01:  bvc     L9C01
         iny
         cpy     #$07
         bne     L9C01
-        jsr     LF556
+        jsr     $F556 ; drive ROM
 L9C12:  bvc     L9C12
         clv
         lda     $1C01
@@ -3808,7 +3802,7 @@ L9C32:  lda     $12,x
         bne     L9C2E
         dex
         bpl     L9C32
-        jsr     LF7E8
+        jsr     $F7E8 ; drive ROM
         ldx     $19
         cpx     $43
         bcs     L9C2E
@@ -3849,7 +3843,7 @@ L9C84:  bvc     L9C84
         cpy     #$04
         bne     L9C84
         ldy     #$00
-        jsr     LF7E8
+        jsr     $F7E8 ; drive ROM
         ldx     $54
         cpx     $43
         bcs     L9C2E
@@ -3857,7 +3851,7 @@ L9C84:  bvc     L9C84
         cmp     #$FF
         beq     L9C80
         stx     $C0
-        jsr     LF556
+        jsr     $F556 ; drive ROM
 L9CA8:  bvc     L9CA8
         clv
         lda     $1C01
@@ -3871,7 +3865,7 @@ L9CB5:  bvc     L9CB5
         sta     L0100,y
         iny
         bne     L9CB5
-        jsr     LF7E8
+        jsr     $F7E8 ; drive ROM
         lda     $53
         beq     L9CCC
         lda     #$00
@@ -3982,7 +3976,7 @@ L9D80:  inx
         bne     L9D86
         jmp     LF40B
 
-L9D86:  jsr     LF556
+L9D86:  jsr     $F556 ; drive ROM
 L9D89:  bvc     L9D89
         clv
         lda     $1C01
@@ -4007,12 +4001,12 @@ L9DA7:  lda     $01
         bne     L9DA3
         lda     #$02
         sta     $1800
-        jmp     LC194
+        jmp     $C194 ; drive ROM
 
 L9DBB:  inx
         ldy     #$0A
         sty     $1800
-        jmp     LE60A
+        jmp     $E60A ; drive ROM
 
         .byte   $00,$0A,$0A,$02,$00,$0A,$0A,$02
         .byte   $00,$00,$08,$00,$00,$00,$08,$00
