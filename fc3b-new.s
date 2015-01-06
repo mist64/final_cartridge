@@ -12,10 +12,18 @@ L0220           := $0220
 L0228           := $0228
 L0234           := $0234
 L0564           := $0564
+
+
+; ----------------------------------------------------------------
+; Bank 0 (LO) Symbols
+; ----------------------------------------------------------------
 fast_format     := $800F
-L80CE           := $80CE
+go_basic        := $80CE
 L9A41           := $9A41
 
+; ----------------------------------------------------------------
+; I/O Extension ROM Symbols
+; ----------------------------------------------------------------
 _disable_rom    := $DE0F
 _basic_warm_start := $DE14
 _load_bb_indy   := $DE6C
@@ -25,22 +33,9 @@ _new_clall      := $DFCF
 _new_clrch      := $DFD5
 LDFE0           := $DFE0
 
-LE4E0           := $E4E0
-LE50C           := $E50C
-LEA31           := $EA31
-LED0C           := $ED0C
-LEDB9           := $EDB9
-LEDEF           := $EDEF
-LEDFE           := $EDFE
-LF1CA           := $F1CA
-LF250           := $F250
-LF279           := $F279
-LF30F           := $F30F
-LF31F           := $F31F
-LF646           := $F646
-LF654           := $F654
-LF707           := $F707
-LF82E           := $F82E
+; ----------------------------------------------------------------
+; KERNAL Symbols
+; ----------------------------------------------------------------
 CINT            := $FF81
 IOINIT          := $FF84
 RAMTAS          := $FF87
@@ -83,15 +78,17 @@ IOBASE          := $FFF3
 
 .segment        "fc3b": absolute
 
-        .addr   L80CE
+; ??? unused?
+        .addr   go_basic
         .addr   _basic_warm_start
+
 set_io_vectors_with_hidden_rom:
         jmp     set_io_vectors_with_hidden_rom2
 
 set_io_vectors:  
         jmp     set_io_vectors2
 
-LA00A:
+something_with_printer:
         jmp     LA183
 
 ; ----------------------------------------------------------------
@@ -267,17 +264,17 @@ set_io_vectors2:
 new_ckout: ; $A161
         txa
         pha
-        jsr     LF30F ; find LFN
+        jsr     $F30F ; find LFN
         beq     LA173
 LA168:  pla
         tax
-        jmp     LF250 ; KERNAL CKOUT
+        jmp     $F250 ; KERNAL CKOUT
 
 LA16D:  pla
         lda     #$04
-        jmp     LF279
+        jmp     $F279 ; set output to IEC bus
 
-LA173:  jsr     LF31F ; set file par from table
+LA173:  jsr     $F31F ; set file par from table
         lda     $BA
         cmp     #$04 ; printer
         bne     LA168
@@ -309,7 +306,7 @@ new_bsout2:
         cmp     #$04
         beq     LA1AD
 LA1A9:  pla
-        jmp     LF1CA ; KERNAL BSOUT
+        jmp     $F1CA ; KERNAL BSOUT
 
 LA1AD:  bit     $DD0C
         bpl     LA1A9
@@ -348,10 +345,10 @@ new_clrch2:
         beq     LA1EE
 LA1E7:  cpx     $9A
         bcs     LA1EE
-        jsr     LEDFE
+        jsr     $EDFE ; UNLISTEN
 LA1EE:  cpx     $99
         bcs     LA1F5
-        jsr     LEDEF
+        jsr     $EDEF ; UNTALK
 LA1F5:  stx     $9A
         lda     #$00
         sta     $99
@@ -1073,35 +1070,35 @@ LA707:  pha
         ldy     #$00
         sty     $90
         lda     $BA
-        jsr     LED0C
+        jsr     $ED0C ; LISTEN
         lda     $B9
         ora     #$F0
-        jsr     LEDB9
+        jsr     $EDB9 ; SECLST
         lda     $90
         bpl     LA734
         pla
         pla
-        jmp     LF707
+        jmp     $F707 ; DEVICE NOT PRESENT ERROR
 
 LA734:  jsr     _load_bb_indy
         jsr     $EDDD ; KERNAL IECOUT
         iny
         cpy     $B7
         bne     LA734
-        jmp     LF654
+        jmp     $F654 ; UNLISTEN
 
-LA742:  jsr     LF82E
+LA742:  jsr     $F82E ; cassette sense
         beq     LA764
         ldy     #$1B
 LA749:  jsr     LA7B3
 LA74C:  bit     $DC01
         bpl     LA766
-        jsr     LF82E
+        jsr     $F82E ; cassette sense
         bne     LA74C
         ldy     #$6A
         jmp     LA7B3
 
-LA75B:  jsr     LF82E
+LA75B:  jsr     $F82E ; cassette sense
         beq     LA764
         ldy     #$2E
         bne     LA749
@@ -1247,7 +1244,7 @@ LA862:  lda     $033C
 LA86C:  jsr     LA768
         cli
         lda     $A1
-        jsr     LE4E0
+        jsr     $E4E0 ; wait for CBM key
         sei
         lda     $01
         and     #$1F
@@ -3298,7 +3295,7 @@ irq_handler:
         pha
         pha
         pha
-        jmp     LEA31 ; run normal IRQ handler, then return to this code
+        jmp     $EA31 ; run normal IRQ handler, then return to this code
 
 after_irq:
         lda     $0254
@@ -3332,7 +3329,7 @@ LB71C:  cmp     #$87 ; F5 key
         beq     LB72E ; already on last line
         jsr     LB8D9
         ldy     $D3
-        jsr     LE50C
+        jsr     $E50C ; KERNAL set cursor position
 LB72E:  lda     #$11 ; DOWN
         sta     $0277 ; kbd buffer
 LB733:  cmp     #$86
@@ -4023,7 +4020,7 @@ LBD20:  dex
         lda     #$0D ; CR
         jsr     $E716 ; KERNAL: output character to screen
 LBD2D:  bne     LBCDF ; next line
-LBD2F:  jmp     LF646 ; CLOSE
+LBD2F:  jmp     $F646 ; CLOSE
 
 init_drive:
         lda     #$00
@@ -4064,7 +4061,7 @@ LBD6E:  dex
         lda     #$0D ; CR
         jsr     $E716 ; KERNAL: output character to screen
         bne     LBD2D
-LBD7D:  jmp     LF646
+LBD7D:  jmp     $F646 ; CLOSE
 
         lda     #$00
         sta     $90

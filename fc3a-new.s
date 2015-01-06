@@ -44,9 +44,13 @@ L04F6           := $04F6
 L0582           := $0582
 L0630           := $0630
 LA000           := $A000
+
+; ----------------------------------------------------------------
+; Bank 0 (HI) Symbols
+; ----------------------------------------------------------------
 set_io_vectors_with_hidden_rom := $A004
 set_io_vectors  := $A007
-LA00A           := $A00A
+something_with_printer := $A00A
 LA612           := $A612
 LA648           := $A648
 LA659           := $A659
@@ -64,12 +68,16 @@ LA851           := $A851
 LA8FF           := $A8FF
 LA9BB           := $A9BB
 monitor         := $AB00
-LC194           := $C194
 
-; bank 2 symbols
+; ----------------------------------------------------------------
+; Bank 2 Symbols
+; ----------------------------------------------------------------
 L8000           := $8000
 LBFFA           := $BFFA
 
+; ----------------------------------------------------------------
+; I/O Extension ROM Symbols
+; ----------------------------------------------------------------
 _jmp_bank       := $DE01
 _disable_rom_set_01 := $DE0D
 _disable_rom    := $DE0F
@@ -110,36 +118,9 @@ _lda_8b_indy    := $DF60
 _list           := $DF6E
 _print_banner_jmp_9511 := $DF74
 
-LE16F           := $E16F
-LE206           := $E206
-LE34C           := $E34C
-LE386           := $E386
-LE3B3           := $E3B3
-LE3BF           := $E3BF
-LE453           := $E453
-LE566           := $E566
-LE56A           := $E56A
-LE716           := $E716
-LE88C           := $E88C
-LE9C8           := $E9C8
-LE9F0           := $E9F0
-LE9FF           := $E9FF
-LEA18           := $EA18
-LED09           := $ED09
-LEDBE           := $EDBE
-LEDC7           := $EDC7
-LEE13           := $EE13
-LF40B           := $F40B
-LF418           := $F418
-LF497           := $F497
-LF6D0           := $F6D0
-LFB8E           := $FB8E
-LFCDB           := $FCDB
-LFD15           := $FD15
-LFDA3           := $FDA3
-LFE2D           := $FE2D
-LFE5E           := $FE5E
-LFF5B           := $FF5B
+; ----------------------------------------------------------------
+; KERNAL Symbols
+; ----------------------------------------------------------------
 CINT            := $FF81
 IOINIT          := $FF84
 RAMTAS          := $FF87
@@ -183,7 +164,7 @@ IOBASE          := $FFF3
 .segment        "fc3a": absolute
 
         .addr   entry ; FC3 entry
-        .addr   LFE5E ; default cartridge soft reset entry point
+        .addr   $FE5E ; default cartridge soft reset entry point
         .byte   $C3,$C2,$CD,"80" ; 'cbm80'
 
 entry:  jmp     entry2
@@ -199,7 +180,7 @@ fast_format: ; $A00F
 
         jmp     L803B
 
-        jmp     L80CE
+        jmp     go_basic
 
         jmp     L9473
 
@@ -229,7 +210,7 @@ L803B:  jsr     init_load_save_vectors
 
 entry2: 
         ; short-circuit startup, skipping memory test
-        jsr     LFDA3 ; init I/O
+        jsr     $FDA3 ; init I/O
         lda     $D011
         pha
         lda     $DC01
@@ -243,7 +224,7 @@ L805A:  sta     $02,y
         bne     L805A
         ldx     #<$A000
         ldy     #>$A000
-        jsr     LFE2D ; set memtop
+        jsr     $FE2D ; set memtop
         lda     #$08
         sta     $0282 ; start of BASIC $0800
         lda     #$04
@@ -252,9 +233,9 @@ L805A:  sta     $02,y
         sta     $B2
         lda     #>$033C
         sta     $B3 ; datasette buffer
-        jsr     LFD15 ; init I/O (same as RESTOR)
-        jsr     LFF5B ; video reset (same as CINT)
-        jsr     LE453 ; assign $0300 BASIC vectors
+        jsr     $FD15 ; init I/O (same as RESTOR)
+        jsr     $FF5B ; video reset (same as CINT)
+        jsr     $E453 ; assign $0300 BASIC vectors
         jsr     init_basic_vectors
         cli
         pla ; $ D
@@ -281,7 +262,7 @@ mg87_signature:
 go_desktop:
         lda     #$80
         sta     $02A8 ; unused
-        jsr     LE3BF ; init BASIC, print banner
+        jsr     $E3BF ; init BASIC, print banner
         lda     #>(L8000 - 1)
         pha
         lda     #<(L8000 - 1)
@@ -291,11 +272,12 @@ go_desktop:
 
 L80C4:  ldx     #'M'
         cpx     $CFFC
-        bne     L80CE
+        bne     go_basic
         dec     $CFFC ; destroy signature
-L80CE:  ldx     #<$A000
+go_basic:
+        ldx     #<$A000
         ldy     #>$A000
-        jsr     LFE2D ; set MEMTOP
+        jsr     $FE2D ; set MEMTOP
         lda     #>($E397 - 1)
         pha
         lda     #<($E397 - 1) ; BASIC start
@@ -335,7 +317,7 @@ L80FE:  lda     load_save_vectors,y ; overwrite LOAD and SAVE vectors
 L810F:  rts
 
 L8110:  jsr     IECIN
-        jsr     LE716
+        jsr     $E716 ; output character to the screen
         cmp     #$0D
         bne     L8110
         jmp     UNTALK
@@ -649,10 +631,10 @@ L835F:  iny
         bne     L835F
         sbc     #$01
         bne     L835F
-L8369:  jsr     LE566
+L8369:  jsr     $E566 ; cursor home
         jsr     L839D
         ldx     $B1
-        jsr     LE88C
+        jsr     $E88C ; set cursor row
         ldy     $B0
         sty     $D3
         lda     ($D1),y
@@ -662,7 +644,7 @@ L8369:  jsr     LE566
         sta     $D4
         pla
         tax
-        jsr     LE88C
+        jsr     $E88C ; set cursor row
         pla
         sta     $D5
         pla
@@ -1244,7 +1226,7 @@ L8862:  jsr     _lda_ae_indx
         jsr     L85BF
         cmp     #$3A
         bcs     L8854
-        jsr     LE3B3
+        jsr     $E3B3 ; clear carry if byte = "0"-"9" (CHRGET!)
         bpl     L8854
 L8873:  jsr     _CHRGOT
         bcc     L887B
@@ -1396,16 +1378,16 @@ L8986:  jsr     _relink
 
 OFF:    bne     L89BC
         sei
-        jsr     LFD15
-        jsr     LE453
+        jsr     $FD15
+        jsr     $E453 ; assign $0300 BASIC vectors
         jsr     cond_init_load_save_vectors
         cli
         jmp     L9881
 
 KILL:   bne     L89BC
         sei
-        jsr     LFD15
-        jsr     LE453
+        jsr     $FD15
+        jsr     $E453 ; assign $0300 BASIC vectors
         cli
         lda     #>$E385
         pha
@@ -1445,7 +1427,7 @@ L89EC:  jmp     go_desktop
 
 L89EF:  lda     L89FB,x
         beq     L89FA
-        jsr     LE716
+        jsr     $E716 ; output character to the screen
         inx
         bne     L89EF
 L89FA:  rts
@@ -1578,7 +1560,7 @@ L8AF0:  cmp     #$2C
         bpl     L8B06
 L8B04:  lda     #$FF
 L8B06:  sta     $B9
-        jsr     LA00A
+        jsr     something_with_printer
         bcc     L8B35
         lda     $B9
         bpl     L8B13
@@ -1593,7 +1575,7 @@ L8B19:  jsr     UNLSTN
         jsr     LISTEN
         lda     $B9
         bpl     L8B2E
-        jsr     LEDBE
+        jsr     $EDBE ; set ATN
         bne     L8B31
 L8B2E:  jsr     SECOND
 L8B31:  lda     $90
@@ -1660,7 +1642,7 @@ L8BAD:  jsr     L8BBD
         tax
         ldy     #$01
         jsr     SETLFS
-        jsr     LE206
+        jsr     $E206 ; RTS if end of line
         jsr     _get_filename
         rts
 
@@ -2240,7 +2222,7 @@ L901D:  lda     L902F,x
         jmp     _disable_rom
 
 L902F:  jsr     LA663
-        jmp     LE386
+        jmp     $E386 ; BASIC warm start
 
 L9035:  jmp     L8734
 
@@ -2512,7 +2494,7 @@ L9247:  cmp     #$13
         ldy     #$00
         sty     $D3
         ldy     #$18
-        jsr     LE56A
+        jsr     $E56A ; set cursor line
         jsr     L9460
         jmp     L92C5
 
@@ -2617,7 +2599,7 @@ L9312:  ldy     #$00
         stx     $5F
         sta     $60
 L9322:  lda     #$8D
-        jsr     LE716
+        jsr     $E716 ; output character to the screen
         jsr     L9448
         lda     #$80
         sta     $02AB
@@ -2680,9 +2662,9 @@ L9380:  tax
         adc     #$00
         sta     $60
         jsr     L9416
-        jsr     LE566
+        jsr     $E566 ; cursor home
         jsr     L9448
-        jsr     LE566
+        jsr     $E566 ; cursor home
         lda     #$40
         sta     $02AB
         jmp     L92CC
@@ -2691,7 +2673,7 @@ L93B4:  lsr     $CF
         bcc     L93C0
         ldy     $CE
         ldx     $0287
-        jsr     LEA18
+        jsr     $EA18 ; put a character in the screen
 L93C0:  rts
 
 L93C1:  ldy     $ECF0,x
@@ -2742,13 +2724,13 @@ L9416:  inc     $0292
         ldx     #$19
 L941B:  dex
         beq     L942D
-        jsr     LE9F0
+        jsr     $E9F0 ; fetch a screen address
         lda     $ECEF,x
         sta     $AC
         lda     $D8,x
-        jsr     LE9C8
+        jsr     $E9C8 ; shift screen line
         bmi     L941B
-L942D:  jsr     LE9FF
+L942D:  jsr     $E9FF ; clear screen line X
         ldx     #$17
 L9432:  lda     $DA,x
         and     #$7F
@@ -2842,7 +2824,7 @@ L94F9:  sei
         jsr     init_load_save_vectors
         jsr     L802F
         cli
-        jsr     LE3BF
+        jsr     $E3BF ; init BASIC, print banner
         jmp     _print_banner_jmp_9511
 
 L9511:
@@ -2881,7 +2863,7 @@ L953D:  sty     $B7
         sta     $027A
         lda     #$04
         sta     $C6
-        jmp     LE16F
+        jmp     $E16F ; LOAD
 
 L955E:  tya
         pha
@@ -3509,16 +3491,16 @@ new_load2:
         sta     $B9
         jsr     LA71B
         lda     $BA
-        jsr     LED09
+        jsr     $ED09 ; TALK
         lda     $B9
-        jsr     LEDC7
-        jsr     LEE13
+        jsr     $EDC7 ; SECTLK
+        jsr     $EE13 ; IECIN
         sta     $AE
         lda     $90
         lsr     a
         lsr     a
         bcs     L99C6
-        jsr     LEE13
+        jsr     $EE13 ; IECIN
         sta     $AF
         txa
         bne     L9A35
@@ -3580,7 +3562,7 @@ new_save2:
         bne     L9A67
         stx     $90
         stx     $A4
-        jsr     LFB8E
+        jsr     $FB8E ; copy I/O start address to buffer address
         sec
         lda     $AC
         sbc     #$02
@@ -3606,7 +3588,7 @@ L9AC4:  cli
         rts
 
 L9AC7:  jsr     L9906
-        jsr     LFCDB
+        jsr     $FCDB ; inc $AC/$AD
         dec     $93
         rts
 
@@ -3786,7 +3768,7 @@ L9C12:  bvc     L9C12
         iny
         cpy     #$05
         bne     L9C12
-        jsr     LF497
+        jsr     $F497 ; drive ROM
         ldx     #$05
         lda     #$00
 L9C26:  eor     $15,x
@@ -3794,7 +3776,7 @@ L9C26:  eor     $15,x
         bne     L9C26
         tay
         beq     L9C31
-L9C2E:  jmp     LF40B
+L9C2E:  jmp     $F40B ; drive ROM
 
 L9C31:  inx
 L9C32:  lda     $12,x
@@ -3877,7 +3859,7 @@ L9CCC:  sta     $34
         sta     $53
         lda     #$FF
         sta     $0624,x
-        jsr     LF6D0
+        jsr     $F6D0 ; drive ROM
         lda     #$42
         sta     $36
         ldy     #$08
@@ -3891,7 +3873,7 @@ L9CE8:  lda     $1800
         bne     L9CFE
         dec     $C3
         bne     L9C80
-        jmp     LF418
+        jmp     $F418 ; drive ROM
 
 L9CFE:  ldy     $C1
         lda     ($30),y
@@ -3974,7 +3956,7 @@ L9D68:  lda     $05C2,x
         stx     $31
 L9D80:  inx
         bne     L9D86
-        jmp     LF40B
+        jmp     $F40B ; drive ROM
 
 L9D86:  jsr     $F556 ; drive ROM
 L9D89:  bvc     L9D89
