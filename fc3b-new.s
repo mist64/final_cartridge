@@ -14,6 +14,7 @@ L0234           := $0234
 L0564           := $0564
 fast_format     := $800F
 L80CE           := $80CE
+L9A41           := $9A41
 
 _disable_rom    := $DE0F
 _basic_warm_start := $DE14
@@ -30,7 +31,6 @@ LE96C           := $E96C
 LEA31           := $EA31
 LED0C           := $ED0C
 LEDB9           := $EDB9
-LEDDD           := $EDDD
 LEDEF           := $EDEF
 LEDFE           := $EDFE
 LF1CA           := $F1CA
@@ -42,7 +42,6 @@ LF646           := $F646
 LF654           := $F654
 LF707           := $F707
 LF82E           := $F82E
-LFB8E           := $FB8E
 CINT            := $FF81
 IOINIT          := $FF84
 RAMTAS          := $FF87
@@ -96,10 +95,13 @@ set_io_vectors:
 LA00A:
         jmp     LA183
 
+; ----------------------------------------------------------------
+; Centronics and RS-232 printer drivers
+; ----------------------------------------------------------------
 LA00D:  pha
         lda     $DC0C
         cmp     #$FE
-        beq     LA035
+        beq     LA035 ; RS-232
         pla
         jsr     LA021
         lda     #$10
@@ -189,7 +191,7 @@ LA09F:  lda     $DD0C
 
 LA0C7:  lda     $DC0C
         cmp     #$FE
-        bne     LA0E5
+        bne     LA0E5 ; not RS-232
         lda     #$7F
         sta     $DD03
         sta     $DD0D
@@ -219,6 +221,7 @@ LA0FF:  lda     $DD0D
         beq     LA0FF
         sec
         rts
+; ----------------------------------------------------------------
 
 ; these routines turn the cartridge ROM on before,
 ; and turn it back off afterwards
@@ -261,6 +264,7 @@ set_io_vectors2:
         sty     $032D
         rts
 
+; ----------------------------------------------------------------
 new_ckout: ; $A161
         txa
         pha
@@ -286,7 +290,7 @@ LA173:  jsr     LF31F ; set file par from table
 LA183:  jsr     LA09F
         lda     $DC0C
         cmp     #$FF
-        beq     LA19B
+        beq     LA19B ; "no centronics check"
         sei
         jsr     LA0C7
         bcs     LA19B
@@ -506,7 +510,7 @@ LA2E0:  lda     $95
         bne     LA317
         lda     $DC0C
         cmp     #$FE
-        beq     LA317
+        beq     LA317 ; RS-232
         lda     #$04
         bne     LA311
 LA309:  lda     #$10
@@ -622,7 +626,7 @@ LA3BF:  pha
         sta     $FB
         lda     $DC0C
         cmp     #$FE
-        bne     LA41D
+        bne     LA41D ; not RS-232
         txa
         pha
         ldx     #$30
@@ -695,7 +699,7 @@ LA445:  lda     #$00
 LA45A:  sta     $A5
         lda     $DC0C
         cmp     #$FE
-        bne     LA471
+        bne     LA471 ; not RS-232
         txa
         pha
         ldx     #$08
@@ -731,7 +735,7 @@ LA494:  dey
 LA49C:  jsr     LA4CC
         lda     $DC0C
         cmp     #$FE
-        beq     LA4D4
+        beq     LA4D4 ; RS-232
         lda     $DC0C
         bne     LA4B0
 LA4AB:  lda     #$4B
@@ -769,6 +773,7 @@ LA4E6:  lda     $DD0C
         bcc     LA4F0
         jsr     LA26C
 LA4F0:  rts
+; ----------------------------------------------------------------
 
         .byte   $FF
         .byte   $FF
@@ -786,7 +791,9 @@ LA4F0:  rts
         .byte   $FF
         .byte   $FF
 
+; ----------------------------------------------------------------
 ; drive code $0500
+; ----------------------------------------------------------------
 LA500:
         lda     $0612
         tax
@@ -926,6 +933,10 @@ LA5FC:  lda     $0607,x
         jmp     $D227
 
         brk
+
+; ----------------------------------------------------------------
+; C64 IEC code
+; ----------------------------------------------------------------
 LA612:  pha
         lda     $BA
         jsr     LISTEN
@@ -960,6 +971,7 @@ LA63E:  clc
 LA645:  adc     #$3A
 LA647:  rts
 
+; ??? unreached?
         jsr     LA6C1
         bne     LA647
         lda     #$07
@@ -1004,23 +1016,23 @@ LA671:  jsr     IECOUT
 
 LA6A7:  rts
 
-LA6A8:  lda     LA6B3,y
+LA6A8:  lda     s_from,y
         beq     LA6A7
         jsr     $E716 ; KERNAL: output character to screen
         iny
         bne     LA6A8
-LA6B3:  .byte   " FROM $"
-        .byte   $00
-        .byte   " TO $"
-        .byte   $00
+
+s_from: .byte   " FROM $", 0
+        .byte   " TO $", 0
+
 LA6C1:  jsr     LA61C
-        jsr     IECIN
+        jsr     IECIN ; first character, ASCII error code
         tay
 LA6C8:  jsr     IECIN
         cmp     #$0D
-        bne     LA6C8
+        bne     LA6C8 ; read until CR
         jsr     UNTALK
-        cpy     #$30
+        cpy     #'0' ; = no error
         rts
 
 LA6D5:  sta     $C3
@@ -1058,6 +1070,7 @@ LA707:  pha
         pla
         jmp     IECOUT
 
+; ??? unreferenced?
         ldy     #$00
         sty     $90
         lda     $BA
@@ -1072,7 +1085,7 @@ LA707:  pha
         jmp     LF707
 
 LA734:  jsr     _load_bb_indy
-        jsr     LEDDD
+        jsr     $EDDD ; KERNAL IECOUT
         iny
         cpy     $B7
         bne     LA734
@@ -1115,6 +1128,7 @@ LA77E:  jsr     LA7B1
         bmi     LA796
         rts
 
+; ??? unreferenced?
         lda     $9D
         bpl     LA7A7
         ldy     #$0C
@@ -1133,32 +1147,33 @@ LA79C:  jsr     _load_bb_indy
         bne     LA79C
 LA7A7:  rts
 
-LA7A8:  ldy     #$49
+print_loading:
+        ldy     #$49 ; "LOADING"
         lda     $93
         beq     LA7B3
-        ldy     #$59
+        ldy     #$59 ; "VERIFYING"
         .byte   $2C
-LA7B1:  ldy     #$51
+LA7B1:  ldy     #$51 ; "SAVING"
 LA7B3:  bit     $9D
         bpl     LA7C4
-LA7B7:  lda     $F0BD,y
+LA7B7:  lda     $F0BD,y ; KERNAL strings
         php
         and     #$7F
         jsr     $E716 ; KERNAL: output character to screen
         iny
         plp
-        bpl     LA7B7
+        bpl     LA7B7 ; until MSB set
 LA7C4:  clc
         rts
 
         ldx     #$0E
-LA7C8:  lda     $9A41,x
+LA7C8:  lda     L9A41,x
         sta     L0110,x
         dex
         bpl     LA7C8
         ldx     #$05
         stx     $AB
-        jsr     LFB8E
+        jsr     $FB8E ; copy I/O start address to buffer address
         jsr     LA75B
         bcc     LA7E2
         lda     #$00
@@ -1247,7 +1262,7 @@ LA880:  dey
         tya
         bne     LA880
 LA88C:  sty     $90
-        jsr     LA7A8
+        jsr     print_loading
         lda     $C3
         sta     $AC
         lda     $C4
@@ -1445,9 +1460,11 @@ LA9F6:  dex
         sei
         rts
 
+; ??? unreferenced?
         sei
         rts
 
+; ??? unreferenced?
         .byte   "EN"
         .byte   $C4
         .byte   "FO"
@@ -1585,6 +1602,9 @@ LA9F6:  dex
         .byte   "G"
         .byte   $CF,$00
 
+; ----------------------------------------------------------------
+; Monitor
+; ----------------------------------------------------------------
 monitor: ; $AB00
         lda     #<(brk_entry - ram_code + L0220)
         sta     $0316
@@ -3239,6 +3259,9 @@ LB6AC:  jsr     BSOUT
         bne     LB6AC
         rts
 
+; ----------------------------------------------------------------
+; IRQ logic to handle F keys
+; ----------------------------------------------------------------
 set_irq_vector:
         lda     $0314
         cmp     #<irq_handler

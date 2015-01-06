@@ -3541,6 +3541,8 @@ L9A35:  jsr     LA7A8
         bcc     L99D6
         jmp     L9AF0
 
+; will be placed at $0100
+L9A41:
         lda     #$0C
         sta     $01
         lda     ($AC),y
