@@ -1210,7 +1210,7 @@ LA812:  jsr     LA9BB
         sty     $D7
         ldx     #$05
 LA82B:  jsr     L0110
-        ldx     #$02
+        ldx     #$03 ; used to be "#$02" in 1988-05
         inc     $AC
         bne     LA837
         inc     $AD

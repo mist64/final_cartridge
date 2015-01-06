@@ -1,5 +1,5 @@
 ; da65 V2.14 - Git d112322
-; Created:    2014-12-28 14:46:58
+; Created:    2015-01-06 18:50:57
 ; Input file: fc3x.bin
 ; Page:       1
 
@@ -14,7 +14,7 @@ L8315           := $8315
 L8B54           := $8B54
 L8C02           := $8C02
 L9229           := $9229
-L922A           := $922A
+L94C9           := $94C9
 L9511           := $9511
 L9881           := $9881
 L9900           := $9900
@@ -105,8 +105,8 @@ LDE2B:  tax
         beq     LDE5D
         jmp     LEB42
 
-LDE5D:  jsr     LDE05
-        jmp     L9229
+LDE5D:  lda     $A000
+        jmp     LDF80
 
         sta     $01
         lda     ($AC),y
@@ -245,21 +245,20 @@ LDF21:  php
         jsr     LDE05
         jmp     L9511
 
-        .addr   L922A
-        jsr     LE422
+LDF80:  .addr   L94C9
+        bne     LDF8A
         jsr     LDE05
-        jmp     L922A
+        jmp     L9229
 
-        iny
-        jmp     LBDD7
+LDF8A:  jmp     LEB48
 
+        jsr     LDE05
+        .byte   $20,$53,$82,$4C,$0F,$DE,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF
         jsr     LDE05
         jsr     LA161
         jmp     LDE0F

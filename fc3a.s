@@ -1,5 +1,5 @@
 ; da65 V2.14 - Git d112322
-; Created:    2015-01-05 13:48:58
+; Created:    2015-01-06 18:50:57
 ; Input file: fc3a.bin
 ; Page:       1
 
@@ -19,7 +19,6 @@ LA000           := $A000
 LA004           := $A004
 LA007           := $A007
 LA00A           := $A00A
-LA57C           := $A57C
 LA612           := $A612
 LA648           := $A648
 LA659           := $A659
@@ -83,6 +82,7 @@ LDF58           := $DF58
 LDF60           := $DF60
 LDF6E           := $DF6E
 LDF74           := $DF74
+LDF8D           := $DF8D
 LE16F           := $E16F
 LE206           := $E206
 LE34C           := $E34C
@@ -286,7 +286,7 @@ L80CE:  ldx     #$00
 L80DE:  .addr   LDE20
         .addr   LDE35
         .addr   LDE41
-        .addr   LA57C
+        .addr   LDF8D
         .addr   LDE49
         .addr   LDE73
         .addr   LDE4F
@@ -463,7 +463,9 @@ L8234:  bit     $02A9
         adc     $0337
         sta     $0335
         jsr     L84ED
-L824D:  jsr     L8253
+L824D:  nop
+        nop
+        nop
         jmp     L9865
 
 L8253:  ldx     $7A
@@ -3253,7 +3255,7 @@ L985E:  lda     #$B9
         bne     L985A
 L9865:  lda     #$A4
         pha
-        lda     #$A1
+        lda     #$9E
         bne     L985A
         lda     #$A7
         pha
@@ -3665,7 +3667,7 @@ L9B3D:  bit     $DD00
         jsr     LA612
         jsr     UNLSTN
         plp
-        bcs     L9B78
+        bvs     L9B78
         lda     #$1D
         sec
         rts
