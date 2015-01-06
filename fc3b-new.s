@@ -6,13 +6,11 @@
 
         .setcpu "6502"
 
+; ----------------------------------------------------------------
+; RAM locations
+; ----------------------------------------------------------------
 L0110           := $0110
-L0150           := $0150
 L0220           := $0220
-L0228           := $0228
-L0234           := $0234
-L0564           := $0564
-
 
 ; ----------------------------------------------------------------
 ; Bank 0 (LO) Symbols
@@ -800,7 +798,7 @@ LA500:
         txa
         adc     #$06
         sta     $32
-LA510:  jsr     L0564
+LA510:  jsr     $0564 ; XXX LA564
         beq     LA522
         sta     $81
         tax
@@ -825,12 +823,12 @@ LA534:  ldy     #$00
         lda     $81
         sta     ($94),y
         iny
-LA542:  jsr     L0564
+LA542:  jsr     $0564
         sta     ($30),y
         iny
         cpy     $0611
         bne     LA542
-        jsr     L0150
+        jsr     $0150
         inc     $B6
         ldx     $0612
         lda     $81
@@ -841,6 +839,7 @@ LA542:  jsr     L0564
         sta     $06,x
         jmp     $F418 ; drive ROM
 
+LA564:
         lda     #$00
         sta     $1800
         lda     #$04
@@ -922,7 +921,7 @@ LA5FC:  lda     $0607,x
         sta     $014F,x
         dex
         bne     LA5FC
-        jmp     L0150
+        jmp     $0150
 
         jsr     $DBA5
         jsr     $EEF4
@@ -1644,7 +1643,7 @@ ram_code:
         rti
 
 brk_entry:
-        jsr     L0228; enable all ROMs
+        jsr     $0228; enable all ROMs
         jmp     LAB48
 ram_code_end:
 
@@ -2149,7 +2148,7 @@ LAF06:  lda     $0253 ; bank
         ldx     $024C
         ldy     $024D
         lda     $0253 ; bank
-        jmp     L0234 ; rti
+        jmp     $0234 ; rti
 LAF2B:  lda     #'E' ; send M-E to drive
         jsr     send_m_dash2
         lda     $C3
