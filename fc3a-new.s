@@ -36,9 +36,15 @@
 
 CHRGET          := $0073
 CHRGOT          := $0079
+
+; ----------------------------------------------------------------
+; RAM locations
+; ----------------------------------------------------------------
 L0100           := $0100
 L0110           := $0110
 L01B8           := $01B8
+L0220           := $0220
+
 L045C           := $045C
 L0463           := $0463
 L04F6           := $04F6
@@ -47,78 +53,10 @@ L0630           := $0630
 LA000           := $A000
 
 ; ----------------------------------------------------------------
-; Bank 0 (HI) Symbols
-; ----------------------------------------------------------------
-;set_io_vectors_with_hidden_rom := $A004
-;set_io_vectors  := $A007
-;something_with_printer := $A00A
-;LA612           := $A612
-LA648           := $A648
-LA659           := $A659
-LA663           := $A663
-LA691           := $A691
-LA694           := $A694
-;LA6D5           := $A6D5
-LA71B           := $A71B
-LA762           := $A762
-;LA77E           := $A77E
-LA784           := $A784
-LA7A8           := $A7A8
-LA7AE           := $A7AE
-;LA851           := $A851
-LA8FF           := $A8FF
-;LA9BB           := $A9BB
-;monitor         := $AB00
-
-; ----------------------------------------------------------------
-; Bank 2 Symbols
+; Bank 2 (Desktop, Freezer/Print) Symbols
 ; ----------------------------------------------------------------
 L8000           := $8000
 LBFFA           := $BFFA
-
-; ----------------------------------------------------------------
-; I/O Extension ROM Symbols
-; ----------------------------------------------------------------
-;_jmp_bank       := $DE01
-;_disable_rom_set_01 := $DE0D
-;_disable_rom    := $DE0F
-;_new_load       := $DE20
-;_new_save       := $DE35
-;_new_mainloop   := $DE41
-;_new_detokenize := $DE49
-;_new_expression := $DE4F
-;_load_ac_indy   := $DE63
-;_load_bb_indy   := $DE6C
-;_new_execute    := $DE73
-;_execute_statement := $DE7F
-;_add_A_to_FAC   := $DE85
-;_get_element_in_expression := $DE8E
-;_get_int        := $DE94
-;_new_warmstart  := $DEA0
-;_evaluate_modifier := $DEA9
-;_get_line_number := $DEAF
-;_basic_bsout    := $DEB8
-;_set_txtptr_to_start := $DEC1
-;_check_for_stop := $DECA
-;_relink         := $DED3
-;_get_filename   := $DEDB
-;_int_to_ascii   := $DEE4
-;_ay_to_float    := $DEF0
-;_int_to_fac     := $DEF9
-;_print_ax_int   := $DF06
-;_search_for_line := $DF0F
-;_CHRGET         := $DF1B
-;_CHRGOT         := $DF27
-;_lda_5a_indy    := $DF30
-;_lda_5f_indy    := $DF38
-;_lda_ae_indx    := $DF40
-;_lda_7a_indy    := $DF48
-;_lda_7a_indx    := $DF50
-;_lda_22_indy    := $DF58
-;_lda_8b_indy    := $DF60
-;_list           := $DF6E
-;_new_tokenize   := $DF8D
-;_print_banner_jmp_9511 := $DF74
 
 ; ----------------------------------------------------------------
 ; KERNAL Symbols
@@ -2226,7 +2164,7 @@ L901D:  lda     L902F,x
         pha
         jmp     _disable_rom
 
-L902F:  jsr     LA663
+L902F:  jsr     $A663 ; CLR
         jmp     $E386 ; BASIC warm start
 
 L9035:  jmp     L8734
@@ -2453,8 +2391,8 @@ L91DE:  lda     $AE
         lda     #$37
         sta     $01
         cli
-        jsr     LA659
-        jmp     LA7AE
+        jsr     $A659 ; CLR
+        jmp     $A7AE ; next statement
 
 L91FB:  lda     ($AE),y
         inc     $AE
@@ -3338,7 +3276,7 @@ L98C7:  lda     #$E1
         ldx     $B9
         cpx     #$02
         beq     L98B9
-        jsr     LA762
+        jsr     LA762 ; ???
         lda     #$60
         sta     $B9
         .byte $20
@@ -3517,7 +3455,7 @@ new_load2:
         sta     $AE
         lda     $C4
         sta     $AF
-L9A35:  jsr     LA7A8
+L9A35:  jsr     print_loading
         lda     $AF
         cmp     #$04
         bcc     L99D6
@@ -4117,7 +4055,7 @@ _new_execute: ; $DE73
         jsr     _CHRGET
         jsr     new_execute
         jsr     _disable_rom
-        jmp     LA7AE
+        jmp     $A7AE ; CLEAR
 
 _execute_statement: ; $DE7F
         jsr     _disable_rom
@@ -4308,8 +4246,9 @@ _new_clrch: ; $DFD5
         jmp     new_clrch
 
 ; padding
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF
+LDFE0: ; ???
+        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
 ; unused?
         sei
@@ -4367,39 +4306,6 @@ _new_clrch: ; $DFD5
 ; ----------------------------------------------------------------
 ; ----------------------------------------------------------------
 ; ----------------------------------------------------------------
-
-; da65 V2.14 - Git d112322
-; Created:    2014-12-28 14:46:58
-; Input file: fc3b.bin
-; Page:       1
-
-
-        .setcpu "6502"
-
-; ----------------------------------------------------------------
-; RAM locations
-; ----------------------------------------------------------------
-;L0110           := $0110
-L0220           := $0220
-
-; ----------------------------------------------------------------
-; Bank 0 (LO) Symbols
-; ----------------------------------------------------------------
-;fast_format     := $800F
-;go_basic        := $80CE
-;L9A41           := $9A41
-
-; ----------------------------------------------------------------
-; I/O Extension ROM Symbols
-; ----------------------------------------------------------------
-;_disable_rom    := $DE0F
-;_basic_warm_start := $DE14
-;_load_bb_indy   := $DE6C
-;_new_ckout      := $DFC0
-;_new_bsout      := $DFC9
-;_new_clall      := $DFCF
-;_new_clrch      := $DFD5
-LDFE0           := $DFE0
 
 .segment "part4"
 
@@ -5296,7 +5202,7 @@ LA63E:  clc
 LA645:  adc     #$3A
 LA647:  rts
 
-; ??? unreached?
+LA648:
         jsr     LA6C1
         bne     LA647
         lda     #$07
@@ -5329,8 +5235,11 @@ LA671:  jsr     IECOUT
         sta     $DD00
         jmp     LA9F6
 
+LA691:
         ldy     #$00
-        bit     $08A0
+        .byte   $2C
+LA694:
+        ldy     #$08
         bit     $9D
         bpl     LA6A7
         jsr     LA6A8
@@ -5395,7 +5304,7 @@ LA707:  pha
         pla
         jmp     IECOUT
 
-; ??? unreferenced?
+LA71B:
         ldy     #$00
         sty     $90
         lda     $BA
@@ -5430,6 +5339,7 @@ LA74C:  bit     $DC01
 LA75B:  jsr     $F82E ; cassette sense
         beq     LA764
         ldy     #$2E
+LA762: ; ???
         bne     LA749
 LA764:  clc
         rts
@@ -5453,7 +5363,7 @@ LA77E:  jsr     LA7B1
         bmi     LA796
         rts
 
-; ??? unreferenced?
+LA784:
         lda     $9D
         bpl     LA7A7
         ldy     #$0C
@@ -5643,6 +5553,7 @@ LA8E8:  jsr     LA96E
         sta     $D7
         lda     #$0F
         sta     $01
+LA8FF:
         inc     $C3
         bne     LA905
         inc     $C4
@@ -8520,7 +8431,7 @@ LBFC7:  lda     $02,x
         lda     #$7C
         sta     $DD0D
         ldx     #$03
-        jmp     LDFE0
+        jmp     LDFE0 ; ???
 
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
