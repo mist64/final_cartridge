@@ -2144,25 +2144,27 @@ L8FF9:  sty     $39
 L900B:  rts
 
 UNPACK: bne     L900B
-        ldx     #$11
-L9010:  lda     L918B,x
+        ldx     #$11 ; arbitrary length
+L9010:  lda     pack_header,x
         cmp     $0801,x
-        bne     L900B
+        bne     L900B ; do nothing if not packed
         dex
         bpl     L9010
-        ldx     #$05
-L901D:  lda     L902F,x
-        sta     $086B,x
+        ldx     #alt_pack_run_end - alt_pack_run - 1
+L901D:  lda     alt_pack_run,x
+        sta     pack_run - pack_header + $0801,x
         dex
         bpl     L901D
-        lda     #$08
+        lda     #>(pack_entry - pack_header + $0801 - 1)
         pha
-        lda     #$0C
+        lda     #<(pack_entry - pack_header + $0801 - 1)
         pha
         jmp     _disable_rom
 
-L902F:  jsr     $A663 ; CLR
+alt_pack_run:
+        jsr     $A663 ; CLR
         jmp     $E386 ; BASIC warm start
+alt_pack_run_end:
 
 L9035:  jmp     L8734
 
@@ -2199,10 +2201,10 @@ L9067:  lda     L90C6,x
         lda     #$34
         jsr     L0100
         ldy     #$00
-L907A:  lda     L918B,y
+L907A:  lda     pack_header,y
         sta     $0801,y
         iny
-        cpy     #$9E
+        cpy     #pack_header_end - pack_header
         bne     L907A
         lda     $FF
         sta     $0848
@@ -2338,10 +2340,12 @@ L9179:  lda     #$37
 L9188:  ldx     $AD
         rts
 
-L918B:  .byte   $0B,$08,$C3,$07,$9E,$32,$30,$36
-        .byte   $31,$00,$00,$00
-
-; ??? unused?
+pack_header: ; $918B
+        .word   $080B ; BASIC link pointer
+        .word   1987 ; line number
+        .byte   $9E, "2061", 0, 0, 0
+; decompression
+pack_entry:
         sei
         lda     #$34
         sta     $01
@@ -2391,6 +2395,7 @@ L91DE:  lda     $AE
         lda     #$37
         sta     $01
         cli
+pack_run:
         jsr     $A659 ; CLR
         jmp     $A7AE ; next statement
 
@@ -2416,6 +2421,8 @@ L9218:  dey
         inc     L0110
         inc     $0156
         bne     L9218
+pack_header_end:
+
 L9229: ; <- jmp from $DE60
         lda     $CC
         bne     L927C
