@@ -104,13 +104,13 @@ fast_format: ; $A00F
 
         jmp     init_read_disk_name
 
-        jmp     L971A
+        jmp     init_write_bam
 
-        jmp     L803B
+        jmp     init_vectors_jmp_bank_2
 
         jmp     go_basic
 
-        jmp     L9473
+        jmp     print_screen
 
         jmp     init_load_and_basic_vectors
 
@@ -128,11 +128,12 @@ L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
         bpl     L8031
         rts
 
-L803B:  jsr     init_load_save_vectors
+init_vectors_jmp_bank_2:
+        jsr     init_load_save_vectors
         jsr     init_basic_vectors
         lda     #>(LBFFA - 1)
         pha
-        lda     #<(LBFFA - 1)
+        lda     #<(LBFFA - 1) ; ???
         pha
         lda     #$42 ; bank 2
         jmp     _jmp_bank
@@ -1480,7 +1481,7 @@ L8AD3:  jsr     L8BDB
         dex
         bpl     L8AD3
 L8ADF:  jsr     L8BF0
-        jsr     L971A
+        jsr     init_write_bam
         jsr     cmd_channel_listen
         lda     #$49
         jsr     IECOUT
@@ -2328,6 +2329,7 @@ L9179:  lda     #$37
         sta     $01
         rts
 
+; ??? unused?
         ldx     #$00
         lda     ($AC,x)
         inc     $AC
@@ -2338,6 +2340,8 @@ L9188:  ldx     $AD
 
 L918B:  .byte   $0B,$08,$C3,$07,$9E,$32,$30,$36
         .byte   $31,$00,$00,$00
+
+; ??? unused?
         sei
         lda     #$34
         sta     $01
@@ -2449,7 +2453,7 @@ L926A:  cmp     #$0D
         jsr     L93B4
         inc     $02A7
         inc     $CC
-        jsr     L9473
+        jsr     print_screen
         jmp     L92CC
 
 L927C:  jmp     _evaluate_modifier
@@ -2708,16 +2712,17 @@ L946E:  lda     #$03
         sta     $9A
         rts
 
-L9473:  lda     #$07
+print_screen:
+        lda     #$07
         jsr     L8B06
         bcs     L946E
         jsr     set_io_vectors
         ldy     #$00
         sty     $AC
-        lda     $0288
+        lda     $0288 ; video RAM address hi
         sta     $AD
-        ldx     #$19
-L9488:  lda     #$0D
+        ldx     #$19 ; 25 iterations for 25 lines
+L9488:  lda     #$0D ; CR
         jsr     BSOUT
         ldy     #$00
 L948F:  lda     ($AC),y
@@ -2731,7 +2736,7 @@ L949D:  bvs     L94A1
         ora     #$40
 L94A1:  jsr     BSOUT
         iny
-        cpy     #$28
+        cpy     #$28 ; 40 columns
         bne     L948F
         tya
         clc
@@ -2741,7 +2746,7 @@ L94A1:  jsr     BSOUT
         inc     $AD
 L94B3:  dex
         bne     L9488
-        lda     #$0D
+        lda     #$0D ; CR
         jsr     BSOUT
         jsr     CLRCH
         jmp     set_io_vectors_with_hidden_rom
@@ -3040,8 +3045,9 @@ init_read_disk_name:
         lda     #$00
         rts
 
-L971A:  ldy     #drive_cmd_u2 - drive_cmds
-        jsr     send_drive_cmd
+init_write_bam:
+        ldy     #drive_cmd_u2 - drive_cmds
+        jsr     send_drive_cmd ; send "U2:2 0 18 0", block write of BAM
 unlisten_e2:
         lda     #$E2
         jsr     listen_second
