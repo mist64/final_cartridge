@@ -1,8 +1,3 @@
-; da65 V2.14 - Git d112322
-; Created:    2015-01-05 13:48:58
-; Input file: fc3a.bin
-; Page:       1
-
 ;   The Final Cartridge 3
 ;
 ;   - 4 16K ROM Banks at $8000/$a000 (=64K)
@@ -44,13 +39,6 @@ L0100           := $0100
 L0110           := $0110
 L01B8           := $01B8
 L0220           := $0220
-
-L045C           := $045C
-L0463           := $0463
-L04F6           := $04F6
-L0582           := $0582
-L0630           := $0630
-LA000           := $A000
 
 ; ----------------------------------------------------------------
 ; Bank 2 (Desktop, Freezer/Print) Symbols
@@ -109,12 +97,12 @@ IOBASE          := $FFF3
 
 entry:  jmp     entry2
 
-        jmp     L955E
+        jmp     perform_desktop_disk_operation
 
 fast_format: ; $A00F
         jmp     fast_format2
 
-        jmp     L96FB
+        jmp     init_read_disk_name
 
         jmp     L971A
 
@@ -124,15 +112,16 @@ fast_format: ; $A00F
 
         jmp     L9473
 
-        jmp     init_basic_vectors
+        jmp     init_load_and_basic_vectors
 
         jsr     set_io_vectors_with_hidden_rom
         lda     #$43 ; bank 2
         jmp     _jmp_bank
 
-init_basic_vectors:
+init_load_and_basic_vectors:
         jsr     init_load_save_vectors
-L802F:  ldx     #$09
+init_basic_vectors:
+        ldx     #$09
 L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
         sta     $0302,x
         dex
@@ -140,7 +129,7 @@ L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
         rts
 
 L803B:  jsr     init_load_save_vectors
-        jsr     L802F
+        jsr     init_basic_vectors
         lda     #>(LBFFA - 1)
         pha
         lda     #<(LBFFA - 1)
@@ -176,7 +165,7 @@ L805A:  sta     $02,y
         jsr     $FD15 ; init I/O (same as RESTOR)
         jsr     $FF5B ; video reset (same as CINT)
         jsr     $E453 ; assign $0300 BASIC vectors
-        jsr     init_basic_vectors
+        jsr     init_load_and_basic_vectors
         cli
         pla ; $ D
         tax
@@ -194,7 +183,7 @@ L809D:  lda     $CFFC,y
         dey
         bpl     L809D
         bmi     go_desktop ; MG87 found
-L80AA:  jmp     (LA000)
+L80AA:  jmp     ($A000)
 
 mg87_signature:
         .byte   "MG87"
@@ -262,29 +251,33 @@ L8110:  jsr     IECIN
         bne     L8110
         jmp     UNTALK
 
-L811D:  jsr     L8141
+check_iec_error:
+        jsr     command_channel_talk
         jsr     IECIN
         tay
 L8124:  jsr     IECIN
-        cmp     #$0D
+        cmp     #$0D ; skip message
         bne     L8124
         jsr     UNTALK
-        cpy     #$30
+        cpy     #'0'
         rts
 
-open_cmd_channel:
+cmd_channel_listen:
         lda     #$6F
-L8133:  pha
-        jsr     L8BC4
+listen_second:
+        pha
+        jsr     set_drive
         jsr     LISTEN
         pla
         jsr     SECOND
         lda     $90
         rts
 
-L8141:  lda     #$6F
-L8143:  pha
-        jsr     L8BC4
+command_channel_talk:
+        lda     #$6F
+talk_second:
+        pha
+        jsr     set_drive
         jsr     TALK
         pla
         jmp     TKSA
@@ -326,7 +319,7 @@ send_m_dash:
         jmp     IECOUT
 
 L8192:  lda     #$6F
-L8194:  jsr     L8133
+L8194:  jsr     listen_second
         bmi     L819A
         rts
 
@@ -695,7 +688,7 @@ L8443:  dex
 L8449:  .byte   $01,$0A,$64,$E8,$10
 L844E:  .byte   $00,$00,$00,$03,$27
 L8453:  lda     #$60
-        jsr     L8143
+        jsr     talk_second
         jsr     IECIN
         jsr     IECIN
 L845E:  jsr     L84C8
@@ -740,7 +733,7 @@ L84AB:  dex
         jsr     _basic_bsout
         bne     L845E
 L84C0:  lda     #$E0
-        jsr     L8143
+        jsr     talk_second
         jmp     UNLSTN
 
 L84C8:  lda     $9A
@@ -750,7 +743,7 @@ L84C8:  lda     $9A
         bmi     L84DB
         jsr     UNLSTN
         lda     #$60
-        jsr     L8143
+        jsr     talk_second
 L84DB:  rts
 
 L84DC:  bit     $DD0C
@@ -1353,8 +1346,8 @@ L89CB:  sta     $02A8
 
 DESKTOP:
         bne     L89BC
-        ldx     #$00
-        jsr     L89EF
+        ldx     #a_are_you_sure - messages
+        jsr     print_msg
 L89D8:  lda     $DC00
         and     $DC01
         and     #$10
@@ -1367,17 +1360,19 @@ L89D8:  lda     $DC00
 
 L89EC:  jmp     go_desktop
 
-L89EF:  lda     L89FB,x
+print_msg:
+        lda     a_are_you_sure,x
         beq     L89FA
         jsr     $E716 ; output character to the screen
         inx
-        bne     L89EF
+        bne     print_msg
 L89FA:  rts
 
-L89FB:  .byte   "ARE YOU SURE (Y/N)?"
-
-
-        .byte   $0D,$00,$0D,"READY.",$0D,$00
+messages:
+a_are_you_sure:
+        .byte   "ARE YOU SURE (Y/N)?", $0D, 0
+a_ready:
+        .byte   $0D,"READY.",$0D,$00
 
 DLOAD:  
         lda     #$00 ; load flag
@@ -1407,7 +1402,7 @@ DOS:    cmp     #'"'
         beq     L8A5D ; DOS with a command
 L8A47:  jsr     L8192
         jsr     UNLSTN
-        jsr     L8141
+        jsr     command_channel_talk
         jsr     L8110
 L8A53:  rts
 
@@ -1443,12 +1438,12 @@ L8A87:  iny
         cmp     #$3A
         bne     L8A84
         jsr     UNLSTN
-        jsr     L96FB
+        jsr     init_read_disk_name
         beq     L8A97
         rts
 
 L8A97:  lda     #$62
-        jsr     L8133
+        jsr     listen_second
         ldy     #$02
 L8A9E:  jsr     L8BDB
         beq     L8AB2
@@ -1486,7 +1481,7 @@ L8AD3:  jsr     L8BDB
         bpl     L8AD3
 L8ADF:  jsr     L8BF0
         jsr     L971A
-        jsr     open_cmd_channel
+        jsr     cmd_channel_listen
         lda     #$49
         jsr     IECOUT
         jmp     UNLSTN
@@ -1589,21 +1584,22 @@ L8BAD:  jsr     L8BBD
         jsr     _get_filename
         rts
 
-L8BBD:  ldx     #$FB
-        ldy     #$DF
+L8BBD:  ldx     #<a_star_asterisk
+        ldy     #>a_star_asterisk
         jsr     SETNAM
-L8BC4:  lda     #$00
+set_drive:
+        lda     #$00
         sta     $90
         lda     #$08
         cmp     $BA
-        bcc     L8BD1
+        bcc     L8BD1 ; device number 9 or above
 L8BCE:  sta     $BA
 L8BD0:  rts
 
 L8BD1:  lda     #$09
         cmp     $BA
         bcs     L8BD0
-        lda     #$08
+        lda     #$08 ; set drive 8
         bne     L8BCE
 L8BDB:  jsr     _lda_7a_indy
         beq     L8BE2
@@ -2430,7 +2426,8 @@ L923A:  ldx     $028D
         beq     L9247
         cpx     #$02
         bcc     L9282
-        bcs     L927C
+        bcs     L927C ; always
+
 L9247:  cmp     #$13
         bne     L925D
         jsr     L93B4
@@ -2490,7 +2487,7 @@ L92B3:  inx
         dey
         bne     L92AB
 L92B7:  lda     fkey_strings,x
-        sta     $0277,y
+        sta     $0277,y ; kbd buffer
         beq     L92C3
         inx
         iny
@@ -2759,34 +2756,36 @@ fkey_strings:
         .byte   "DSAVE", '"', 0
         .byte   "DOS", '"', 0
 
-L94F9:  sei
-        lda     #$31
+reset_load_and_run:
+        sei
+        lda     #<$EA31
         sta     $0314
-        lda     #$EA
+        lda     #>$EA31
         sta     $0315
         jsr     init_load_save_vectors
-        jsr     L802F
+        jsr     init_basic_vectors
         cli
         jsr     $E3BF ; init BASIC, print banner
-        jmp     _print_banner_jmp_9511
+        jmp     _print_banner_load_and_run
 
-L9511:
-        ldx     #$15
-        jsr     L89EF
+; file name at $0200
+load_and_run_program:
+        ldx     #a_ready - messages
+        jsr     print_msg ; print "READY."
         ldx     #$FB
         txs
         lda     #$80
-        sta     $9D
+        sta     $9D ; direct mode
         ldy     #$FF
-        sty     $3A
+        sty     $3A ; direct mode
         iny
         sty     $0A
-        sty     $BB
+        sty     $BB ; file name pointer low
         sty     $02A8
         lda     #$01
         sta     $B9
-        lda     #$02
-        sta     $BC
+        lda     #$02 
+        sta     $BC ; read filename from $0200
         sta     $7B
 L9533:  lda     ($BB),y
         sta     $C000,y
@@ -2795,58 +2794,62 @@ L9533:  lda     ($BB),y
         bne     L9533
 L953D:  sty     $B7
         lda     #$C0
-        sta     $BC
-        lda     #$52
+        sta     $BC ; file name pointer high (fn at $C000)
+        lda     #'R'
         sta     $0277
-        lda     #$55
+        lda     #'U'
         sta     $0278
-        lda     #$4E
+        lda     #'N'
         sta     $0279
-        lda     #$0D
+        lda     #$0D ; CR
         sta     $027A
-        lda     #$04
+        lda     #$04 ; number of characters in kbd buffer
         sta     $C6
         jmp     $E16F ; LOAD
 
-L955E:  tya
-        pha
+; performs a (fast) disk operation for Desktop
+perform_desktop_disk_operation:
+        tya
+        pha ; bank to return to
         cpx     #$01
-        beq     L95E2
+        beq     read_directory
         cpx     #$02
-        beq     L95CF
+        beq     send_drive_command_at_0200
         cpx     #$03
         beq     read_cmd_channel
         cpx     #$04
-        beq     L9577
+        beq     read_disk_name
         cpx     #$05
-        beq     L94F9
-        jmp     L969A
+        beq     reset_load_and_run
+        jmp     L969A ; second half of operations (XXX why?)
 
-L9577:  jsr     open_cmd_channel
-        bmi     L95C6
+; reads zero terminated disk name to $0200
+read_disk_name:
+        jsr     cmd_channel_listen
+        bmi     zero_terminate ; XXX X is undefined here
         jsr     UNLSTN
         ldx     #$00
-        jsr     L96FB
-        bne     L95C6
+        jsr     init_read_disk_name
+        bne     zero_terminate
         lda     #$62
-        jsr     L8143
+        jsr     talk_second
         ldx     #$00
 L958D:  jsr     IECIN
-        cmp     #$A0
+        cmp     #$A0 ; terminator
         beq     L959C
         sta     $0200,x
         inx
-        cpx     #$10
+        cpx     #$10 ; max 16 characters
         bne     L958D
 L959C:  jsr     UNTALK
-        jsr     L971F
-        jmp     L95C6
+        jsr     unlisten_e2
+        jmp     zero_terminate
 
 read_cmd_channel:
-        jsr     open_cmd_channel
+        jsr     cmd_channel_listen
         bmi     jmp_bank_from_stack
         jsr     UNLSTN
-        jsr     L8141
+        jsr     command_channel_talk
         lda     $90
         bmi     jmp_bank_from_stack
         ldx     #$00
@@ -2857,67 +2860,74 @@ L95B6:  jsr     IECIN
         inx
         bne     L95B6
 L95C3:  jsr     UNTALK
-L95C6:  lda     #$00
+zero_terminate:
+        lda     #$00
         sta     $0200,x ; zero terminate
 jmp_bank_from_stack:
         pla
         jmp     _jmp_bank
 
-L95CF:  jsr     open_cmd_channel
+send_drive_command_at_0200:
+        jsr     cmd_channel_listen
         bmi     jmp_bank_from_stack
-        lda     #$00
+        lda     #<$0200
         sta     $7A
-        lda     #$02
+        lda     #>$0200
         sta     $7B
         jsr     send_drive_command
         jmp     jmp_bank_from_stack
 
-L95E2:  lda     #$F0
-        jsr     L8133
+; reads the drive's directory, decoding it into binary format
+read_directory:
+        lda     #$F0
+        jsr     listen_second
         bmi     jmp_bank_from_stack
-        lda     #$24
+        lda     #'$'
         jsr     IECOUT
         jsr     UNLSTN
         lda     #$60
         sta     $B9
-        jsr     L8143
+        jsr     talk_second
         ldx     #$06
-L95FA:  jsr     L9632
+L95FA:  jsr     iecin_or_ret
         dex
-        bne     L95FA
+        bne     L95FA ; skip 6 bytes
         beq     L9612
-L9602:  jsr     L9632
-        jsr     L9632
-        jsr     L9632
+L9602:  jsr     iecin_or_ret
+        jsr     iecin_or_ret
+        jsr     iecin_or_ret
         tax
-        jsr     L9632
-        jsr     L9645
-L9612:  jsr     L9632
-        cmp     #$22
-        bne     L9612
-L9619:  jsr     L9632
-        cmp     #$22
+        jsr     iecin_or_ret
+        jsr     decode_decimal
+L9612:  jsr     iecin_or_ret
+        cmp     #'"'
+        bne     L9612 ; skip until quote
+L9619:  jsr     iecin_or_ret
+        cmp     #'"'
         beq     L9626
-        jsr     L9680
-        jmp     L9619
+        jsr     store_directory_byte
+        jmp     L9619 ; loop
 
-L9626:  jsr     L967E
-L9629:  jsr     L9632
+L9626:  jsr     terminate_directory_name
+L9629:  jsr     iecin_or_ret
         cmp     #$00
         bne     L9629
-        beq     L9602
-L9632:  jsr     IECIN
+        beq     L9602 ; always; loop
+
+iecin_or_ret:
+        jsr     IECIN
         ldy     $90
         bne     L963A
         rts
 
 L963A:  pla
         pla
-        jsr     L967E
+        jsr     terminate_directory_name
         jsr     $F646 ; close file
         jmp     jmp_bank_from_stack
 
-L9645:  stx     $C1
+decode_decimal:
+        stx     $C1
         sta     $C2
         lda     #$31
         sta     $C3
@@ -2940,15 +2950,17 @@ L9659:  sta     $C2
         lda     $C4
         cmp     $C3
         beq     L9676
-        jsr     L9680
+        jsr     store_directory_byte
         dec     $C3
 L9676:  dex
         beq     L964F
         bpl     L9651
-        jmp     L967E
+        jmp     terminate_directory_name ; XXX redundant
 
-L967E:  lda     #$00
-L9680:  sty     $AE
+terminate_directory_name:
+        lda     #$00
+store_directory_byte:
+        sty     $AE
         ldy     #$00
         sta     ($AC),y
         inc     $AC
@@ -2957,23 +2969,25 @@ L9680:  sty     $AE
 L968C:  ldy     $AE
         rts
 
-L968F:  lda     #$91
+disk_operation_fallback:
+        lda     #<($FF92 - 1)
         pha
-        lda     #$FF
+        lda     #>($FF92 - 1) ; ???
         pha
         lda     #$43
         jmp     _jmp_bank ; bank 3
 
 L969A:  cpx     #$0B
-        beq     L96BF
+        beq     set_printer_output
         cpx     #$0C
-        beq     L96DB
+        beq     print_character
         cpx     #$0D
-        beq     L96AC
-        jsr     L968F
+        beq     reset_printer_output
+        jsr     disk_operation_fallback
         jmp     jmp_bank_from_stack
 
-L96AC:  lda     #$0D
+reset_printer_output:
+        lda     #$0D ; CR
         jsr     BSOUT
         jsr     CLALL
         lda     #$01
@@ -2981,10 +2995,11 @@ L96AC:  lda     #$0D
         jsr     set_io_vectors_with_hidden_rom
         jmp     jmp_bank_from_stack
 
-L96BF:  jsr     set_io_vectors
-        lda     #$01
-        ldy     #$07
-        ldx     #$04
+set_printer_output:
+        jsr     set_io_vectors
+        lda     #$01 ; LFN
+        ldy     #$07 ; secondary address
+        ldx     #$04 ; printer
         jsr     SETLFS
         lda     #$00
         jsr     SETNAM
@@ -2993,7 +3008,8 @@ L96BF:  jsr     set_io_vectors
         jsr     CKOUT
         jmp     jmp_bank_from_stack
 
-L96DB:  lda     $0200
+print_character:
+        lda     $0200
         jsr     BSOUT
         jmp     jmp_bank_from_stack
 
@@ -3009,30 +3025,32 @@ fast_format2:
         lda     #$04
         jmp     IECOUT
 
-L96FB:  lda     #$F2
-        jsr     L8133
-        lda     #$23
+init_read_disk_name:
+        lda     #$F2
+        jsr     listen_second
+        lda     #'#'
         jsr     IECOUT
         jsr     UNLSTN
-        ldy     #$00
-        jsr     send_drive_cmd
-        jsr     L811D
-        bne     L971F
+        ldy     #drive_cmd_u1 - drive_cmds
+        jsr     send_drive_cmd ; send "U1:2 0 18 0", block read of BAM
+        jsr     check_iec_error
+        bne     unlisten_e2 ; error
         ldy     #drive_cmd_bp - drive_cmds
-        jsr     send_drive_cmd
+        jsr     send_drive_cmd ; send "B-P 2 144", read name
         lda     #$00
         rts
 
 L971A:  ldy     #drive_cmd_u2 - drive_cmds
         jsr     send_drive_cmd
-L971F:  lda     #$E2
-        jsr     L8133
+unlisten_e2:
+        lda     #$E2
+        jsr     listen_second
         jsr     UNLSTN
         lda     #$01
         rts
 
 send_drive_cmd:
-        jsr     open_cmd_channel
+        jsr     cmd_channel_listen
 L972D:  lda     drive_cmds,y
         beq     L9738
         jsr     IECOUT
@@ -3051,6 +3069,13 @@ drive_cmd_u2:
 ; ----------------------------------------------------------------
 
 .segment "fast_format_drive"
+
+; XXX
+L045C           := $045C
+L0463           := $0463
+L04F6           := $04F6
+L0582           := $0582
+L0630           := $0630
 
 fast_format_drive_code:
         jmp     L0463
@@ -4203,11 +4228,11 @@ _list: ; $DF6E
         jsr     _disable_rom
         jmp     $A6F3 ; part of LIST
 
-_print_banner_jmp_9511: ; $DF74
+_print_banner_load_and_run: ; $DF74
         jsr     _disable_rom
         jsr     $E422 ; print c64 banner
         jsr     _enable_rom
-        jmp     L9511
+        jmp     load_and_run_program
 
 LDF80:  cmp     #$94
         bne     LDF8A
@@ -4261,7 +4286,8 @@ LDFE0: ; ???
         lda     #$41 ; bank 1 (Notepad, BASIC (Menu Bar))
         sta     $DFFF
 
-        .byte   $3A,$2A ; ???
+a_star_asterisk:
+        .byte   ':','*' ; ???
 
 
 
