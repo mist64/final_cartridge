@@ -49,7 +49,7 @@ LE37B           := $E37B ; BASIC warm start (NMI)
 LE422           := $E422
 LEB48           := $EB48
 
-.segment        "fc3x": absolute
+.segment        "romio": absolute
 
 LDE00:  .byte   $40
 
@@ -346,6 +346,5 @@ _new_clrch: ; $DFD5
         .byte   $3A,$2A,$FF,$FF
 LDFFF:  .byte   $FF
 
-; End of "fc3x" segment
 .code
 
