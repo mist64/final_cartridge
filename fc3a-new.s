@@ -162,7 +162,7 @@ SCREEN          := $FFED
 PLOT            := $FFF0
 IOBASE          := $FFF3
 
-.segment        "fc3a": absolute
+.segment "part1"
 
         .addr   entry ; FC3 entry
         .addr   $FE5E ; default cartridge soft reset entry point
@@ -3110,6 +3110,8 @@ drive_cmd_u2:
 
 ; ----------------------------------------------------------------
 
+.segment "fast_format_drive"
+
 fast_format_drive_code:
         jmp     L0463
 
@@ -3240,6 +3242,8 @@ L984D:  bvc     L984D
         jmp     $FCB1 ; drive ROM
 
 ; ----------------------------------------------------------------
+
+.segment "part2"
 
 L9855:  lda     #$AF
         pha
@@ -3517,6 +3521,10 @@ L9A35:  jsr     LA7A8
         bcc     L99D6
         jmp     L9AF0
 
+; ----------------------------------------------------------------
+
+.segment "code_at_0100"
+
 ; will be placed at $0100
 L9A41:
         lda     #$0C
@@ -3526,6 +3534,8 @@ L9A41:
         sty     $01
         ldy     #$00
         jmp     LA9BB
+
+.segment "code_at_0110"
 
 L9A50:  lda     #$0C
         sta     $01
@@ -3538,6 +3548,10 @@ L9A5C:  eor     $D7
         lda     #$0F
         sta     $01
         jmp     LA8FF
+
+; ----------------------------------------------------------------
+
+.segment "part3"
 
 L9A67:  jmp     $F636 ; LDA #0 : SEC : RTS
 
@@ -3752,6 +3766,8 @@ L9BED:  iny
 L9BF7:  jmp     L9B3D
 
 ; ----------------------------------------------------------------
+
+.segment "drive_code"
 ; drive code
         lda     $43
         sta     $C1
@@ -3999,5 +4015,4 @@ L9DBB:  inx
         .byte   $00,$08,$0A,$0A,$00,$00,$02,$02
         .byte   $00,$00,$0A,$0A,$00,$00,$02,$02
         .byte   $00,$08,$08,$08,$00,$00,$00,$00
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF,$FF,$FF
+
