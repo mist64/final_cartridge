@@ -1,4 +1,4 @@
-ca65 fc3a-new.s && ld65 -C fc3a.cfg fc3a-new.o -o fc3a-new.bin &&
+ca65 fc3.s && ld65 -C fc3.cfg fc3.o -o fc3.bin &&
 (
-hexdump -C fc3a.bin > /tmp/fc3a.bin.txt; hexdump -C fc3a-new.bin > /tmp/fc3a-new.bin.txt; diff -u /tmp/fc3a.bin.txt /tmp/fc3a-new.bin.txt
+hexdump -C fc3-orig.bin > /tmp/fc3-orig.bin.txt; hexdump -C fc3.bin > /tmp/fc3.bin.txt; diff -u /tmp/fc3-orig.bin.txt /tmp/fc3.bin.txt
 )
