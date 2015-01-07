@@ -2143,21 +2143,24 @@ L8FF9:  sty     $39
         sbc     $3A
 L900B:  rts
 
+.import __pack_header_LOAD__
+.import __pack_header_RUN__
+
 UNPACK: bne     L900B
         ldx     #$11 ; arbitrary length
-L9010:  lda     pack_header,x
-        cmp     $0801,x
+L9010:  lda     __pack_header_LOAD__,x
+        cmp     __pack_header_RUN__,x
         bne     L900B ; do nothing if not packed
         dex
         bpl     L9010
         ldx     #alt_pack_run_end - alt_pack_run - 1
 L901D:  lda     alt_pack_run,x
-        sta     pack_run - pack_header + $0801,x
+        sta     pack_run,x
         dex
         bpl     L901D
-        lda     #>(pack_entry - pack_header + $0801 - 1)
+        lda     #>(pack_entry - 1)
         pha
-        lda     #<(pack_entry - pack_header + $0801 - 1)
+        lda     #<(pack_entry - 1)
         pha
         jmp     _disable_rom
 
@@ -2201,8 +2204,8 @@ L9067:  lda     L90C6,x
         lda     #$34
         jsr     L0100
         ldy     #$00
-L907A:  lda     pack_header,y
-        sta     $0801,y
+L907A:  lda     __pack_header_LOAD__,y
+        sta     __pack_header_RUN__,y
         iny
         cpy     #pack_header_end - pack_header
         bne     L907A
@@ -2340,6 +2343,8 @@ L9179:  lda     #$37
 L9188:  ldx     $AD
         rts
 
+.segment "pack_header"
+
 pack_header: ; $918B
         .word   $080B ; BASIC link pointer
         .word   1987 ; line number
@@ -2422,6 +2427,8 @@ L9218:  dey
         inc     $0156
         bne     L9218
 pack_header_end:
+
+.segment "part1b"
 
 L9229: ; <- jmp from $DE60
         lda     $CC
