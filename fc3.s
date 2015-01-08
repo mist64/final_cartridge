@@ -5174,7 +5174,7 @@ drive_code2:
         txa
         adc     #$06
         sta     $32
-LA510:  jsr     $0564 ; XXX LA564
+LA510:  jsr     LA564
         beq     LA522
         sta     $81
         tax
@@ -5190,7 +5190,7 @@ LA522:  lda     $02FC
         lda     #$72
         jmp     $F969
 
-LA531:  jsr     $F11E ; drive ROM
+LA531:  jsr     $F11E ; find and allocate free block
 LA534:  ldy     #$00
         sty     $94
         lda     $80
@@ -5213,7 +5213,7 @@ LA542:  jsr     $0564
         cmp     $06,x
         beq     LA510
         sta     $06,x
-        jmp     $F418 ; drive ROM
+        jmp     $F418 ; set OK code
 
 LA564:
         lda     #$00
@@ -5248,26 +5248,26 @@ L058A:
         sta     $1800
         lda     $C0
         rts
-
-        nop
+L0589_end:
+        nop ; filler, gets overwritten when L0589 gets copied down by 1 byte
 
 L059C:
         lda     #$EA
         sta     L0572
-        sta     L0572 + 1
-        ldx     #$11
+        sta     L0572 + 1 ; insert 1 cycle into code
+        ldx     #L0589_end - L0589 - 1
 LA5A6:  lda     L0589,x
-        sta     L058A,x
+        sta     L058A,x ; insert 3 cycles into code
         dex
         bpl     LA5A6
 L05AF:
         ldx     #$64
-LA5B1:  lda     $F574,x
-        sta     $014F,x
+LA5B1:  lda     $F575 - 1,x; copy "write data block to disk" to RAM
+        sta     $0150 - 1,x
         dex
         bne     LA5B1
         lda     #$60
-        sta     $01B4
+        sta     $01B4 ; add RTS at the end, just after GCR decoding
         inx
         stx     $82
         stx     $83
@@ -5293,21 +5293,23 @@ LA5E5:  lda     $02
         bcc     LA5DB
         cmp     #$72
         bne     LA5F4
-        jmp     $C1C8 ; drive ROM
+        jmp     $C1C8 ; set error message
 
 LA5F4:  ldx     L0612 + 1
         jmp     $E60A
 
-LA5FA:  ldx     #$09
-LA5FC:  lda     $0607,x
-        sta     $014F,x
+LA5FA:  ldx     #L0608_end - L0608
+LA5FC:  lda     L0608 - 1,x
+        sta     $0150 - 1,x
         dex
         bne     LA5FC
         jmp     $0150
 
-        jsr     $DBA5
-        jsr     $EEF4
-        jmp     $D227
+L0608:
+        jsr     $DBA5 ; write directory entry
+        jsr     $EEF4 ; write BAM
+        jmp     $D227 ; close channel
+L0608_end:
 
 L0611:
         brk
