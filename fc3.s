@@ -5247,6 +5247,8 @@ LA56B:  bit     $1800
         rts
 
         nop
+
+L059C:
         lda     #$EA
         sta     $0572
         sta     $0573
@@ -5358,9 +5360,9 @@ LA648:
         lda     $0330
         cmp     #<_new_load
         beq     LA66A
-        lda     #<$059C
+        lda     #<L059C
         jsr     IECOUT
-        lda     #>$059C
+        lda     #>L059C
         bne     LA671
 
 LA66A:  lda     #<$05AF
