@@ -5900,10 +5900,16 @@ basic_keywords:
         .byte   "THE", 'N' + $80
         .byte   "NO", 'T' + $80
         .byte   "STE", 'P' + $80
-        .byte   $AB,$AD,$AA,$AF,$DE
+        .byte   '+' + $80
+        .byte   '-' + $80
+        .byte   '*' + $80
+        .byte   '/' + $80
+        .byte   '^' + $80
         .byte   "AN", 'D' + $80
         .byte   "O", 'R' + $80
-        .byte   $BE,$BD,$BC
+        .byte   '>' + $80
+        .byte   '=' + $80
+        .byte   '<' + $80
         .byte   "SG", 'N' + $80
         .byte   "IN", 'T' + $80
         .byte   "AB", 'S' + $80
