@@ -1718,9 +1718,9 @@ L8C11:  cmp     #$E9
         stx     $22
         ldx     #$86
         bne     L8C31
-L8C2B:  ldx     #$00
+L8C2B:  ldx     #<basic_keywords
         stx     $22
-        ldx     #$AA
+        ldx     #>basic_keywords
 L8C31:  stx     $23
         tax
         sty     $49
@@ -5857,143 +5857,78 @@ LA9F6:  dex
         sei
         rts
 
-; ??? unreferenced?
-        .byte   "EN"
-        .byte   $C4
-        .byte   "FO"
-        .byte   $D2
-        .byte   "NEX"
-        .byte   $D4
-        .byte   "DAT"
-        .byte   $C1
-        .byte   "INPUT"
-        .byte   $A3
-        .byte   "INPU"
-        .byte   $D4
-        .byte   "DI"
-        .byte   $CD
-        .byte   "REA"
-        .byte   $C4
-        .byte   "LE"
-        .byte   $D4
-        .byte   "GOT"
-        .byte   $CF
-        .byte   "RU"
-        .byte   $CE
-        .byte   "I"
-        .byte   $C6
-        .byte   "RESTOR"
-        .byte   $C5
-        .byte   "GOSU"
-        .byte   $C2
-        .byte   "RETUR"
-        .byte   $CE
-        .byte   "RE"
-        .byte   $CD
-        .byte   "STO"
-        .byte   $D0
-        .byte   "O"
-        .byte   $CE
-        .byte   "WAI"
-        .byte   $D4
-        .byte   "LOA"
-        .byte   $C4
-        .byte   "SAV"
-        .byte   $C5
-        .byte   "VERIF"
-        .byte   $D9
-        .byte   "DE"
-        .byte   $C6
-        .byte   "POK"
-        .byte   $C5
-        .byte   "PRINT"
-        .byte   $A3
-        .byte   "PRIN"
-        .byte   $D4
-        .byte   "CON"
-        .byte   $D4
-        .byte   "LIS"
-        .byte   $D4
-        .byte   "CL"
-        .byte   $D2
-        .byte   "CM"
-        .byte   $C4
-        .byte   "SY"
-        .byte   $D3
-        .byte   "OPE"
-        .byte   $CE
-        .byte   "CLOS"
-        .byte   $C5
-        .byte   "GE"
-        .byte   $D4
-        .byte   "NE"
-        .byte   $D7
-        .byte   "TAB"
-        .byte   $A8
-        .byte   "T"
-        .byte   $CF
-        .byte   "F"
-        .byte   $CE
-        .byte   "SPC"
-        .byte   $A8
-        .byte   "THE"
-        .byte   $CE
-        .byte   "NO"
-        .byte   $D4
-        .byte   "STE"
-        .byte   $D0,$AB,$AD,$AA,$AF,$DE
-        .byte   "AN"
-        .byte   $C4
-        .byte   "O"
-        .byte   $D2,$BE,$BD,$BC
-        .byte   "SG"
-        .byte   $CE
-        .byte   "IN"
-        .byte   $D4
-        .byte   "AB"
-        .byte   $D3
-        .byte   "US"
-        .byte   $D2
-        .byte   "FR"
-        .byte   $C5
-        .byte   "PO"
-        .byte   $D3
-        .byte   "SQ"
-        .byte   $D2
-        .byte   "RN"
-        .byte   $C4
-        .byte   "LO"
-        .byte   $C7
-        .byte   "EX"
-        .byte   $D0
-        .byte   "CO"
-        .byte   $D3
-        .byte   "SI"
-        .byte   $CE
-        .byte   "TA"
-        .byte   $CE
-        .byte   "AT"
-        .byte   $CE
-        .byte   "PEE"
-        .byte   $CB
-        .byte   "LE"
-        .byte   $CE
-        .byte   "STR"
-        .byte   $A4
-        .byte   "VA"
-        .byte   $CC
-        .byte   "AS"
-        .byte   $C3
-        .byte   "CHR"
-        .byte   $A4
-        .byte   "LEFT"
-        .byte   $A4
-        .byte   "RIGHT"
-        .byte   $A4
-        .byte   "MID"
-        .byte   $A4
-        .byte   "G"
-        .byte   $CF,$00
+basic_keywords:
+        .byte   "EN", 'D' + $80
+        .byte   "FO", 'R' + $80
+        .byte   "NEX", 'T' + $80
+        .byte   "DAT", 'A' + $80
+        .byte   "INPUT", '#' + $80
+        .byte   "INPU", 'T' + $80
+        .byte   "DI", 'M' + $80
+        .byte   "REA", 'D' + $80
+        .byte   "LE", 'T' + $80
+        .byte   "GOT", 'O' + $80
+        .byte   "RU", 'N' + $80
+        .byte   "I", 'F' + $80
+        .byte   "RESTOR", 'E' + $80
+        .byte   "GOSU", 'B' + $80
+        .byte   "RETUR", 'N' + $80
+        .byte   "RE", 'M' + $80
+        .byte   "STO", 'P' + $80
+        .byte   "O", 'N' + $80
+        .byte   "WAI", 'T' + $80
+        .byte   "LOA", 'D' + $80
+        .byte   "SAV", 'E' + $80
+        .byte   "VERIF", 'Y' + $80
+        .byte   "DE", 'F' + $80
+        .byte   "POK", 'E' + $80
+        .byte   "PRINT", '#' + $80
+        .byte   "PRIN", 'T' + $80
+        .byte   "CON", 'T' + $80
+        .byte   "LIS", 'T' + $80
+        .byte   "CL", 'R' + $80
+        .byte   "CM", 'D' + $80
+        .byte   "SY", 'S' + $80
+        .byte   "OPE", 'N' + $80
+        .byte   "CLOS", 'E' + $80
+        .byte   "GE", 'T' + $80
+        .byte   "NE", 'W' + $80
+        .byte   "TAB", '(' + $80
+        .byte   "T", 'O' + $80
+        .byte   "F", 'N' + $80
+        .byte   "SPC", '(' + $80
+        .byte   "THE", 'N' + $80
+        .byte   "NO", 'T' + $80
+        .byte   "STE", 'P' + $80
+        .byte   $AB,$AD,$AA,$AF,$DE
+        .byte   "AN", 'D' + $80
+        .byte   "O", 'R' + $80
+        .byte   $BE,$BD,$BC
+        .byte   "SG", 'N' + $80
+        .byte   "IN", 'T' + $80
+        .byte   "AB", 'S' + $80
+        .byte   "US", 'R' + $80
+        .byte   "FR", 'E' + $80
+        .byte   "PO", 'S' + $80
+        .byte   "SQ", 'R' + $80
+        .byte   "RN", 'D' + $80
+        .byte   "LO", 'G' + $80
+        .byte   "EX", 'P' + $80
+        .byte   "CO", 'S' + $80
+        .byte   "SI", 'N' + $80
+        .byte   "TA", 'N' + $80
+        .byte   "AT", 'N' + $80
+        .byte   "PEE", 'K' + $80
+        .byte   "LE", 'N' + $80
+        .byte   "STR", '$' + $80
+        .byte   "VA", 'L' + $80
+        .byte   "AS", 'C' + $80
+        .byte   "CHR", '$' + $80
+        .byte   "LEFT", '$' + $80
+        .byte   "RIGHT", '$' + $80
+        .byte   "MID", '$' + $80
+        .byte   "G", 'O' + $80
+        .byte   0
 
 ; ----------------------------------------------------------------
 ; Monitor (~4750 bytes)
