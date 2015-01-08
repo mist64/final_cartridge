@@ -3339,46 +3339,49 @@ L984D:  bvc     L984D
 
 .segment "part2"
 
+; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
+
 L9855:  lda     #>($AF08 - 1)
         pha
-        lda     #<($AF08 - 1)
-L985A:  pha
+        lda     #<($AF08 - 1) ; SYNTAX ERROR
+disable_rom_jmp:
+        pha
         jmp     _disable_rom
 
-L985E:  lda     #>($B97E - 1)
+L985E:  lda     #>($B97E - 1) ; OVERFLOW ERROR
         pha
         lda     #<($B97E - 1)
-        bne     L985A ; always
+        bne     disable_rom_jmp ; always
 
-L9865:  lda     #>($A49F - 1)
+L9865:  lda     #>($A49F - 1) ; used to be $A4A2 in 1988-05
         pha
-        lda     #<($A49F - 1) ; used to be $A4A2 in 1988-05
-        bne     L985A ; always
+        lda     #<($A49F - 1) ; input line
+        bne     disable_rom_jmp ; always
 
         lda     #>($A7AE - 1)
         pha
-        lda     #<($A7AE - 1)
-        bne     L985A ; always
+        lda     #<($A7AE - 1) ; interpreter loop
+        bne     disable_rom_jmp ; always
 
 L9873:  lda     #>($A437 - 1)
         pha
-        lda     #<($A437 - 1)
-        bne     L985A
+        lda     #<($A437 - 1) ; ERROR
+        bne     disable_rom_jmp
 
 L987A:  lda     #>($A6C3 - 1)
         pha
-        lda     #<($A6C3 - 1)
-        bne     L985A
+        lda     #<($A6C3 - 1) ; LIST worker code
+        bne     disable_rom_jmp
 
-L9881:  lda     #>($E386 - 1)
+L9881:  lda     #>($E386 - 1) ; BASIC warm start
         pha
         lda     #<($E386 - 1)
-        bne     L985A
+        bne     disable_rom_jmp
 
 L9888:  lda     #>($A8F8 - 1)
         pha
-        lda     #<($A8F8 - 1)
-        bne     L985A
+        lda     #<($A8F8 - 1) ; DATA
+        bne     disable_rom_jmp
 
 L988F:  ldx     #>($A663 - 1)
         ldy     #<($A663 - 1) ; CLR
@@ -3389,38 +3392,39 @@ L988F:  ldx     #>($A663 - 1)
 
 L989A:  ldx     #>($E16F - 1)
         ldy     #<($E16F - 1) ; LOAD
-L989E:  lda     #>(_enable_rom - 1)
+jsr_with_rom_disabled:
+        lda     #>(_enable_rom - 1)
         pha
         lda     #<(_enable_rom - 1)
 L98A3:  pha
         txa ; push X/Y address
         pha
         tya
-        bne     L985A
+        bne     disable_rom_jmp
 
 L98A9:  ldx     #>($E1D4 - 1)
-        ldy     #<($E1D4 - 1)
-        bne     L989E
+        ldy     #<($E1D4 - 1) ; get args for LOAD/SAVE
+        bne     jsr_with_rom_disabled
 
 L98AF:  ldx     #>($E159 - 1)
-        ldy     #<($E159 - 1)
-L98B3:  bne     L989E
+        ldy     #<($E159 - 1) ; SAVE
+L98B3:  bne     jsr_with_rom_disabled
 
         ldx     #>($A579 - 1)
-        ldy     #<($A579 - 1)
-L98B9:  bne     L989E
+        ldy     #<($A579 - 1) ; tokenize
+L98B9:  bne     jsr_with_rom_disabled
 
 L98BB:  ldx     #>($A560 - 1)
-        ldy     #<($A560 - 1)
-        bne     L989E
+        ldy     #<($A560 - 1) ; line input
+        bne     jsr_with_rom_disabled
 
 L98C1:  ldx     #>($A3BF - 1)
-        ldy     #<($A3BF - 1)
-        bne     L989E
+        ldy     #<($A3BF - 1) ; BASIC memory management
+        bne     jsr_with_rom_disabled
 
 L98C7:  lda     #>($E175 - 1)
         pha
-        lda     #<($E175 - 1)
+        lda     #<($E175 - 1) ; LOAD worker
         pha
         lda     #$00
         jmp     _disable_rom
@@ -3742,10 +3746,12 @@ L9AF0:  jsr     UNTALK
         jsr     LA691
         lda     #$06
         sta     $93
-        lda     #$FA
-        ldy     #$9B
-        ldx     #$04
-        jsr     LA6D5
+.import __drive_code_LOAD__
+.import __drive_code_RUN__
+        lda     #<__drive_code_LOAD__
+        ldy     #>__drive_code_LOAD__
+        ldx     #$04 ; $0400
+        jsr     transfer_code_to_drive
         lda     #$9A
         jsr     IECOUT
         lda     #$05
@@ -3879,6 +3885,7 @@ L9BF7:  jmp     L9B3D
 
 .segment "drive_code"
 ; drive code
+drive_code:
         lda     $43
         sta     $C1
 L9BFE:  jsr     L0582
@@ -5157,7 +5164,7 @@ LA4F0:  rts
 ; ----------------------------------------------------------------
 .segment "drive_code2"
 
-LA500:
+drive_code2:
         lda     $0612
         tax
         lsr     a
@@ -5342,20 +5349,23 @@ LA648:
         bne     LA647
         lda     #$07
         sta     $93
-        lda     #<LA500
-        ldy     #>LA500
+.import __drive_code2_LOAD__
+.import __drive_code2_RUN__
+        lda     #<__drive_code2_LOAD__
+        ldy     #>__drive_code2_LOAD__
         ldx     #$05
-        jsr     LA6D5
+        jsr     transfer_code_to_drive
         lda     $0330
         cmp     #<_new_load
         beq     LA66A
-        lda     #$9C
+        lda     #<$059C
         jsr     IECOUT
-        lda     #$05
+        lda     #>$059C
         bne     LA671
-LA66A:  lda     #$AF
+
+LA66A:  lda     #<$05AF
         jsr     IECOUT
-        lda     #$05
+        lda     #>$05AF
 LA671:  jsr     IECOUT
         jsr     UNLSTN
         sei
@@ -5404,11 +5414,12 @@ LA6C8:  jsr     IECIN
         cpy     #'0' ; = no error
         rts
 
-LA6D5:  sta     $C3
+transfer_code_to_drive:
+        sta     $C3
         sty     $C4
         ldy     #$00
-LA6DB:  lda     #$57
-        jsr     LA707
+LA6DB:  lda     #'W'
+        jsr     LA707 ; send "M-W"
         tya
         jsr     IECOUT
         txa
@@ -5428,13 +5439,13 @@ LA6ED:  lda     ($C3),y
         inx
         cpx     $93
         bcc     LA6DB
-        lda     #$45
+        lda     #'E' ; send "M-E"
 LA707:  pha
         lda     #$6F
         jsr     LA612
-        lda     #$4D
+        lda     #'M'
         jsr     IECOUT
-        lda     #$2D
+        lda     #'-'
         jsr     IECOUT
         pla
         jmp     IECOUT
