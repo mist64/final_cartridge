@@ -5174,8 +5174,8 @@ drive_code2:
         txa
         adc     #$06
         sta     $32
-LA510:  jsr     LA564
-        beq     LA522
+LA510:  jsr     receive_byte
+        beq     :+
         sta     $81
         tax
         inx
@@ -5183,14 +5183,15 @@ LA510:  jsr     LA564
         lda     #$00
         sta     $80
         beq     LA534
-LA522:  lda     $02FC
-        bne     LA531
-        lda     $02FA
-        bne     LA531
-        lda     #$72
-        jmp     $F969
 
-LA531:  jsr     $F11E ; find and allocate free block
+:       lda     $02FC
+        bne     :+
+        lda     $02FA ; XXX ORing the values together is shorter
+        bne     :+
+        lda     #$72
+        jmp     $F969 ; DISK FULL
+
+:       jsr     $F11E ; find and allocate free block
 LA534:  ldy     #$00
         sty     $94
         lda     $80
@@ -5215,14 +5216,14 @@ LA542:  jsr     $0564
         sta     $06,x
         jmp     $F418 ; set OK code
 
-LA564:
+receive_byte:
         lda     #$00
         sta     $1800
         lda     #$04
-LA56B:  bit     $1800
-        bne     LA56B
+:       bit     $1800
+        bne     :-
         sta     $C0
-L0572:
+drive_code2_timing_selfmod1:
         sta     $C0
         lda     $1800
         asl     a
@@ -5233,7 +5234,7 @@ L0572:
         asl     a
         asl     a
         asl     a
-        sta     a:$C0
+        sta     a:$C0 ; 16 bit address for timing!
         lda     $1800
         asl     a
         nop
@@ -5253,8 +5254,8 @@ L0589_end:
 
 L059C:
         lda     #$EA
-        sta     L0572
-        sta     L0572 + 1 ; insert 1 cycle into code
+        sta     drive_code2_timing_selfmod1
+        sta     drive_code2_timing_selfmod1 + 1 ; insert 1 cycle into code
         ldx     #L0589_end - L0589 - 1
 LA5A6:  lda     L0589,x
         sta     L058A,x ; insert 3 cycles into code
