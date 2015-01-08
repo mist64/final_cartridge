@@ -5165,7 +5165,7 @@ LA4F0:  rts
 .segment "drive_code2"
 
 drive_code2:
-        lda     $0612
+        lda     L0612
         tax
         lsr     a
         adc     #$03
@@ -5179,7 +5179,7 @@ LA510:  jsr     $0564 ; XXX LA564
         sta     $81
         tax
         inx
-        stx     $0611
+        stx     L0611
         lda     #$00
         sta     $80
         beq     LA534
@@ -5202,11 +5202,11 @@ LA534:  ldy     #$00
 LA542:  jsr     $0564
         sta     ($30),y
         iny
-        cpy     $0611
+        cpy     L0611
         bne     LA542
         jsr     $0150
         inc     $B6
-        ldx     $0612
+        ldx     L0612
         lda     $81
         sta     $07,x
         lda     $80
@@ -5222,6 +5222,7 @@ LA564:
 LA56B:  bit     $1800
         bne     LA56B
         sta     $C0
+L0572:
         sta     $C0
         lda     $1800
         asl     a
@@ -5236,7 +5237,9 @@ LA56B:  bit     $1800
         lda     $1800
         asl     a
         nop
+L0589:
         nop
+L058A:
         ora     $1800
         and     #$0F
         ora     $C0
@@ -5250,13 +5253,14 @@ LA56B:  bit     $1800
 
 L059C:
         lda     #$EA
-        sta     $0572
-        sta     $0573
+        sta     L0572
+        sta     L0572 + 1
         ldx     #$11
-LA5A6:  lda     $0589,x
-        sta     $058A,x
+LA5A6:  lda     L0589,x
+        sta     L058A,x
         dex
         bpl     LA5A6
+L05AF:
         ldx     #$64
 LA5B1:  lda     $F574,x
         sta     $014F,x
@@ -5272,9 +5276,9 @@ LA5B1:  lda     $F574,x
         stx     $1800
 LA5CB:  inx
         bne     LA5CB
-        sta     $0613
+        sta     L0612 + 1
         asl     a
-        sta     $0612
+        sta     L0612
         tax
         lda     #$40
         sta     $02F9
@@ -5291,7 +5295,7 @@ LA5E5:  lda     $02
         bne     LA5F4
         jmp     $C1C8 ; drive ROM
 
-LA5F4:  ldx     $0613
+LA5F4:  ldx     L0612 + 1
         jmp     $E60A
 
 LA5FA:  ldx     #$09
@@ -5305,7 +5309,9 @@ LA5FC:  lda     $0607,x
         jsr     $EEF4
         jmp     $D227
 
+L0611:
         brk
+L0612:
 
 ; ----------------------------------------------------------------
 ; C64 IEC code
@@ -5359,15 +5365,15 @@ LA648:
         jsr     transfer_code_to_drive
         lda     $0330
         cmp     #<_new_load
-        beq     LA66A
+        beq     LA66A ; speeder enabled
         lda     #<L059C
         jsr     IECOUT
         lda     #>L059C
         bne     LA671
 
-LA66A:  lda     #<$05AF
+LA66A:  lda     #<L05AF
         jsr     IECOUT
-        lda     #>$05AF
+        lda     #>L05AF
 LA671:  jsr     IECOUT
         jsr     UNLSTN
         sei
