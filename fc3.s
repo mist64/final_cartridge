@@ -977,34 +977,38 @@ L8693:  .word   OFF-1
 ; "MREAD" Command - read 192 bytes from RAM into buffer
 ; ----------------------------------------------------------------
 MREAD:  jsr     _get_int
-        jsr     L86EA
-        jmp     L0110
+        jsr     install_memcpy_code
+        jmp     $0110
 
 ; ----------------------------------------------------------------
 ; "MWRITE" Command - write 192 bytes from buffer into RAM
 ; ----------------------------------------------------------------
 MWRITE: jsr     _get_int
-        jsr     L86EA
-        lda     #$B2
-        sta     $0116
+        jsr     install_memcpy_code
+        lda     #$B2 ; switch source and dest
+        sta     memcpy_selfmod1 - memcpy_code_at_0110 + 1 + $0110
         lda     #$14
-        sta     $0118
+        sta     memcpy_selfmod2 - memcpy_code_at_0110 + 1 + $0110
         sei
-        jmp     L0110
+        jmp     $0110
 
-L86EA:  ldy     #$18
-L86EC:  lda     L86F9,y
-        sta     L0110,y
+install_memcpy_code:
+        ldy     #memcpy_code_at_0110_end - memcpy_code_at_0110 - 1 + 6 ; XXX
+L86EC:  lda     memcpy_code_at_0110,y
+        sta     $0110,y
         dey
         bpl     L86EC
         ldy     #$C1
         sei
         rts
 
-L86F9:  lda     #$34
+memcpy_code_at_0110:
+        lda     #$34
         sta     $01
 L86FD:  dey
+memcpy_selfmod1:
         lda     ($14),y
+memcpy_selfmod2:
         sta     ($B2),y
         cpy     #$00
         bne     L86FD
@@ -1012,6 +1016,7 @@ L86FD:  dey
         sta     $01
         cli
         rts
+memcpy_code_at_0110_end:
 
 ; ----------------------------------------------------------------
 ; "DEL" Command - delete BASIC lines
@@ -1581,6 +1586,9 @@ L8B35:  lda     #$04
 
 L8B3A:  jmp     L9855
 
+; ----------------------------------------------------------------
+; "PLIST" Command - send BASIC listing to printer
+; ----------------------------------------------------------------
 PLIST:  jsr     L8AF0
         bcs     L8B6D
         lda     $2B
@@ -1608,6 +1616,9 @@ L8B6D:  lda     #$03
         sta     $9A
         jmp     L819A
 
+; ----------------------------------------------------------------
+; "PDIR" Command - send disk directoy to printer
+; ----------------------------------------------------------------
 PDIR:   jsr     L8AF0
         bcs     L8B6D
 L8B79:  jsr     UNLSTN
@@ -2510,6 +2521,8 @@ stack_selfmod2:
 stack_code_end:
 pack_header_end:
 
+; ----------------------------------------------------------------
+
 .segment "part1b"
 
 kbd_handler:
@@ -2522,29 +2535,29 @@ kbd_handler:
         jsr     L9460
         beq     L927C
 L923A:  ldx     $028D
-        cpx     #$04
+        cpx     #$04 ; CTRL key down
         beq     L9247
-        cpx     #$02
-        bcc     L9282
-        bcs     L927C ; always
+        cpx     #$02 ; CBM key down?
+        bcc     L9282 ; SHIFT or nothing
+        bcs     L927C ; CBM
 
-L9247:  cmp     #$13
+L9247:  cmp     #$13 ; CTRL + HOME: put cursor at bottom left
         bne     L925D
         jsr     L93B4
         ldy     #$00
         sty     $D3
-        ldy     #$18
+        ldy     #$18 ; 25
         jsr     $E56A ; set cursor line
         jsr     L9460
         jmp     L92C5
 
-L925D:  cmp     #$14
+L925D:  cmp     #$14 ; CTRL + DEL: delete to end of line
         bne     L926A
         jsr     L93B4
         jsr     L9469
         jmp     L92C5
 
-L926A:  cmp     #$0D
+L926A:  cmp     #$0D ; CTRL + CR: print screen
         bne     L927C
         jsr     L93B4
         inc     $02A7
@@ -2556,7 +2569,7 @@ L927C:  jmp     _evaluate_modifier
 
 L927F:  jmp     _disable_rom
 
-L9282:  cmp     #$11
+L9282:  cmp     #$11 ; DOWN
         beq     L92DD
         pha
         lda     #$00
