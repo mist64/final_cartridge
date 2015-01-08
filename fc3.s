@@ -1685,10 +1685,10 @@ L8C68:  jsr     L8C92
         ldx     #$EB
         bne     L8C78
 L8C71:  jsr     L8C89
-        lda     #$55
-        ldx     #$DE
+        lda     #<_kbd_handler
+        ldx     #>_kbd_handler
 L8C78:  sei
-        sta     $028F
+        sta     $028F ; set keyboard decode pointer
         stx     $0290
         lda     #$00
         sta     $02A7
@@ -2437,9 +2437,9 @@ pack_header_end:
 
 .segment "part1b"
 
-L9229: ; <- jmp from $DE60
+kbd_handler:
         lda     $CC
-        bne     L927C
+        bne     L927C ; do not flash cursor
         ldy     $CB
         lda     ($F5),y
         cmp     #$03
@@ -4083,6 +4083,7 @@ _new_expression: ; $DE4F
         jsr     _enable_rom
         jmp     new_expression
 
+_kbd_handler:
         lda     $02A7
         beq     LDE5D
         jmp     $EB42 ; LDA #$7F : STA $DC00 : RTS
@@ -4261,16 +4262,17 @@ _print_banner_load_and_run: ; $DF74
         jsr     _enable_rom
         jmp     load_and_run_program
 
-LDF80:  cmp     #$94
-        bne     LDF8A
+LDF80:  cmp     #$94 ; contents of $A000 in BASIC ROM
+        bne     LDF8A ; BASIC ROM not visible
         jsr     _enable_rom
-        jmp     L9229
+        jmp     kbd_handler
 
-LDF8A:  jmp     $EB48 ; evaluate SHIFT/CTRL/C=
+LDF8A:  jmp     $EB48 ; default kdb vector
 
 _new_tokenize: ; $DF8D
         jsr     _enable_rom
-        .byte   $20,$53,$82,$4C,$0F,$DE,$FF,$FF
+        jsr     L8253
+        jmp     _disable_rom
 
 ;padding
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
@@ -4278,6 +4280,7 @@ _new_tokenize: ; $DF8D
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
         .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+        .byte   $FF,$FF
 
 ; calls into banks 0+1
 _new_ckout: ; $DFC0
