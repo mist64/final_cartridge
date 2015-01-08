@@ -2346,9 +2346,11 @@ L9188:  ldx     $AD
 .segment "pack_header"
 
 pack_header: ; $918B
-        .word   $080B ; BASIC link pointer
+        .word   pack_link ; BASIC link pointer
         .word   1987 ; line number
-        .byte   $9E, "2061", 0, 0, 0
+        .byte   $9E, "2061", 0
+pack_link:
+        .word 0
 ; decompression
 pack_entry:
         sei
@@ -2359,24 +2361,26 @@ pack_entry:
         lda     #$00
         sta     $AF
 L91A4:  dec     $2E
-        dec     $0825
+        dec     pack_selfmod + 2
         ldy     #$00
 L91AB:  lda     ($2D),y
-        sta     $00,y
+pack_selfmod:
+        sta     $0000,y
         dey
         bne     L91AB
         lda     $2E
         cmp     #$07
         bne     L91A4
-        ldx     #$61
+        ldx     #pack_header_end - L083D - 1
         txs
-L91BC:  lda     $083D,x
+L91BC:  lda     L083D,x
         pha
         dex
         bpl     L91BC
         txs
         jmp     L0100
 
+L083D:
         ldx     #$00
 L91C9:  lda     ($AE),y
 L91CB:  inc     $AE
