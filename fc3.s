@@ -3445,6 +3445,8 @@ L98C7:  lda     #$E1
         sta     $B9
         .byte $20
 
+; ----------------------------------------------------------------
+
 new_load: ; $9900
 	jmp new_load2
 new_save: ; $9903
@@ -3491,8 +3493,9 @@ L991E:  lda     #$07
 
 L994B:  .byte   $07,$87,$27,$A7,$47,$C7,$67,$E7
         .byte   $17,$97,$37,$B7,$57,$D7,$77,$F7
+
 L995B:  lda     $0330
-        cmp     #$20
+        cmp     #<_new_load
         beq     L998B
 L9962:  bit     $DD00
         bvs     L9962
@@ -3663,16 +3666,14 @@ L9A6A:  jmp     $F5ED ; default SAVE vector
 
 L9A6D:  jmp     $A7C6 ; interpreter loop
 
-; ----------------------------------------------------------------
-
 new_save2:
         lda     $BA
         cmp     #$07
-        beq     L9A6D
+        beq     L9A6D ; tape turbo
         cmp     #$08
-        bcc     L9A6A
+        bcc     L9A6A ; not a drive
         cmp     #$0A
-        bcs     L9A6A
+        bcs     L9A6A ; not a drive (XXX why only support drives 8 and 9?)
         ldy     $B7
         beq     L9A6A
         lda     #$61
@@ -4123,12 +4124,6 @@ L9DBB:  inx
 ; ----------------------------------------------------------------
 ; I/O Area ROM
 ; ----------------------------------------------------------------
-
-; bank0hi symbols
-;new_ckout       := $A161
-;new_bsout       := $A19C
-;new_clall       := $A1C5
-;new_clrch       := $A1CB
 
 .segment        "romio"
 
@@ -5380,7 +5375,7 @@ LA648:
         ldx     #$05
         jsr     LA6D5
         lda     $0330
-        cmp     #$20
+        cmp     #<_new_load
         beq     LA66A
         lda     #$9C
         jsr     IECOUT
