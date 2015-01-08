@@ -1050,7 +1050,7 @@ L8737:  jmp     L9855
 RENUM:  jsr     L85F1
         jsr     L8512
         beq     L8749
-        cmp     #$2C
+        cmp     #','
         bne     L8737
         jsr     _CHRGET
 L8749:  jsr     L8531
@@ -2729,7 +2729,7 @@ L93B4:  lsr     $CF
         jsr     $EA18 ; put a character in the screen
 L93C0:  rts
 
-L93C1:  ldy     $ECF0,x
+L93C1:  ldy     $ECF0,x ; low bytes of screen line addresses
         sty     $7A
         and     #$03
         ora     $0288
@@ -2881,6 +2881,10 @@ reset_load_and_run:
         cli
         jsr     $E3BF ; init BASIC, print banner
         jmp     _print_banner_load_and_run
+
+; ----------------------------------------------------------------
+; Helper code called from Desktop
+; ----------------------------------------------------------------
 
 ; file name at $0200
 load_and_run_program:
@@ -3127,16 +3131,21 @@ print_character:
         jsr     BSOUT
         jmp     jmp_bank_from_stack
 
+; ----------------------------------------------------------------
+
+.import __fast_format_drive_LOAD__
+.import __fast_format_drive_RUN__
+
 fast_format2:
         lda     #$05
         sta     $93 ; times $20 bytes
-        lda     #<fast_format_drive_code
-        ldy     #>fast_format_drive_code
-        ldx     #$04 ; page 4
+        lda     #<__fast_format_drive_LOAD__
+        ldy     #>__fast_format_drive_LOAD__
+        ldx     #>__fast_format_drive_RUN__
         jsr     m_w_and_m_e
-        lda     #$03
+        lda     #<fast_format_drive_code_entry
         jsr     IECOUT
-        lda     #$04
+        lda     #>fast_format_drive_code_entry
         jmp     IECOUT
 
 init_read_disk_name:
@@ -3195,6 +3204,7 @@ L0630           := $0630
 fast_format_drive_code:
         jmp     L0463
 
+fast_format_drive_code_entry:
         jsr     $C1E5 ; drive ROM
         bne     L9768
         jmp     $C1F3 ; drive ROM
@@ -3334,37 +3344,45 @@ L985A:  pha
 L985E:  lda     #$B9
         pha
         lda     #$7D
-        bne     L985A
+        bne     L985A ; always
+
 L9865:  lda     #$A4
         pha
         lda     #$9E ; used to be "#$A1" in 1988-05
-        bne     L985A
+        bne     L985A ; always
+
         lda     #$A7
         pha
         lda     #$AD
-        bne     L985A
+        bne     L985A ; always
+
 L9873:  lda     #$A4
         pha
         lda     #$36
         bne     L985A
+
 L987A:  lda     #$A6
         pha
         lda     #$C2
         bne     L985A
+
 L9881:  lda     #$E3
         pha
         lda     #$85
         bne     L985A
+
 L9888:  lda     #$A8
         pha
         lda     #$F7
         bne     L985A
+
 L988F:  ldx     #$A6
         ldy     #$62
         lda     #$E3
         pha
         lda     #$85
         bne     L98A3
+
 L989A:  ldx     #$E1
         ldy     #$6E
 L989E:  lda     #$DE
@@ -3378,18 +3396,23 @@ L98A3:  pha
 L98A9:  ldx     #$E1
         ldy     #$D3
         bne     L989E
+
 L98AF:  ldx     #$E1
         ldy     #$58
 L98B3:  bne     L989E
+
         ldx     #$A5
         ldy     #$78
 L98B9:  bne     L989E
+
 L98BB:  ldx     #$A5
         ldy     #$5F
         bne     L989E
+
 L98C1:  ldx     #$A3
         ldy     #$BE
         bne     L989E
+
 L98C7:  lda     #$E1
         pha
         lda     #$74
@@ -3398,6 +3421,7 @@ L98C7:  lda     #$E1
         jmp     _disable_rom
 
         .byte   $DE,$84,$93
+
         tya
         ldy     $BA
         cpy     #$07
