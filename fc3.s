@@ -2371,16 +2371,16 @@ pack_selfmod:
         lda     $2E
         cmp     #$07
         bne     L91A4
-        ldx     #pack_header_end - L083D - 1
+        ldx     #stack_code_end - stack_code - 1
         txs
-L91BC:  lda     L083D,x
+L91BC:  lda     stack_code,x; copy to $0100
         pha
         dex
         bpl     L91BC
         txs
         jmp     L0100
 
-L083D:
+stack_code: ; lives at $0100
         ldx     #$00
 L91C9:  lda     ($AE),y
 L91CB:  inc     $AE
@@ -2388,10 +2388,11 @@ L91CB:  inc     $AE
         inc     $AF
 L91D1:  cmp     #$00
         beq     L91FB
-L91D5:  sta     $1000,x
+stack_selfmod1:
+        sta     $1000,x
         inx
         bne     L91DE
-        inc     L0110
+        inc     stack_selfmod1 - stack_code + 2 + $0100
 L91DE:  lda     $AE
         ora     $AF
         bne     L91C9
@@ -2415,21 +2416,23 @@ L91FB:  lda     ($AE),y
 L9203:  cmp     #$00
         bne     L920B
         lda     #$00
-        bne     L91D5
+        bne     stack_selfmod1
 L920B:  sta     $FF
         lda     ($AE),y
-        ldy     L0110
-        sty     $0156
+        ldy     stack_selfmod1 - stack_code + 2 + $0100
+        sty     stack_selfmod2 - stack_code + 2 + $0100
         ldy     $FF
         iny
 L9218:  dey
         beq     L91CB
+stack_selfmod2:
         sta     $1000,x
         inx
         bne     L9218
         inc     L0110
         inc     $0156
         bne     L9218
+stack_code_end:
 pack_header_end:
 
 .segment "part1b"
