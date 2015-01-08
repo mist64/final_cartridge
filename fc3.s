@@ -1431,20 +1431,20 @@ DLOAD:
 DVERIFY:
         lda     #$01 ; verify flag
         sta     $0A
-        jsr     L8BA4
+        jsr     set_filename_or_colon_asterisk
         jmp     L989A
 
 ; ----------------------------------------------------------------
 ; "DSAVE" Command - save a program to disk
 ; ----------------------------------------------------------------
-DSAVE:  jsr     L8BA7
+DSAVE:  jsr     set_filename_or_empty
         jmp     L98AF
 
 ; ----------------------------------------------------------------
 ; "DAPPEND" Command - append a program from disk to program in RAM
 ; ----------------------------------------------------------------
 DAPPEND:
-        jsr     L8BA4
+        jsr     set_filename_or_colon_asterisk
         jmp     L8A35
 
 ; ----------------------------------------------------------------
@@ -1639,22 +1639,26 @@ L8B95:  jsr     L8453
         jsr     set_io_vectors_with_hidden_rom
         jmp     L8A53
 
-L8BA4:  lda     #$02
+set_filename_or_colon_asterisk:
+        lda     #a_colon_asterisk_end - a_colon_asterisk; ":*"
         .byte   $2C
-L8BA7:  lda     #$00
-        jsr     L8BAD
-        rts
+set_filename_or_empty:
+        lda     #$00 ; empty filename
+        jsr     set_filename
+        rts ; XXX omit jsr and rts
 
-L8BAD:  jsr     L8BBD
+set_filename:
+        jsr     set_colon_asterisk
         tax
         ldy     #$01
         jsr     SETLFS
         jsr     $E206 ; RTS if end of line
         jsr     _get_filename
-        rts
+        rts ; XXX jsr/rts -> jmp
 
-L8BBD:  ldx     #<a_star_asterisk
-        ldy     #>a_star_asterisk
+set_colon_asterisk:
+        ldx     #<a_colon_asterisk
+        ldy     #>a_colon_asterisk
         jsr     SETNAM
 set_drive:
         lda     #$00
@@ -3335,87 +3339,88 @@ L984D:  bvc     L984D
 
 .segment "part2"
 
-L9855:  lda     #$AF
+L9855:  lda     #>($AF08 - 1)
         pha
-        lda     #$07
+        lda     #<($AF08 - 1)
 L985A:  pha
         jmp     _disable_rom
 
-L985E:  lda     #$B9
+L985E:  lda     #>($B97E - 1)
         pha
-        lda     #$7D
+        lda     #<($B97E - 1)
         bne     L985A ; always
 
-L9865:  lda     #$A4
+L9865:  lda     #>($A49F - 1)
         pha
-        lda     #$9E ; used to be "#$A1" in 1988-05
+        lda     #<($A49F - 1) ; used to be $A4A2 in 1988-05
         bne     L985A ; always
 
-        lda     #$A7
+        lda     #>($A7AE - 1)
         pha
-        lda     #$AD
+        lda     #<($A7AE - 1)
         bne     L985A ; always
 
-L9873:  lda     #$A4
+L9873:  lda     #>($A437 - 1)
         pha
-        lda     #$36
+        lda     #<($A437 - 1)
         bne     L985A
 
-L987A:  lda     #$A6
+L987A:  lda     #>($A6C3 - 1)
         pha
-        lda     #$C2
+        lda     #<($A6C3 - 1)
         bne     L985A
 
-L9881:  lda     #$E3
+L9881:  lda     #>($E386 - 1)
         pha
-        lda     #$85
+        lda     #<($E386 - 1)
         bne     L985A
 
-L9888:  lda     #$A8
+L9888:  lda     #>($A8F8 - 1)
         pha
-        lda     #$F7
+        lda     #<($A8F8 - 1)
         bne     L985A
 
-L988F:  ldx     #$A6
-        ldy     #$62
-        lda     #$E3
+L988F:  ldx     #>($A663 - 1)
+        ldy     #<($A663 - 1) ; CLR
+        lda     #>($E386 - 1)
         pha
-        lda     #$85
+        lda     #<($E386 - 1) ; BASIC warm start
         bne     L98A3
 
-L989A:  ldx     #$E1
-        ldy     #$6E
-L989E:  lda     #$DE
+L989A:  ldx     #>($E16F - 1)
+        ldy     #<($E16F - 1) ; LOAD
+L989E:  lda     #>(_enable_rom - 1)
         pha
-        lda     #$04
+        lda     #<(_enable_rom - 1)
 L98A3:  pha
-        txa
+        txa ; push X/Y address
         pha
         tya
         bne     L985A
-L98A9:  ldx     #$E1
-        ldy     #$D3
+
+L98A9:  ldx     #>($E1D4 - 1)
+        ldy     #<($E1D4 - 1)
         bne     L989E
 
-L98AF:  ldx     #$E1
-        ldy     #$58
+L98AF:  ldx     #>($E159 - 1)
+        ldy     #<($E159 - 1)
 L98B3:  bne     L989E
 
-        ldx     #$A5
-        ldy     #$78
+        ldx     #>($A579 - 1)
+        ldy     #<($A579 - 1)
 L98B9:  bne     L989E
 
-L98BB:  ldx     #$A5
-        ldy     #$5F
+L98BB:  ldx     #>($A560 - 1)
+        ldy     #<($A560 - 1)
         bne     L989E
 
-L98C1:  ldx     #$A3
-        ldy     #$BE
+L98C1:  ldx     #>($A3BF - 1)
+        ldy     #<($A3BF - 1)
         bne     L989E
 
-L98C7:  lda     #$E1
+L98C7:  lda     #>($E175 - 1)
         pha
-        lda     #$74
+        lda     #<($E175 - 1)
         pha
         lda     #$00
         jmp     _disable_rom
@@ -4409,10 +4414,12 @@ _new_clrch: ; $DFD5
 
 ; padding
         .byte   $FF,$FF,$FF,$FF,$FF
-LDFE0: ; ???
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
-; unused?
+LDFE0: ; XXX BUG ???
+        .byte   $FF,$FF,$FF ; ISC ($FFFF),X
+        .byte   $FF,$FF,$FF ; ISC ($FFFF),X
+        .byte   $FF,$FF     ; ISC ($78FF),X - consumes "SEI"
+
         sei
         lda     #$42 ; bank 2 (Desktop, Freezer/Print)
         sta     $DFFF
@@ -4423,14 +4430,17 @@ LDFE0: ; ???
         lda     #$41 ; bank 1 (Notepad, BASIC (Menu Bar))
         sta     $DFFF
 
-a_star_asterisk:
-        .byte   ':','*' ; ???
+a_colon_asterisk:
+        .byte   ':','*'
+a_colon_asterisk_end:
 
 ; ----------------------------------------------------------------
 ; I/O Area ROM End
 ; ----------------------------------------------------------------
 
 ; ----------------------------------------------------------------
+
+; This is at $A000
 
 .segment "part4"
 
@@ -7202,16 +7212,16 @@ LB40A:  bne     LB3F0
         jsr     set_io_vectors
         jmp     LB3A4
 
-LB42D:  lda     #$DE
+LB42D:  lda     #>(_enable_rom - 1)
         pha
-        lda     #$04
+        lda     #<(_enable_rom - 1)
         pha
         lda     #$00
         jmp     LOAD
 
-LB438:  lda     #$DE
+LB438:  lda     #>(_enable_rom - 1)
         pha
-        lda     #$04
+        lda     #<(_enable_rom - 1)
         pha
         lda     #$C1
         jmp     SAVE
