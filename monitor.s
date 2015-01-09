@@ -29,10 +29,10 @@ monitor: ; $AB00
         lda     #$70
         sta     cartridge_bank ; by default, hide cartridge
         ldx     #ram_code_end - ram_code - 1
-LAB1B:  lda     __monitor_ram_code_LOAD__,x
+:       lda     __monitor_ram_code_LOAD__,x
         sta     __monitor_ram_code_RUN__,x
         dex
-        bpl     LAB1B
+        bpl     :-
         brk ; <- nice!
 
 .segment "monitor_ram_code"
