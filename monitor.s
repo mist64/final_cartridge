@@ -2428,10 +2428,10 @@ LBC60:  sta     $C2
         sty     $C1
         inc     $C4
         tya
-        sbc     pow10lo,x
+        sbc     pow10lo2,x
         tay
         lda     $C2
-        sbc     pow10hi,x
+        sbc     pow10hi2,x
         bcs     LBC60
         lda     $C4
         cmp     $C3
@@ -2443,9 +2443,9 @@ LBC7D:  dex
         bpl     LBC58
         rts
 
-pow10lo:
+pow10lo2:
         .byte <1, <10, <100, <1000, <10000
-pow10hi:
+pow10hi2:
         .byte >1, >10, >100, >1000, >10000
 
 init_and_listen:

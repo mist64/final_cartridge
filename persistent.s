@@ -1,4 +1,5 @@
 .include "fc3.i"
+.include "desktop_helper.i"
 .include "speeder.i"
 
 CHRGET          := $0073
