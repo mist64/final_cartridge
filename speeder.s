@@ -4,6 +4,10 @@
 L0100           := $0100
 L0110           := $0110
 
+L059A := $059A
+
+CR := $0D
+
 .segment "part2b"
 
 .global new_load
@@ -60,7 +64,7 @@ L995B:  lda     $0330
         beq     L998B
 L9962:  bit     $DD00
         bvs     L9962
-        ldy     #$03
+        ldy     #3
         nop
         ldx     $01
 L996C:  lda     $DD00
@@ -86,7 +90,7 @@ L996C:  lda     $DD00
 
 L998B:  bit     $DD00
         bvs     L998B
-        ldy     #$03
+        ldy     #3
         nop
         ldx     $01
 L9995:  lda     $DD00
@@ -146,11 +150,11 @@ new_load2:
         sty     $93
         tya
         ldy     $BA
-        cpy     #$07
-        beq     L99B5
-        cpy     #$08
+        cpy     #7
+        beq     L99B5 ; tape turbo
+        cpy     #8
         bcc     L99C9
-        cpy     #$0A
+        cpy     #10
         bcs     L99C9
         tay
         lda     $B7
@@ -159,7 +163,7 @@ new_load2:
         cmp     #$24
         beq     L99C9
         ldx     $B9
-        cpx     #$02
+        cpx     #2
         beq     L99C9
         jsr     LA784
         lda     #$60
@@ -185,7 +189,7 @@ new_load2:
         sta     $AF
 L9A35:  jsr     print_loading
         lda     $AF
-        cmp     #$04
+        cmp     #4
         bcc     L99D6
         jmp     L9AF0
 
@@ -200,8 +204,9 @@ L9A41:
         lda     ($AC),y
         ldy     #$0F
         sty     $01
-        ldy     #$00
+        ldy     #0
         jmp     LA9BB
+L9A41_end:
 
 .segment "code_at_0110"
 
@@ -227,11 +232,11 @@ L9A6D:  jmp     $A7C6 ; interpreter loop
 
 new_save2:
         lda     $BA
-        cmp     #$07
+        cmp     #7
         beq     L9A6D ; tape turbo
-        cmp     #$08
+        cmp     #8
         bcc     L9A6A ; not a drive
-        cmp     #$0A
+        cmp     #10
         bcs     L9A6A ; not a drive (XXX why only support drives 8 and 9?)
         ldy     $B7
         beq     L9A6A
@@ -246,7 +251,7 @@ new_save2:
         jsr     $FB8E ; copy I/O start address to buffer address
         sec
         lda     $AC
-        sbc     #$02
+        sbc     #2
         sta     $AC
         bcs     L9AA3
         dec     $AD
@@ -294,17 +299,17 @@ L9AED:  jmp     L9906
 
 L9AF0:  jsr     UNTALK
         jsr     LA691
-        lda     #$06
+        lda     #6
         sta     $93
 .import __drive_code_LOAD__
 .import __drive_code_RUN__
         lda     #<__drive_code_LOAD__
         ldy     #>__drive_code_LOAD__
-        ldx     #$04 ; $0400
+        ldx     #>__drive_code_RUN__ ; $0400
         jsr     transfer_code_to_drive
-        lda     #$9A
+        lda     #<L059A
         jsr     IECOUT
-        lda     #$05
+        lda     #>L059A
         jsr     IECOUT
         jsr     UNLSTN
         sei
@@ -325,10 +330,10 @@ L9AF0:  jsr     UNTALK
         sta     $B9
         sec
         lda     $AE
-        sbc     #$02
+        sbc     #2
         sta     $90
         lda     $AF
-        sbc     #$00
+        sbc     #0
         sta     $A3
 L9B3D:  bit     $DD00
         bmi     L9B82
@@ -345,7 +350,7 @@ L9B3D:  bit     $DD00
         sta     $C1
         lda     $B9
         sta     $C2
-        lda     #$00
+        lda     #0
         sta     $A3
         sta     $94
         sta     $90
@@ -370,7 +375,7 @@ L9B82:  bvs     L9B3D
         sta     $DD00
 L9B89:  bit     $DD00
         bvc     L9B89
-        lda     #$00
+        lda     #0
         sta     $DD00
         jsr     L995B
         lda     #$FE
@@ -401,14 +406,14 @@ L9BB1:  stx     $94
         adc     $93
         sta     $AE
         lda     $94
-        adc     #$00
+        adc     #0
         sta     $AF
-L9BC8:  ldy     #$00
+L9BC8:  ldy     #0
         lda     $C3
         bne     L9BD7
         jsr     L995B
-        ldy     #$02
-        ldx     #$02
+        ldy     #2
+        ldx     #2
         bne     L9BE5
 L9BD7:  lda     $C1
         sta     ($93),y
@@ -418,7 +423,7 @@ L9BDC:  tya
         jsr     L995B
         pla
         tay
-        ldx     #$03
+        ldx     #3
 L9BE5:  cpy     $A5
         bcs     L9BED
         lda     $C1,x
@@ -444,7 +449,7 @@ L9C01:  bvc     L9C01
         lda     $1C01
         sta     $25,y
         iny
-        cpy     #$07
+        cpy     #7
         bne     L9C01
         jsr     $F556 ; drive ROM
 L9C12:  bvc     L9C12
@@ -452,11 +457,11 @@ L9C12:  bvc     L9C12
         lda     $1C01
         sta     ($30),y
         iny
-        cpy     #$05
+        cpy     #5
         bne     L9C12
         jsr     $F497 ; drive ROM
-        ldx     #$05
-        lda     #$00
+        ldx     #5
+        lda     #0
 L9C26:  eor     $15,x
         dex
         bne     L9C26
@@ -482,7 +487,7 @@ L9C32:  lda     $12,x
         sta     L0624,x
         dec     $C1
         bne     L9BFE
-        lda     #$01
+        lda     #1
         sta     $C3
         ldx     $09
 L9C5D:  lda     $C2
@@ -508,9 +513,9 @@ L9C84:  bvc     L9C84
         lda     $1C01
         sta     ($30),y
         iny
-        cpy     #$04
+        cpy     #4
         bne     L9C84
-        ldy     #$00
+        ldy     #0
         jsr     $F7E8 ; drive ROM
         ldx     $54
         cpx     $43
@@ -536,7 +541,7 @@ L9CB5:  bvc     L9CB5
         jsr     $F7E8 ; drive ROM
         lda     $53
         beq     L9CCC
-        lda     #$00
+        lda     #0
         sta     $54
 L9CCC:  sta     $34
         sta     $C1
@@ -553,7 +558,7 @@ L9CCC:  sta     $34
 L9CE8:  lda     $1800
         lsr     a
         bcc     L9CE8
-        ldy     #$00
+        ldy     #0
 L04F6:
         dec     $36
         sty     $1800
@@ -641,7 +646,7 @@ L0564:
         jmp     L04F6
 
 L0582:
-        ldx     #$03
+        ldx     #3
         stx     $31
 L9D80:  inx
         bne     L9D86
@@ -666,7 +671,7 @@ L9DA3:  lda     #$E0
         sta     $01
 L9DA7:  lda     $01
         bmi     L9DA7
-        cmp     #$02
+        cmp     #2
         bcs     L9DBB
         lda     $08
         bne     L9DA3
@@ -704,11 +709,11 @@ drive_code2:
         lda     L0612
         tax
         lsr     a
-        adc     #$03
+        adc     #3
         sta     $95
         sta     $31
         txa
-        adc     #$06
+        adc     #6
         sta     $32
 LA510:  jsr     receive_byte
         beq     :+
@@ -716,7 +721,7 @@ LA510:  jsr     receive_byte
         tax
         inx
         stx     L0611
-        lda     #$00
+        lda     #0
         sta     $80
         beq     LA534
 
@@ -728,7 +733,7 @@ LA510:  jsr     receive_byte
         jmp     $F969 ; DISK FULL
 
 :       jsr     $F11E ; find and allocate free block
-LA534:  ldy     #$00
+LA534:  ldy     #0
         sty     $94
         lda     $80
         sta     ($94),y
@@ -826,7 +831,7 @@ LA5DB:  lda     $06,x
         sta     $02
 LA5E5:  lda     $02
         bmi     LA5E5
-        cmp     #$02
+        cmp     #2
         bcc     LA5DB
         cmp     #$72
         bne     LA5F4
@@ -895,13 +900,13 @@ LA647:  rts
 LA648:
         jsr     LA6C1
         bne     LA647
-        lda     #$07
+        lda     #7
         sta     $93
 .import __drive_code2_LOAD__
 .import __drive_code2_RUN__
         lda     #<__drive_code2_LOAD__
         ldy     #>__drive_code2_LOAD__
-        ldx     #$05
+        ldx     #>__drive_code2_RUN__
         jsr     transfer_code_to_drive
         lda     $0330
         cmp     #<_new_load
@@ -929,10 +934,10 @@ LA671:  jsr     IECOUT
         jmp     LA9F6
 
 LA691:
-        ldy     #$00
+        ldy     #0
         .byte   $2C
 LA694:
-        ldy     #$08
+        ldy     #8
         bit     $9D
         bpl     LA6A7
         jsr     LA6A8
@@ -956,7 +961,7 @@ LA6C1:  jsr     LA61C
         jsr     IECIN ; first character, ASCII error code
         tay
 LA6C8:  jsr     IECIN
-        cmp     #$0D
+        cmp     #CR
         bne     LA6C8 ; read until CR
         jsr     UNTALK
         cpy     #'0' ; = no error
@@ -965,7 +970,7 @@ LA6C8:  jsr     IECIN
 transfer_code_to_drive:
         sta     $C3
         sty     $C4
-        ldy     #$00
+        ldy     #0
 LA6DB:  lda     #'W'
         jsr     LA707 ; send "M-W"
         tya
@@ -999,7 +1004,7 @@ LA707:  pha
         jmp     IECOUT
 
 LA71B:
-        ldy     #$00
+        ldy     #0
         sty     $90
         lda     $BA
         jsr     $ED0C ; LISTEN
@@ -1045,7 +1050,7 @@ LA768:  lda     $9D
         bpl     LA7A7
         ldy     #$63
         jsr     LA7B7
-        ldy     #$05
+        ldy     #5
 LA773:  lda     ($B2),y
         jsr     $E716 ; KERNAL: output character to screen
         iny
@@ -1068,7 +1073,7 @@ LA784:
         jsr     LA7B7
 LA796:  ldy     $B7
         beq     LA7A7
-        ldy     #$00
+        ldy     #0
 LA79C:  jsr     _load_bb_indy
         jsr     $E716 ; KERNAL: output character to screen
         iny
@@ -1095,17 +1100,17 @@ LA7B7:  lda     $F0BD,y ; KERNAL strings
 LA7C4:  clc
         rts
 
-        ldx     #$0E
+        ldx     #L9A41_end - L9A41 - 1
 LA7C8:  lda     L9A41,x
         sta     L0110,x
         dex
         bpl     LA7C8
-        ldx     #$05
+        ldx     #5
         stx     $AB
         jsr     $FB8E ; copy I/O start address to buffer address
         jsr     LA75B
         bcc     LA7E2
-        lda     #$00
+        lda     #0
         jmp     _disable_rom
 
 LA7E2:  jsr     LA77E
@@ -1113,38 +1118,38 @@ LA7E2:  jsr     LA77E
         jsr     LA999
         lda     $B9
         clc
-        adc     #$01
+        adc     #1
         dex
         jsr     LA9BB
-        ldx     #$08
+        ldx     #8
 LA7F6:  lda     $AC,y
         jsr     LA9BB
-        ldx     #$06
+        ldx     #6
         iny
-        cpy     #$05
+        cpy     #5
         nop
         bne     LA7F6
-        ldy     #$00
-        ldx     #$02
+        ldy     #0
+        ldx     #2
 LA808:  jsr     _load_bb_indy
         cpy     $B7
         bcc     LA812
         lda     #$20
         dex
 LA812:  jsr     LA9BB
-        ldx     #$03
+        ldx     #3
         iny
         cpy     #$BB
         bne     LA808
-        lda     #$02
+        lda     #2
         sta     $AB
         jsr     LA999
         tya
         jsr     LA9BB
         sty     $D7
-        ldx     #$05
+        ldx     #5
 LA82B:  jsr     L0110
-        ldx     #$03 ; used to be "#$02" in 1988-05
+        ldx     #3 ; used to be "#2" in 1988-05
         inc     $AC
         bne     LA837
         inc     $AD
@@ -1156,7 +1161,7 @@ LA837:  lda     $AC
         bcc     LA82B
 LA841:  lda     $D7
         jsr     LA9BB
-        ldx     #$07
+        ldx     #7
         dey
         bne     LA841
         jsr     LA912
@@ -1164,9 +1169,9 @@ LA841:  lda     $D7
 
 LA851:  jsr     LA8C9
         lda     $AB
-        cmp     #$02
+        cmp     #2
         beq     LA862
-        cmp     #$01
+        cmp     #1
         bne     LA851
         lda     $B9
         beq     LA86C
@@ -1223,7 +1228,7 @@ LA8C2:  ldx     $AE
 
 LA8C9:  jsr     LA92B
         lda     $BD
-        cmp     #$00
+        cmp     #0 ; XXX not needed
         beq     LA8C9
         sta     $AB
 LA8D4:  jsr     LA96E
@@ -1259,7 +1264,7 @@ LA905:  lda     $C3
         jsr     LA96E
 LA912:  iny
 LA913:  sty     $C0
-        lda     #$00
+        lda     #0
         sta     $02A0
         lda     $D011
         ora     #$10
@@ -1277,25 +1282,25 @@ LA92B:  jsr     LA742
         pla
         pla
         pla
-        lda     #$00
+        lda     #0
         jmp     _disable_rom
 
 LA939:  jsr     LA9EA
         sty     $D7
         lda     #$07
         sta     $DD06
-        ldx     #$01
+        ldx     #1
 LA945:  jsr     LA97E
         rol     $BD
         lda     $BD
-        cmp     #$02
+        cmp     #2
         beq     LA954
         cmp     #$F2
         bne     LA945
-LA954:  ldy     #$09
+LA954:  ldy     #9
 LA956:  jsr     LA96E
         lda     $BD
-        cmp     #$02
+        cmp     #2
         beq     LA956
         cmp     #$F2
         beq     LA956
@@ -1306,7 +1311,7 @@ LA963:  cpy     $BD
         bne     LA963
         rts
 
-LA96E:  lda     #$08
+LA96E:  lda     #8
         sta     $A3
 LA972:  jsr     LA97E
         rol     $BD
@@ -1329,21 +1334,21 @@ LA980:  bit     $DC0D
         lsr     a
         rts
 
-        lda     #$04
+        lda     #4
         sta     $AB
-LA999:  ldy     #$00
-LA99B:  lda     #$02
+LA999:  ldy     #0
+LA99B:  lda     #2
         jsr     LA9BB
-        ldx     #$07
+        ldx     #7
         dey
-        cpy     #$09
+        cpy     #9
         bne     LA99B
-        ldx     #$05
+        ldx     #5
         dec     $AB
         bne     LA99B
 LA9AD:  tya
         jsr     LA9BB
-        ldx     #$07
+        ldx     #7
         dey
         bne     LA9AD
         dex
@@ -1354,7 +1359,7 @@ LA9AD:  tya
 LA9BB:  sta     $BD
         eor     $D7
         sta     $D7
-        lda     #$08
+        lda     #8
         sta     $A3
 LA9C5:  asl     $BD
         lda     $01
@@ -1362,9 +1367,9 @@ LA9C5:  asl     $BD
         jsr     LA9DD
         ldx     #$11
         nop
-        ora     #$08
+        ora     #8
         jsr     LA9DD
-        ldx     #$0E
+        ldx     #14
         dec     $A3
         bne     LA9C5
         rts
@@ -1372,13 +1377,13 @@ LA9C5:  asl     $BD
 LA9DD:  dex
         bne     LA9DD
         bcc     LA9E7
-        ldx     #$0B
+        ldx     #11
 LA9E4:  dex
         bne     LA9E4
 LA9E7:  sta     $01
         rts
 
-LA9EA:  ldy     #$00
+LA9EA:  ldy     #0
         sty     $C0
         lda     $D011
         and     #$EF
