@@ -4,9 +4,10 @@
 L0100           := $0100
 L0110           := $0110
 
-L059A := $059A
-
 CR := $0D
+
+SECADDR         := $B9 ; secondary address
+DEV             := $BA ; device number
 
 .segment "part2b"
 
@@ -162,16 +163,16 @@ new_load2:
         jsr     _load_bb_indy
         cmp     #$24
         beq     L99C9
-        ldx     $B9
+        ldx     SECADDR
         cpx     #2
         beq     L99C9
-        jsr     LA784
+        jsr     print_searching
         lda     #$60
-        sta     $B9
+        sta     SECADDR
         jsr     LA71B
         lda     $BA
         jsr     $ED09 ; TALK
-        lda     $B9
+        lda     SECADDR
         jsr     $EDC7 ; SECTLK
         jsr     $EE13 ; IECIN
         sta     $AE
@@ -198,7 +199,7 @@ L9A35:  jsr     print_loading
 .segment "code_at_0100"
 
 ; will be placed at $0100
-L9A41:
+load_ac_indy:
         lda     #$0C
         sta     $01
         lda     ($AC),y
@@ -206,7 +207,7 @@ L9A41:
         sty     $01
         ldy     #0
         jmp     LA9BB
-L9A41_end:
+load_ac_indy_end:
 
 .segment "code_at_0110"
 
@@ -241,7 +242,7 @@ new_save2:
         ldy     $B7
         beq     L9A6A
         lda     #$61
-        sta     $B9
+        sta     SECADDR
         jsr     LA71B
         jsr     LA77E
         jsr     LA648
@@ -315,19 +316,19 @@ L9AF0:  jsr     UNTALK
         sei
         lda     $D011
         tax
-        and     #$10
+        and     #$10 ; save screen enable bit
         sta     $95
         txa
         and     #$EF
         sta     $D011
         lda     $DD00
         and     #$07
-        ora     $95
+        ora     $95 ; save VIC bank (XXX #$03 would have been enough)
         sta     $95
         lda     $C1
         sta     $A4
         lda     $C2
-        sta     $B9
+        sta     SECADDR
         sec
         lda     $AE
         sbc     #2
@@ -341,21 +342,21 @@ L9B3D:  bit     $DD00
         php
         lda     $95
         and     #$07
-        sta     $DD00
+        sta     $DD00 ; restore VIC bank
         lda     $95
         and     #$10
-        ora     $D011
+        ora     $D011 ; restore screen enable bit
         sta     $D011
         lda     $A4
         sta     $C1
-        lda     $B9
+        lda     SECADDR
         sta     $C2
         lda     #0
         sta     $A3
         sta     $94
         sta     $90
         lda     #$60
-        sta     $B9
+        sta     SECADDR
         lda     #$E0
         jsr     LA612
         jsr     UNLSTN
@@ -660,6 +661,7 @@ L9D89:  bvc     L9D89
         bne     L9D80
         rts
 
+L059A:
         ldx     #$00
         stx     $1800
         stx     $C2
@@ -1008,7 +1010,7 @@ LA71B:
         sty     $90
         lda     $BA
         jsr     $ED0C ; LISTEN
-        lda     $B9
+        lda     SECADDR
         ora     #$F0
         jsr     $EDB9 ; SECLST
         lda     $90
@@ -1046,10 +1048,11 @@ LA764:  clc
 LA766:  sec
         rts
 
-LA768:  lda     $9D
+print_found:
+        lda     $9D
         bpl     LA7A7
-        ldy     #$63
-        jsr     LA7B7
+        ldy     #$63 ; "FOUND"
+        jsr     print_kernal_string
         ldy     #5
 LA773:  lda     ($B2),y
         jsr     $E716 ; KERNAL: output character to screen
@@ -1062,15 +1065,15 @@ LA77E:  jsr     LA7B1
         bmi     LA796
         rts
 
-LA784:
+print_searching:
         lda     $9D
         bpl     LA7A7
-        ldy     #$0C
-        jsr     LA7B7
+        ldy     #$0C ; "SEARCHING"
+        jsr     print_kernal_string
         lda     $B7
         beq     LA7A7
-        ldy     #$17
-        jsr     LA7B7
+        ldy     #$17 ; "FOR"
+        jsr     print_kernal_string
 LA796:  ldy     $B7
         beq     LA7A7
         ldy     #0
@@ -1090,53 +1093,59 @@ print_loading:
 LA7B1:  ldy     #$51 ; "SAVING"
 LA7B3:  bit     $9D
         bpl     LA7C4
-LA7B7:  lda     $F0BD,y ; KERNAL strings
+print_kernal_string:
+        lda     $F0BD,y ; KERNAL strings
         php
         and     #$7F
         jsr     $E716 ; KERNAL: output character to screen
         iny
         plp
-        bpl     LA7B7 ; until MSB set
+        bpl     print_kernal_string ; until MSB set
 LA7C4:  clc
         rts
 
-        ldx     #L9A41_end - L9A41 - 1
-LA7C8:  lda     L9A41,x
+; ----------------------------------------------------------------
+; tape related
+
+.segment "tape"
+
+; ??? unused?
+        ldx     #load_ac_indy_end - load_ac_indy - 1
+:       lda     load_ac_indy,x
         sta     L0110,x
         dex
-        bpl     LA7C8
+        bpl     :-
         ldx     #5
         stx     $AB
         jsr     $FB8E ; copy I/O start address to buffer address
         jsr     LA75B
-        bcc     LA7E2
+        bcc     :+
         lda     #0
         jmp     _disable_rom
-
-LA7E2:  jsr     LA77E
-        jsr     LA9EA
+:       jsr     LA77E
+        jsr     turn_screen_off
         jsr     LA999
-        lda     $B9
+        lda     SECADDR
         clc
         adc     #1
         dex
         jsr     LA9BB
         ldx     #8
-LA7F6:  lda     $AC,y
+:       lda     $AC,y
         jsr     LA9BB
         ldx     #6
         iny
         cpy     #5
         nop
-        bne     LA7F6
+        bne     :-
         ldy     #0
         ldx     #2
 LA808:  jsr     _load_bb_indy
         cpy     $B7
-        bcc     LA812
+        bcc     :+
         lda     #$20
         dex
-LA812:  jsr     LA9BB
+:       jsr     LA9BB
         ldx     #3
         iny
         cpy     #$BB
@@ -1151,10 +1160,10 @@ LA812:  jsr     LA9BB
 LA82B:  jsr     L0110
         ldx     #3 ; used to be "#2" in 1988-05
         inc     $AC
-        bne     LA837
+        bne     :+
         inc     $AD
         dex
-LA837:  lda     $AC
+:       lda     $AC
         cmp     $AE
         lda     $AD
         sbc     $AF
@@ -1173,13 +1182,13 @@ LA851:  jsr     LA8C9
         beq     LA862
         cmp     #1
         bne     LA851
-        lda     $B9
-        beq     LA86C
+        lda     SECADDR
+        beq     LA86C ; "LOAD"[...]",n,0" -> skip load address
 LA862:  lda     $033C
         sta     $C3
         lda     $033D
         sta     $C4
-LA86C:  jsr     LA768
+LA86C:  jsr     print_found
         cli
         lda     $A1
         jsr     $E4E0 ; wait for CBM key
@@ -1268,7 +1277,7 @@ LA913:  sty     $C0
         sta     $02A0
         lda     $D011
         ora     #$10
-        sta     $D011
+        sta     $D011 ; turn screen on
         lda     $01
         ora     #$20
         sta     $01
@@ -1285,7 +1294,7 @@ LA92B:  jsr     LA742
         lda     #0
         jmp     _disable_rom
 
-LA939:  jsr     LA9EA
+LA939:  jsr     turn_screen_off
         sty     $D7
         lda     #$07
         sta     $DD06
@@ -1383,13 +1392,14 @@ LA9E4:  dex
 LA9E7:  sta     $01
         rts
 
-LA9EA:  ldy     #0
+turn_screen_off:
+        ldy     #0
         sty     $C0
         lda     $D011
         and     #$EF
-        sta     $D011
+        sta     $D011 ; turn screen off
 LA9F6:  dex
-        bne     LA9F6
+        bne     LA9F6 ; delay (XXX waiting for $D012 == 0 would be cleaner)
         dey
         bne     LA9F6
         sei
