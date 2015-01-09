@@ -1,5 +1,3 @@
-.include "desktop_helper.i"
-.include "speeder.i"
 
 ; from fc3
 .import new_clrch
@@ -14,6 +12,13 @@
 .import new_expression
 .import new_detokenize
 .import new_mainloop
+
+; from speeder
+.import new_save
+.import new_load
+
+; from desktop_helper
+.import load_and_run_program
 
 CHRGET          := $0073
 CHRGOT          := $0079

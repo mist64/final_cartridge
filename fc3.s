@@ -30,8 +30,13 @@
         .setcpu "6502"
         .include "kernal.i"
         .include "desktop_helper.i"
-        .include "monitor.i"
         .include "persistent.i"
+
+; from monitor
+.import monitor
+
+; from desktop_helper
+.import perform_desktop_disk_operation
 
 .global pow10lo
 .global pow10hi
