@@ -12,8 +12,6 @@
 .import new_expression
 .import new_detokenize
 .import new_mainloop
-.import new_save
-.import new_load
 
 ; used by monitor.s
 .import fast_format

@@ -4,7 +4,7 @@
 L0100           := $0100
 L0110           := $0110
 
-CR := $0D
+CR              := $0D
 
 SECADDR         := $B9 ; secondary address
 DEV             := $BA ; device number
@@ -34,7 +34,7 @@ L9911:  lda     $D012
         beq     L9911
 L991E:  lda     #$07
         sta     $DD00
-        lda     L994B,x
+        lda     iec_tab,x
         nop
         nop
         sta     $DD00
@@ -45,7 +45,7 @@ L991E:  lda     #$07
         pla
         and     #$0F
         tax
-        lda     L994B,x
+        lda     iec_tab,x
         sta     $DD00
         lsr     a
         lsr     a
@@ -57,18 +57,19 @@ L991E:  lda     #$07
         sta     $DD00
         rts
 
-L994B:  .byte   $07,$87,$27,$A7,$47,$C7,$67,$E7
+iec_tab:
+        .byte   $07,$87,$27,$A7,$47,$C7,$67,$E7
         .byte   $17,$97,$37,$B7,$57,$D7,$77,$F7
 
 L995B:  lda     $0330
         cmp     #<_new_load
         beq     L998B
-L9962:  bit     $DD00
-        bvs     L9962
+:       bit     $DD00
+        bvs     :-
         ldy     #3
         nop
         ldx     $01
-L996C:  lda     $DD00
+:       lda     $DD00
         lsr     a
         lsr     a
         nop
@@ -86,7 +87,7 @@ L996C:  lda     $DD00
         ora     $DD00
         sta     $C1,y
         dey
-        bpl     L996C
+        bpl     :-
         rts
 
 L998B:  bit     $DD00

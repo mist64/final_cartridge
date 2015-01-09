@@ -1,4 +1,5 @@
 .include "fc3.i"
+.include "speeder.i"
 
 CHRGET          := $0073
 CHRGOT          := $0079
