@@ -10,16 +10,14 @@
 .import init_load_save_vectors
 .import init_read_disk_name
 .import listen_second
-
-.import print_msg
-.import messages
-.import a_ready
-
 .import send_drive_command
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 .import talk_second
 .import unlisten_e2
+.import print_msg
+.import messages
+.import a_ready
 
 ; ----------------------------------------------------------------
 ; Helper code called from Desktop

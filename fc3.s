@@ -40,6 +40,8 @@
 CHRGET          := $0073
 CHRGOT          := $0079
 
+CR              := $0D
+
 ; ----------------------------------------------------------------
 ; RAM locations
 ; ----------------------------------------------------------------
@@ -79,6 +81,11 @@ fast_format: ; $A00F
 
         jmp     init_load_and_basic_vectors
 
+; ----------------------------------------------------------------
+
+.segment "part1a"
+
+; ??? unused?
         jsr     set_io_vectors_with_hidden_rom
         lda     #$43 ; bank 2
         jmp     _jmp_bank
@@ -213,90 +220,24 @@ L80FE:  lda     load_save_vectors,y ; overwrite LOAD and SAVE vectors
         inc     $0330
 L810F:  rts
 
-L8110:  jsr     IECIN
-        jsr     $E716 ; output character to the screen
-        cmp     #$0D
-        bne     L8110
-        jmp     UNTALK
+; ----------------------------------------------------------------
 
-check_iec_error:
-        jsr     command_channel_talk
-        jsr     IECIN
-        tay
-L8124:  jsr     IECIN
-        cmp     #$0D ; skip message
-        bne     L8124
-        jsr     UNTALK
-        cpy     #'0'
-        rts
+.import L8192
+.import L8194
+.import device_not_present
+.import check_iec_error
+.import cmd_channel_listen
+.import command_channel_talk
+.import listen_second
+.import m_w_and_m_e
+.import print_line_from_drive
+.import talk_second
 
-.global cmd_channel_listen
-cmd_channel_listen:
-        lda     #$6F
-.global listen_second
-listen_second:
-        pha
-        jsr     set_drive
-        jsr     LISTEN
-        pla
-        jsr     SECOND
-        lda     $90
-        rts
+.global disable_rom_jmp_error
+.global set_drive
 
-.global command_channel_talk
-command_channel_talk:
-        lda     #$6F
-.global talk_second
-talk_second:
-        pha
-        jsr     set_drive
-        jsr     TALK
-        pla
-        jmp     TKSA
 
-m_w_and_m_e:
-        sta     $C3
-        sty     $C4
-        ldy     #$00
-L8154:  lda     #'W'
-        jsr     send_m_dash
-        tya
-        jsr     IECOUT
-        txa
-        jsr     IECOUT
-        lda     #' '
-        jsr     IECOUT
-L8166:  lda     ($C3),y
-        jsr     IECOUT
-        iny
-        tya
-        and     #$1F
-        bne     L8166
-        jsr     UNLSTN
-        tya
-        bne     L8154
-        inc     $C4
-        inx
-        cpx     $93
-        bcc     L8154
-        lda     #'E'
-send_m_dash:
-        pha
-        jsr     L8192
-        lda     #'M'
-        jsr     IECOUT
-        lda     #'-'
-        jsr     IECOUT
-        pla
-        jmp     IECOUT
-
-L8192:  lda     #$6F
-L8194:  jsr     listen_second
-        bmi     L819A
-        rts
-
-L819A:  ldx     #$05
-        jmp     L9873
+.segment "part1aa"
 
 .global new_expression
 new_expression:
@@ -592,7 +533,7 @@ L839D:  ldx     $3A
         lda     $D6
         sta     $B1
         jsr     L83C8
-L83BA:  lda     #$0D ; CR
+L83BA:  lda     #CR
         jsr     _basic_bsout
         bit     $13
         bpl     L838C
@@ -695,7 +636,7 @@ L845E:  jsr     L84C8
         ldx     #$18
 L847F:  jsr     L84C8
         jsr     IECIN
-L8485:  cmp     #$0D
+L8485:  cmp     #CR
         beq     L848D
         cmp     #$8D
         bne     L848F
@@ -718,7 +659,7 @@ L84AB:  dex
         jsr     IECIN
         bne     L8485
         jsr     L84DC
-        lda     #$0D ; CR
+        lda     #CR
         jsr     _basic_bsout
         bne     L845E
 L84C0:  lda     #$E0
@@ -1413,10 +1354,10 @@ L89FA:  rts
 .global messages
 messages:
 a_are_you_sure:
-        .byte   "ARE YOU SURE (Y/N)?", $0D, 0
+        .byte   "ARE YOU SURE (Y/N)?", CR, 0
 .global a_ready
 a_ready: ; XXX this is only used by desktop_helper.s, it should be defined there
-        .byte   $0D,"READY.",$0D,$00
+        .byte   CR,"READY.", CR, 0
 
 ; ----------------------------------------------------------------
 ; "DLOAD" Command - load a program from disk
@@ -1465,7 +1406,7 @@ DOS:    cmp     #'"'
 L8A47:  jsr     L8192
         jsr     UNLSTN
         jsr     command_channel_talk
-        jsr     L8110
+        jsr     print_line_from_drive
 L8A53:  rts
 
 L8A54:  and     #$0F
@@ -1603,7 +1544,7 @@ PLIST:  jsr     L8AF0
 .global reset_warmstart
 reset_warmstart:
         jsr     set_io_vectors
-        lda     #$0D
+        lda     #CR
         jsr     BSOUT
         jsr     CLRCH
         jsr     set_io_vectors_with_hidden_rom
@@ -1615,7 +1556,7 @@ L8B66:  sta     $0300
 
 L8B6D:  lda     #$03
         sta     $9A
-        jmp     L819A
+        jmp     device_not_present
 
 ; ----------------------------------------------------------------
 ; "PDIR" Command - send disk directoy to printer
@@ -1744,9 +1685,9 @@ L8C4B:  lda     ($22),y
         jsr     _basic_bsout
         jmp     L8C4A
 
-L8C55:  cmp     #$8D
+L8C55:  cmp     #CR + $80
         beq     L8C5D
-L8C59:  cmp     #$0D
+L8C59:  cmp     #CR
         bne     L8C5F
 L8C5D:  lda     #$1F
 L8C5F:  inc     $D8
@@ -2040,7 +1981,7 @@ print_mem_string:
 L8E86:  rts
 
 s_basic:
-        .byte   $0D, "BASIC", 0
+        .byte   CR, "BASIC", 0
 s_program:
         .byte   "PROGRAM", 0
 s_variables:
@@ -2051,7 +1992,7 @@ s_strings:
         .byte   "STRINGS", 0
 s_free:
         .byte   "FREE", 0
-s_bytes: .byte   "BYTES", $0D, 0
+s_bytes: .byte   "BYTES", CR, 0
 
 ; ----------------------------------------------------------------
 ; "TRACE" Command - enable/disable printing each BASIC line executed
@@ -2565,7 +2506,7 @@ L925D:  cmp     #$14 ; CTRL + DEL: delete to end of line
         jsr     L9469
         jmp     L92C5
 
-L926A:  cmp     #$0D ; CTRL + CR: print screen
+L926A:  cmp     #CR ; CTRL + CR: print screen
         bne     L927C
         jsr     L93B4
         inc     $02A7
@@ -2838,8 +2779,8 @@ print_screen:
         sty     $AC
         lda     $0288 ; video RAM address hi
         sta     $AD
-        ldx     #$19 ; 25 iterations for 25 lines
-L9488:  lda     #$0D ; CR
+        ldx     #25 ; lines
+L9488:  lda     #CR
         jsr     BSOUT
         ldy     #$00
 L948F:  lda     ($AC),y
@@ -2853,7 +2794,7 @@ L949D:  bvs     L94A1
         ora     #$40
 L94A1:  jsr     BSOUT
         iny
-        cpy     #$28 ; 40 columns
+        cpy     #40 ; columns
         bne     L948F
         tya
         clc
@@ -2863,18 +2804,18 @@ L94A1:  jsr     BSOUT
         inc     $AD
 L94B3:  dex
         bne     L9488
-        lda     #$0D ; CR
+        lda     #CR
         jsr     BSOUT
         jsr     CLRCH
         jmp     set_io_vectors_with_hidden_rom
 
 fkey_strings:
-        .byte   $8D, "LIST:", $0D, 0
-        .byte   $8D, "RUN:", $0D, 0
-        .byte   "DLOAD", $0D, 0
-        .byte   $8D, $93, "DOS",'"', "$",$0D, 0
-        .byte   $8D, "M", 'O' + $80, ":", $0D, 0
-        .byte   $8D, "OLD:", $0D, 0
+        .byte   $8D, "LIST:", CR, 0
+        .byte   $8D, "RUN:", CR, 0
+        .byte   "DLOAD", CR, 0
+        .byte   $8D, $93, "DOS",'"', "$",CR, 0
+        .byte   $8D, "M", 'O' + $80, ":", CR, 0
+        .byte   $8D, "OLD:", CR, 0
         .byte   "DSAVE", '"', 0
         .byte   "DOS", '"', 0
 
@@ -3108,7 +3049,8 @@ L9865:  lda     #>($A49F - 1) ; used to be $A4A2 in 1988-05
         lda     #<($A7AE - 1) ; interpreter loop
         bne     disable_rom_jmp ; always
 
-L9873:  lda     #>($A437 - 1)
+disable_rom_jmp_error:
+        lda     #>($A437 - 1)
         pha
         lda     #<($A437 - 1) ; ERROR
         bne     disable_rom_jmp
@@ -3889,7 +3831,9 @@ LA4C2:  pha
         and     #$0F
         .byte   $2C
 LA4CC:  lda     #$1B
-        bit     $0DA9
+        .byte   $2C
+        ; ??? unreferenced?
+        lda     #$0D
         jmp     LA00D
 
 LA4D4:  lda     #$4E
