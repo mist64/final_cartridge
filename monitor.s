@@ -19,6 +19,10 @@ KEY_F5          := $87
 KEY_F7          := $88
 
 ; C64 Memory Map
+LFN             := $B8 ; logical file number
+SECADDR         := $B9 ; secondary address
+DEV             := $BA ; device number
+
 KBD_BUFFER_COUNT := $C6
 KBD_BUFFER      := $0277
 
@@ -37,7 +41,7 @@ irq_lo          := ram_code_end + 12
 irq_hi          := ram_code_end + 13
 
 entry_type      := ram_code_end + 14
-command_index   := ram_code_end + 15 ; command index from "command_names", or 'C'/'S' in EC/ES case
+command_index   := ram_code_end + 15 ; index from "command_names", or 'C'/'S' in EC/ES case
 bank            := ram_code_end + 16
 disable_f_keys  := ram_code_end + 17
 tmp1            := ram_code_end + 18
@@ -133,9 +137,9 @@ brk_entry2:
         lda     reg_pc_hi
         adc     #$FF
         sta     reg_pc_hi ; decrement PC
-        lda     $BA
+        lda     DEV
         and     #$FB
-        sta     $BA
+        sta     DEV
         lda     #'B'
         sta     entry_type
         lda     #$80
@@ -274,13 +278,13 @@ LAC80:  jsr     swap_c1_c2_and_c3_c4
         jsr     get_hex_word3
 LAC86:  lda     command_index
         beq     is_mie ; 'M' (hex dump)
-        cmp     #$17
+        cmp     #command_index_i
         beq     is_mie ; 'I' (ASCII dump)
-        cmp     #$01
+        cmp     #command_index_d
         beq     is_d ; 'D' (disassemble)
-        cmp     #$06
+        cmp     #command_index_f
         beq     is_f ; 'F' (fill)
-        cmp     #$07
+        cmp     #command_index_h
         beq     is_h ; 'H' (hunt)
         cmp     #'C'
         beq     is_mie ; 'EC'
@@ -536,7 +540,7 @@ LAE90:  sty     $020A
         jsr     basin_if_more
         jsr     get_hex_word3
         lda     command_index
-        cmp     #$08 ; 'C'
+        cmp     #command_index_c
         beq     LAEA6
         jsr     LB1CB
         jmp     print_cr_then_input_loop
@@ -1208,17 +1212,17 @@ cmd_ls:
         ldy     #$02
         sty     $BC
         dey
-        sty     $B9
+        sty     SECADDR
         dey
         sty     $B7
-        lda     #$08
-        sta     $BA
+        lda     #8
+        sta     DEV
         lda     #$10
         sta     $BB
         jsr     basin_skip_spaces_cmp_cr
         bne     LB3B6
 LB388:  lda     command_index
-        cmp     #$0B ; 'L'
+        cmp     #command_index_l
         bne     syn_err4
 LB38F:  jsr     LB35C
         jsr     set_irq_vector
@@ -1263,7 +1267,7 @@ LB3D6:  bne     syn_err4
         beq     LB3E7
         cmp     #$04
         bcc     syn_err4
-LB3E7:  sta     $BA
+LB3E7:  sta     DEV
         jsr     basin_cmp_cr
         beq     LB388
         cmp     #$2C
@@ -1273,9 +1277,9 @@ LB3F0:  bne     LB3D6
         jsr     basin_cmp_cr
         bne     LB408
         lda     command_index
-        cmp     #$0B ; 'L'
+        cmp     #command_index_l
         bne     LB3F0
-        dec     $B9
+        dec     SECADDR
         beq     LB38F
 LB408:  cmp     #$2C
 LB40A:  bne     LB3F0
@@ -1285,9 +1289,9 @@ LB40A:  bne     LB3F0
         ldx     $C3
         ldy     $C4
         lda     command_index
-        cmp     #$0C ; 'S'
+        cmp     #command_index_s
         bne     LB40A
-        dec     $B9
+        dec     SECADDR
         jsr     LB35C
         jsr     LB438
         jsr     set_io_vectors
@@ -2102,8 +2106,50 @@ s_regs: .byte   CR, "   PC  IRQ  BK AC XR YR SP NV#BDIZC", CR, 0
 
 ; ----------------------------------------------------------------
 
+command_index_d = command_name_d - command_names
+command_index_f = command_name_f - command_names
+command_index_h = command_name_h - command_names
+command_index_c = command_name_c - command_names
+command_index_l = command_name_l - command_names
+command_index_s = command_name_s - command_names
+command_index_i = command_name_i - command_names
+
+; changing the order will break a lot of code because of "command_index"
 command_names:
-        .byte   "MD:AGXFHCTRLS,O@$#*PE[]I';B"
+        .byte   "M"
+command_name_d:
+        .byte   "D"
+        .byte   ":"
+        .byte   "A"
+        .byte   "G"
+        .byte   "X"
+command_name_f:
+        .byte   "F"
+command_name_h:
+        .byte   "H"
+command_name_c:
+        .byte   "C"
+        .byte   "T"
+        .byte   "R"
+command_name_l:
+        .byte   "L"
+command_name_s:
+        .byte   "S"
+        .byte   ","
+        .byte   "O"
+        .byte   "@"
+        .byte   "$"
+        .byte   "#"
+        .byte   "*"
+        .byte   "P"
+        .byte   "E"
+        .byte   "["
+        .byte   "]"
+command_name_i:
+        .byte   "I"
+        .byte   "'"
+        .byte   ";"
+        .byte   "B"
 
 function_table:
         .word   cmd_mid-1
@@ -2224,7 +2270,7 @@ LBB42:  jsr     close_2
 
 LBB48:  lda     #$02
         tay
-        ldx     $BA
+        ldx     DEV
         jsr     SETLFS
         lda     #$01
         ldx     #$CF
@@ -2326,7 +2372,7 @@ cmd_p:
         lda     bank
         bmi     syn_err8 ; drive?
         ldx     #$FF
-        lda     $BA ; device number
+        lda     DEV
         cmp     #$04
         beq     LBC11 ; printer
         jsr     basin_cmp_cr
@@ -2340,24 +2386,24 @@ LBC11:  jsr     basin_cmp_cr
 LBC16:  sta     KBD_BUFFER
         inc     KBD_BUFFER_COUNT
         lda     #4
-        cmp     $BA
+        cmp     DEV
         beq     LBC39 ; printer
-        stx     $B9
-        sta     $BA ; set device 4
-        sta     $B8
+        stx     SECADDR
+        sta     DEV ; set device 4
+        sta     LFN
         ldx     #0
         stx     $B7
         jsr     CLOSE
         jsr     OPEN
-        ldx     $B8
+        ldx     LFN
         jsr     CKOUT
         jmp     input_loop2
 
-LBC39:  lda     $B8
+LBC39:  lda     LFN
         jsr     CLOSE
         jsr     CLRCH
-        lda     #$08
-        sta     $BA
+        lda     #8
+        sta     DEV
         lda     #0
         sta     KBD_BUFFER_COUNT
         jmp     input_loop
@@ -2446,7 +2492,7 @@ LBCCF:  adc     #$3A
 
 directory:
         lda     #$60
-        sta     $B9
+        sta     SECADDR
         jsr     init_and_talk
         jsr     IECIN
         jsr     IECIN ; skip load address
@@ -2490,16 +2536,16 @@ LBD2F:  jmp     $F646 ; CLOSE
 init_drive:
         lda     #0
         sta     $90 ; clear status
-        lda     #$08
-        cmp     $BA ; drive 8 and above ok
+        lda     #8
+        cmp     DEV ; drive 8 and above ok
         bcc     LBD3F
-LBD3C:  sta     $BA ; otherwise set drive 8
+LBD3C:  sta     DEV ; otherwise set drive 8
 LBD3E:  rts
 
-LBD3F:  lda     #$09
-        cmp     $BA
+LBD3F:  lda     #9
+        cmp     DEV
         bcs     LBD3E
-        lda     #$08
+        lda     #8
 LBD47:
         bne     LBD3C
         lda     $FF
@@ -2530,14 +2576,14 @@ LBD7D:  jmp     $F646 ; CLOSE
 
         lda     #0
         sta     $90
-        lda     #$08
-        cmp     $BA
+        lda     #8
+        cmp     DEV
         bcc     LBD8D
-LBD8A:  sta     $BA
+LBD8A:  sta     DEV
 LBD8C:  rts
 
-LBD8D:  lda     #$09
-        cmp     $BA
+LBD8D:  lda     #9
+        cmp     DEV
         bcs     LBD8C
-        lda     #$08
+        lda     #8
         bne     LBD8A ; always
