@@ -4,15 +4,17 @@
 ; from fc3
 .import pow10lo
 .import pow10hi
-.import a_ready
 .import cmd_channel_listen
 .import command_channel_talk
 .import init_basic_vectors
 .import init_load_save_vectors
 .import init_read_disk_name
 .import listen_second
-.import messages
+
 .import print_msg
+.import messages
+.import a_ready
+
 .import send_drive_command
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom

@@ -29,7 +29,6 @@
 
         .setcpu "6502"
         .include "kernal.i"
-        .include "desktop_helper.i"
         .include "persistent.i"
 
 ; from monitor
@@ -37,23 +36,6 @@
 
 ; from desktop_helper
 .import perform_desktop_disk_operation
-
-.global pow10lo
-.global pow10hi
-.global a_ready
-.global cmd_channel_listen
-.global command_channel_talk
-.global init_basic_vectors
-.global init_load_save_vectors
-.global init_read_disk_name
-.global listen_second
-.global messages
-.global print_msg
-.global send_drive_command
-.global set_io_vectors
-.global set_io_vectors_with_hidden_rom
-.global talk_second
-.global unlisten_e2
 
 CHRGET          := $0073
 CHRGOT          := $0079
@@ -103,6 +85,7 @@ fast_format: ; $A00F
 
 init_load_and_basic_vectors:
         jsr     init_load_save_vectors
+.global init_basic_vectors
 init_basic_vectors:
         ldx     #$09
 L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
@@ -217,6 +200,7 @@ L80EE:  lda     $0314,y
         dey
         bpl     L80EE
 
+.global init_load_save_vectors
 init_load_save_vectors:
         jsr     set_io_vectors_with_hidden_rom
         ldy     #$03
@@ -246,8 +230,10 @@ L8124:  jsr     IECIN
         cpy     #'0'
         rts
 
+.global cmd_channel_listen
 cmd_channel_listen:
         lda     #$6F
+.global listen_second
 listen_second:
         pha
         jsr     set_drive
@@ -257,8 +243,10 @@ listen_second:
         lda     $90
         rts
 
+.global command_channel_talk
 command_channel_talk:
         lda     #$6F
+.global talk_second
 talk_second:
         pha
         jsr     set_drive
@@ -681,8 +669,10 @@ L8443:  dex
         bpl     L841E
         rts
 
+.global pow10lo
 pow10lo:
         .byte   <1,<10,<100,<1000,<10000
+.global pow10hi
 pow10hi:
         .byte   >1,>10,>100,>1000,>10000
 
@@ -1411,6 +1401,7 @@ L89D8:  lda     $DC00
 
 L89EC:  jmp     go_desktop
 
+.global print_msg
 print_msg:
         lda     a_are_you_sure,x
         beq     L89FA
@@ -1419,10 +1410,12 @@ print_msg:
         bne     print_msg
 L89FA:  rts
 
+.global messages
 messages:
 a_are_you_sure:
         .byte   "ARE YOU SURE (Y/N)?", $0D, 0
-a_ready:
+.global a_ready
+a_ready: ; XXX this is only used by desktop_helper.s, it should be defined there
         .byte   $0D,"READY.",$0D,$00
 
 ; ----------------------------------------------------------------
@@ -1491,6 +1484,7 @@ L8A69:  cmp     #$38
         cmp     #$39
         beq     L8A54
         jsr     L8192
+.global send_drive_command
 send_drive_command:
         ldy     #$00
         jsr     _lda_7a_indy
@@ -2903,6 +2897,7 @@ fast_format2:
         lda     #>fast_format_drive_code_entry
         jmp     IECOUT
 
+.global init_read_disk_name
 init_read_disk_name:
         lda     #$F2
         jsr     listen_second
@@ -2921,6 +2916,7 @@ init_read_disk_name:
 init_write_bam:
         ldy     #drive_cmd_u2 - drive_cmds
         jsr     send_drive_cmd ; send "U2:2 0 18 0", block write of BAM
+.global unlisten_e2
 unlisten_e2:
         lda     #$E2
         jsr     listen_second
@@ -3225,6 +3221,8 @@ set_io_vectors:
 
 something_with_printer:
         jmp     LA183
+
+.segment "part4b"
 
 ; ----------------------------------------------------------------
 ; Centronics and RS-232 printer drivers
