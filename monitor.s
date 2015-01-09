@@ -7,6 +7,13 @@
 ; Monitor (~4750 bytes)
 ; ----------------------------------------------------------------
 
+; PETSCII
+CR              := $0D
+CSR_DOWN        := $11
+CSR_HOME        := $13
+CSR_RIGHT       := $1D
+CSR_UP          := $91
+
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
 reg_p           := ram_code_end + 7
@@ -177,7 +184,7 @@ syntax_error:
         lda     #'?'
         .byte   $2C
 print_cr_then_input_loop:
-        lda     #$0D ; CR
+        lda     #CR
         jsr     BSOUT
 
 input_loop:
@@ -220,10 +227,10 @@ cmd_e:
         jmp     syntax_error
 
 fill_kbd_buffer_with_csr_right:
-        lda     #$91 ; UP
-        ldx     #$0D ; CR
+        lda     #CSR_UP
+        ldx     #CR
         jsr     print_a_x
-        lda     #$1D ; CSR RIGHT
+        lda     #CSR_RIGHT
         ldx     #0
 :       sta     $0277,x ; fill kbd buffer with 7 CSR RIGHT characters
         inx
@@ -758,7 +765,7 @@ LB05B:  rts
 
 LB05C:  ldx     #$02
 LB05E:  jsr     BASIN
-        cmp     #$0D
+        cmp     #CR
         beq     LB089
         cmp     #$3A
         beq     LB089
@@ -1334,11 +1341,11 @@ LB48E:  jsr     print_space
         bne     print_a_x
 
 print_up:
-        ldx     #$91 ; UP
+        ldx     #CSR_UP
         .byte   $2C
 print_cr_dot:
         ldx     #'.'
-        lda     #$0D ; CR
+        lda     #CR
         .byte   $2C
 print_dot_x:
         lda     #'.'
@@ -1352,7 +1359,7 @@ print_up_dot:
         lda     #'.'
         .byte   $2C
 ; XXX unused?
-        lda     #$1D ; CSR RIGHT
+        lda     #CSR_RIGHT
         .byte   $2C
 print_hash:
         lda     #'#'
@@ -1361,7 +1368,7 @@ print_space:
         lda     #' '
         .byte   $2C
 print_cr:
-        lda     #$0D ; CR
+        lda     #CR
         jmp     BSOUT
 
 basin_skip_spaces_if_more:
@@ -1380,12 +1387,12 @@ basin_skip_spaces_cmp_cr:
         jsr     BASIN
         cmp     #' '
         beq     basin_skip_spaces_cmp_cr ; skip spaces
-        cmp     #$0D
+        cmp     #CR
         rts
 
 basin_cmp_cr:
         jsr     BASIN
-        cmp     #$0D
+        cmp     #CR
         rts
 
 LB4DB:  pha
@@ -1683,8 +1690,10 @@ fill_kbd_buffer_singlequote:
         sta     $C6
         rts
 
-LB6A2:  lda     #$1D
-        ldx     #$07
+; print 7x cursor right
+print_7_csr_right:
+        lda     #CSR_RIGHT
+        ldx     #7
         bne     LB6AC ; always
 
 ; print 8 spaces - this is used to clear some leftover characters
@@ -1692,7 +1701,7 @@ LB6A2:  lda     #$1D
 ; user may have entered it with condensed spacing
 print_8_spaces:
         lda     #' '
-        ldx     #$08
+        ldx     #8
 LB6AC:  jsr     BSOUT
         dex
         bne     LB6AC
@@ -1754,7 +1763,7 @@ LB700:  lda     $0277 ; keyboard buffer
         sta     $0277
         lda     #'$'
         sta     $0278
-        lda     #$0D
+        lda     #CR
         sta     $0279 ; store "@$' + CR into keyboard buffer
         lda     #$03 ; 3 characters
         sta     $C6
@@ -1768,7 +1777,7 @@ LB71C:  cmp     #$87 ; F5 key
         jsr     LB8D9
         ldy     $D3
         jsr     $E50C ; KERNAL set cursor position
-LB72E:  lda     #$11 ; DOWN
+LB72E:  lda     #CSR_DOWN
         sta     $0277 ; kbd buffer
 LB733:  cmp     #$86
         bne     LB74A
@@ -1778,11 +1787,11 @@ LB733:  cmp     #$86
         jsr     LB8D9
         ldy     $D3
         jsr     $E50C ; KERNAL set cursor position
-LB745:  lda     #$91; UP
+LB745:  lda     #CSR_UP
         sta     $0277 ; kbd buffer
-LB74A:  cmp     #$11 ; DOWN
+LB74A:  cmp     #CSR_DOWN
         beq     LB758
-        cmp     #$91 ; UP
+        cmp     #CSR_UP
         bne     LB6FA
         lda     $D6 ; cursor line
         beq     LB75E ; top of screen
@@ -1835,16 +1844,16 @@ LB7BC:  lda     #$20
         jsr     add_a_to_c1_c2
         jsr     print_cr
         jsr     dump_ascii_line
-LB7C7:  lda     #$91 ; UP
-        ldx     #$0D ; CR
+LB7C7:  lda     #CSR_UP
+        ldx     #CR
         bne     LB7D1
-LB7CD:  lda     #$0D ; CR
-        ldx     #$13 ; HOME
+LB7CD:  lda     #CR
+        ldx     #CSR_HOME
 LB7D1:  ldy     #0
         sty     $C6
         sty     disable_f_keys
         jsr     print_a_x
-        jsr     LB6A2
+        jsr     print_7_csr_right
         jmp     LB6FA
 
 LB7E1:  jsr     LB8FE
@@ -1906,7 +1915,7 @@ LB845:  ldy     #$01
         dec     $020D
         beq     LB889
         lda     $0277 ; kbd buffer
-        cmp     #$11 ; DOWN
+        cmp     #CSR_DOWN
         bne     LB877
         sec
         lda     $C3
@@ -2002,7 +2011,7 @@ LB8FE:  ldx     #0
         lda     #$94
         sta     $D9
         sta     $DA
-        lda     #$13 ; HOME
+        lda     #CSR_HOME
         jmp     BSOUT
 
 LB90E:  lda     #$10
@@ -2072,7 +2081,7 @@ nmemos2:
 
 ; ----------------------------------------------------------------
 
-s_regs: .byte   $0D, "   PC  IRQ  BK AC XR YR SP NV#BDIZC", $0D, 0
+s_regs: .byte   CR, "   PC  IRQ  BK AC XR YR SP NV#BDIZC", CR, 0
 
 ; ----------------------------------------------------------------
 
@@ -2158,14 +2167,14 @@ LBACD:  jsr     LBB48
         pla
 LBAED:  jsr     $E716 ; KERNAL: output character to screen
         jsr     IECIN
-        cmp     #$0D ; print drive status until CR (XXX redundant?)
+        cmp     #CR ; print drive status until CR (XXX redundant?)
         bne     LBAED
         jsr     UNTALK
         jsr     close_2
         jmp     input_loop
 
 LBB00:  jsr     IECIN
-        cmp     #$0D ; receive all bytes (XXX not necessary?)
+        cmp     #CR ; receive all bytes (XXX not necessary?)
         bne     LBB00
         jsr     UNTALK
         jsr     LBBAE
@@ -2389,7 +2398,7 @@ init_and_talk:
 cat_line_iec:
         jsr     IECIN
         jsr     $E716 ; KERNAL: output character to screen
-        cmp     #$0D
+        cmp     #CR
         bne     cat_line_iec
         jmp     UNTALK
 
@@ -2437,7 +2446,7 @@ LBCDF:  jsr     IECIN
 LBCFA:  jsr     IECIN
 LBCFD:  ldy     $90
         bne     LBD2F ; error
-        cmp     #$0D
+        cmp     #CR
         beq     LBD09 ; convert $0D to $1F
         cmp     #$8D
         bne     LBD0B ; also convert $8D to $1F
@@ -2455,7 +2464,7 @@ LBD20:  dex
         bpl     LBCFA
         jsr     IECIN
         bne     LBCFD
-        lda     #$0D ; CR
+        lda     #CR
         jsr     $E716 ; KERNAL: output character to screen
 LBD2D:  bne     LBCDF ; next line
 LBD2F:  jmp     $F646 ; CLOSE
@@ -2473,12 +2482,12 @@ LBD3F:  lda     #$09
         cmp     $BA
         bcs     LBD3E
         lda     #$08
-        .byte   $D0
-LBD48:  .byte   $F3
+LBD47:
+        bne     LBD3C
         lda     $FF
 LBD4B:  ldy     $90
         bne     LBD7D
-        cmp     #$0D
+        cmp     #CR
         beq     LBD57
         cmp     #$8D
         bne     LBD59
@@ -2493,10 +2502,10 @@ LBD59:  jsr     $E716 ; KERNAL: output character to screen
 LBD69:  jsr     GETIN
         beq     LBD69
 LBD6E:  dex
-        bpl     LBD48
+        bpl     LBD47 + 1 ; ??? XXX
         jsr     IECIN
         bne     LBD4B
-        lda     #$0D ; CR
+        lda     #CR
         jsr     $E716 ; KERNAL: output character to screen
         bne     LBD2D
 LBD7D:  jmp     $F646 ; CLOSE
