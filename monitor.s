@@ -1,7 +1,12 @@
 .include "kernal.i"
 
 .include "persistent.i"
-.include "fc3.i"
+
+; from fc3
+.import fast_format
+.import set_io_vectors
+.import set_io_vectors_with_hidden_rom
+
 
 ; ----------------------------------------------------------------
 ; Monitor (~4750 bytes)

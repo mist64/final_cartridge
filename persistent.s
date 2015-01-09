@@ -1,6 +1,19 @@
-.include "fc3.i"
 .include "desktop_helper.i"
 .include "speeder.i"
+
+; from fc3
+.import new_clrch
+.import new_clall
+.import new_bsout
+.import new_ckout
+.import new_tokenize
+.import kbd_handler
+.import disable_rom_then_warm_start
+.import reset_warmstart
+.import new_execute
+.import new_expression
+.import new_detokenize
+.import new_mainloop
 
 CHRGET          := $0073
 CHRGOT          := $0079
