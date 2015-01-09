@@ -22,7 +22,8 @@ KEY_F7          := $88
 LFN             := $B8 ; logical file number
 SECADDR         := $B9 ; secondary address
 DEV             := $BA ; device number
-
+CSR_COLUMN      := $D3
+CSR_ROW         := $D6
 KBD_BUFFER_COUNT := $C6
 KBD_BUFFER      := $0277
 
@@ -1108,9 +1109,11 @@ LB2CB:  lda     #'W' ; send M-W to drive
         pla
         rts
 
+; ??? unreferenced?
         lda     ($C1),y
         rts
 
+; ??? unreferenced?
         pla
         sta     ($C1),y
         rts
@@ -1572,7 +1575,7 @@ read_ascii:
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_if_more
 LB5C8:  sty     $0209
-        ldy     $D3
+        ldy     CSR_COLUMN
         lda     ($D1),y
         php
         jsr     basin_if_more
@@ -1793,20 +1796,20 @@ LB700:  lda     KBD_BUFFER
 LB71C:  cmp     #KEY_F5
         bne     LB733
         ldx     #24
-        cpx     $D6 ; cursor line
+        cpx     CSR_ROW
         beq     LB72E ; already on last line
         jsr     LB8D9
-        ldy     $D3
+        ldy     CSR_COLUMN
         jsr     $E50C ; KERNAL set cursor position
 LB72E:  lda     #CSR_DOWN
         sta     KBD_BUFFER
 LB733:  cmp     #KEY_F3
         bne     LB74A
         ldx     #0
-        cpx     $D6
+        cpx     CSR_ROW
         beq     LB745
         jsr     LB8D9
-        ldy     $D3
+        ldy     CSR_COLUMN
         jsr     $E50C ; KERNAL set cursor position
 LB745:  lda     #CSR_UP
         sta     KBD_BUFFER
@@ -1814,10 +1817,10 @@ LB74A:  cmp     #CSR_DOWN
         beq     LB758
         cmp     #CSR_UP
         bne     LB6FA
-        lda     $D6 ; cursor line
+        lda     CSR_ROW
         beq     LB75E ; top of screen
         bne     LB6FA
-LB758:  lda     $D6 ; cursor line
+LB758:  lda     CSR_ROW
         cmp     #24
         bne     LB6FA
 LB75E:  jsr     LB838
@@ -1827,16 +1830,16 @@ LB75E:  jsr     LB838
         jsr     LB8D4
         plp
         bcs     LB6FA
-        lda     $D6
+        lda     CSR_ROW
         beq     LB7E1
         lda     $020C
-        cmp     #$2C
+        cmp     #','
         beq     LB790
-        cmp     #$5B
+        cmp     #'['
         beq     LB7A2
-        cmp     #$5D
+        cmp     #']'
         beq     LB7AE
-        cmp     #$27
+        cmp     #$27 ; "'"
         beq     LB7BC
         jsr     LB8C8
         jsr     print_cr
@@ -2011,7 +2014,7 @@ LB8D9:  lda     #$FF
         lda     $CF
         beq     LB8EB ; rts
         lda     $CE
-        ldy     $D3
+        ldy     CSR_COLUMN
         sta     ($D1),y
         lda     #0
         sta     $CF
@@ -2114,9 +2117,8 @@ command_index_l = command_name_l - command_names
 command_index_s = command_name_s - command_names
 command_index_i = command_name_i - command_names
 
-; changing the order will break a lot of code because of "command_index"
 command_names:
-        .byte   "M"
+        .byte   "M" ; N.B.: code relies on "M" being the first entry of this table!
 command_name_d:
         .byte   "D"
         .byte   ":"
