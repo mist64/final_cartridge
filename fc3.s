@@ -28,6 +28,20 @@
 ;      other documents say)
 
         .setcpu "6502"
+        .include "persistent.i"
+
+.global new_bsout
+.global new_ckout
+.global new_clall
+.global new_clrch
+.global new_detokenize
+.global new_execute
+.global new_expression
+.global new_load
+.global new_mainloop
+.global new_save
+.global kbd_handler
+.global load_and_run_program
 
 CHRGET          := $0073
 CHRGOT          := $0079
@@ -420,6 +434,7 @@ L824D:  nop
         nop ; used to be "jsr L8253" in 1988-05
         jmp     L9865
 
+.global L8253
 L8253:  ldx     $7A
         ldy     #$04
         sty     $0F
@@ -1614,6 +1629,7 @@ PLIST:  jsr     L8AF0
         jsr     L8B66 ; set $0300 vector
         jmp     L987A
 
+.global L8B54
 L8B54:
         jsr     set_io_vectors
         lda     #$0D
@@ -1654,7 +1670,7 @@ L8B95:  jsr     L8453
         jmp     L8A53
 
 set_filename_or_colon_asterisk:
-        lda     #a_colon_asterisk_end - a_colon_asterisk; ":*"
+        lda     #<(a_colon_asterisk_end - a_colon_asterisk); ":*" (XXX "<" required to make ca65 happy)
         .byte   $2C
 set_filename_or_empty:
         lda     #$00 ; empty filename
@@ -3388,6 +3404,7 @@ L987A:  lda     #>($A6C3 - 1)
         lda     #<($A6C3 - 1) ; LIST worker code
         bne     disable_rom_jmp
 
+.global L9881
 L9881:  lda     #>($E386 - 1) ; BASIC warm start
         pha
         lda     #<($E386 - 1)
@@ -4152,318 +4169,6 @@ L9DBB:  inx
         .byte   0, 0, 10, 10, 0, 0, 2, 2
         .byte   0, 8, 8, 8
         .byte   0, 0, 0, 0
-
-; ----------------------------------------------------------------
-; I/O Area ROM
-; ----------------------------------------------------------------
-
-.segment        "romio"
-
-LDE00:  .byte   $40
-
-_jmp_bank:
-        sta     $DFFF
-        rts
-
-_enable_rom: ; $DE05
-        pha
-        lda     #$40 ; bank 0
-LDE08:  sta     $DFFF
-        pla
-        rts
-
-_disable_rom_set_01:; $DE0D
-        sty     $01
-_disable_rom: ; $DE0F
-        pha
-        lda     #$70 ; no ROM at $8000; BASIC at $A000
-        bne     LDE08
-
-_basic_warm_start: ; $DE14
-        jsr     _disable_rom
-        jmp     $E37B ; BASIC warm start (NMI)
-
-enable_all_roms:  
-        ora     #$07
-        sta     $01
-        bne     _enable_rom
-
-_new_load: ; $DE20
-        tay
-        tay
-        lda     $01
-        pha
-        jsr     enable_all_roms
-        jsr     new_load
-LDE2B:  tax
-        pla
-        sta     $01
-        txa
-        ldx     $AE
-        jmp     _disable_rom
-
-_new_save: ; $DE35
-        lda     $01
-        pha
-        jsr     enable_all_roms
-        jsr     new_save
-        jmp     LDE2B
-
-_new_mainloop: ; $DE41
-        lda     $01
-        jsr     enable_all_roms
-        jmp     new_mainloop
-
-_new_detokenize: ; $DE49
-        jsr     _enable_rom
-        jmp     new_detokenize
-
-_new_expression: ; $DE4F
-        jsr     _enable_rom
-        jmp     new_expression
-
-_kbd_handler:
-        lda     $02A7
-        beq     LDE5D
-        jmp     $EB42 ; LDA #$7F : STA $DC00 : RTS
-
-LDE5D:  lda     $A000
-        jmp     LDF80
-
-_load_ac_indy: ; $DE63
-        sta     $01
-        lda     ($AC),y
-        inc     $01
-        inc     $01
-        rts
-
-_load_bb_indy: ; $DE6C
-        dec     $01
-        lda     ($BB),y
-        inc     $01
-        rts
-
-_new_execute: ; $DE73
-        jsr     _CHRGET
-        jsr     new_execute
-        jsr     _disable_rom
-        jmp     $A7AE ; CLEAR
-
-_execute_statement: ; $DE7F
-        jsr     _disable_rom
-        jmp     $A7EF ; execute BASIC statement
-
-_add_A_to_FAC: ; $DE85
-        jsr     _disable_rom
-        jsr     $BD7E ; add A to FAC
-        jmp     _enable_rom
-
-_get_element_in_expression: ; $DE8E
-        jsr     _disable_rom
-        jmp     $AE8D ; get element in expression
-
-_get_int: ; $DE94
-        jsr     _disable_rom
-        jsr     $AD8A ; FRMNUM eval expression, make sure it's numeric
-        jsr     $B7F7 ; GETADR convert FAC into 16 bit int
-        jmp     _enable_rom
-
-_new_warmstart:
-        jsr     _enable_rom
-        jsr     L8B54
-        jmp     L9881
-
-_evaluate_modifier: ; $DEA9
-        jsr     _disable_rom
-        jmp     $EB48 ; evaluate SHIFT/CTRL/C=
-
-_get_line_number: ; $DEAF
-        jsr     _disable_rom
-        jsr     $A96B ; get line number
-        jmp     _enable_rom
-
-_basic_bsout: ; $DEB8
-        jsr     _disable_rom
-        jsr     $AB47 ; print character
-        jmp     _enable_rom
-
-_set_txtptr_to_start: ; $DEC1
-        jsr     _disable_rom
-        jsr     $A68E ; set TXTPTR to start of program
-        jmp     _enable_rom
-
-_check_for_stop: ; $DECA
-        jsr     _disable_rom
-        jsr     $A82C ; check for STOP
-        jmp     _enable_rom
-
-_relink: ; $DED3
-        jsr     _disable_rom
-        jsr     $A533 ; rebuild BASIC line chaining
-        beq     LDEE1 ; branch always?
-
-_get_filename: ; $DEDB
-        jsr     _disable_rom
-        jsr     $E257 ; get string from BASIC line, set filename
-LDEE1:  jmp     _enable_rom
-
-_int_to_ascii: ; $DEE4
-        jsr     _disable_rom
-        jsr     $BC49 ; FLOAT UNSIGNED VALUE IN FAC+1,2
-        jsr     $BDDD ; convert FAC to ASCII
-        jmp     _enable_rom
-
-_ay_to_float: ; $DEF0
-        jsr     _disable_rom
-        jsr     $B395 ; convert A/Y to float
-        jmp     LDEFF
-
-_int_to_fac: ; $DEF9
-        jsr     _disable_rom
-        jsr     $BBA6 ; convert $22/$23 to FAC
-LDEFF:  iny
-        jsr     $BDD7 ; print FAC
-        jmp     _enable_rom
-
-
-_print_ax_int: ; $DF06
-        jsr     _disable_rom
-        jsr     $BDCD ; LINPRT print A/X as integer
-        jmp     _enable_rom
-
-_search_for_line: ; $DF0F
-        jsr     _disable_rom
-        jsr     $A613 ; search for BASIC line
-        php
-        jsr     _enable_rom
-        plp
-        rts
-
-_CHRGET: ; $DF1B
-        jsr     _disable_rom
-        jsr     CHRGET
-LDF21:  php
-        jsr     _enable_rom
-        plp
-        rts
-
-_CHRGOT: ; $DF27
-        jsr     _disable_rom
-        jsr     CHRGOT
-        jmp     LDF21
-
-_lda_5a_indy: ; $DF30
-        jsr     _disable_rom
-        lda     ($5A),y
-        jmp     _enable_rom
-
-_lda_5f_indy: ; $DF38
-        jsr     _disable_rom
-        lda     ($5F),y
-        jmp     _enable_rom
-
-_lda_ae_indx: ; $DF40
-        jsr     _disable_rom
-        lda     ($AE,x)
-        jmp     _enable_rom
-
-_lda_7a_indy: ; $DF48
-        jsr     _disable_rom
-        lda     ($7A),y
-        jmp     _enable_rom
-
-_lda_7a_indx: ; DF50
-        jsr     _disable_rom
-        lda     ($7A,x)
-        jmp     _enable_rom
-
-_lda_22_indy: ; $DF58
-        jsr     _disable_rom
-        lda     ($22),y
-        jmp     _enable_rom
-
-_lda_8b_indy: ; $DF60
-        jsr     _disable_rom
-        lda     ($8B),y
-        jmp     _enable_rom
-
-_detokenize: ; $DF68
-        jsr     _disable_rom
-        jmp     $A724 ; detokenize
-
-_list: ; $DF6E
-        jsr     _disable_rom
-        jmp     $A6F3 ; part of LIST
-
-_print_banner_load_and_run: ; $DF74
-        jsr     _disable_rom
-        jsr     $E422 ; print c64 banner
-        jsr     _enable_rom
-        jmp     load_and_run_program
-
-LDF80:  cmp     #$94 ; contents of $A000 in BASIC ROM
-        bne     LDF8A ; BASIC ROM not visible
-        jsr     _enable_rom
-        jmp     kbd_handler
-
-LDF8A:  jmp     $EB48 ; default kdb vector
-
-_new_tokenize: ; $DF8D
-        jsr     _enable_rom
-        jsr     L8253
-        jmp     _disable_rom
-
-;padding
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
-        .byte   $FF,$FF
-
-; calls into banks 0+1
-_new_ckout: ; $DFC0
-        jsr     _enable_rom
-        jsr     new_ckout
-        jmp     _disable_rom
-
-_new_bsout: ; $DFC9
-        jsr     _enable_rom
-        jmp     new_bsout
-
-_new_clall: ; $DFCF
-        jsr     _enable_rom
-        jmp     new_clall
-
-_new_clrch: ; $DFD5
-        jsr     _enable_rom
-        jmp     new_clrch
-
-; padding
-        .byte   $FF,$FF,$FF,$FF,$FF
-
-LDFE0: ; XXX BUG ???
-        .byte   $FF,$FF,$FF ; ISC ($FFFF),X
-        .byte   $FF,$FF,$FF ; ISC ($FFFF),X
-        .byte   $FF,$FF     ; ISC ($78FF),X - consumes "SEI"
-
-        sei
-        lda     #$42 ; bank 2 (Desktop, Freezer/Print)
-        sta     $DFFF
-        lda     LDE00 ; $40 ???
-        pha
-        lda     $A000 ; ???
-        pha
-        lda     #$41 ; bank 1 (Notepad, BASIC (Menu Bar))
-        sta     $DFFF
-
-a_colon_asterisk:
-        .byte   ':','*'
-a_colon_asterisk_end:
-
-; ----------------------------------------------------------------
-; I/O Area ROM End
-; ----------------------------------------------------------------
 
 ; ----------------------------------------------------------------
 
