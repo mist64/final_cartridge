@@ -3,8 +3,6 @@
 
 L0100           := $0100
 L0110           := $0110
-L04F6           := $04F6
-L0582           := $0582
 
 .segment "part2b"
 
@@ -435,8 +433,8 @@ L9BF7:  jmp     L9B3D
 
 ; ----------------------------------------------------------------
 
-.segment "drive_code"
-; drive code
+.segment "drive_code" ; $0400
+
 drive_code:
         lda     $43
         sta     $C1
@@ -477,23 +475,23 @@ L9C32:  lda     $12,x
         cpx     $43
         bcs     L9C2E
         lda     $53
-        sta     $060F,x
+        sta     L060F,x
         lda     $54
-        sta     $05FA,x
+        sta     L05FA,x
         lda     #$FF
-        sta     $0624,x
+        sta     L0624,x
         dec     $C1
         bne     L9BFE
         lda     #$01
         sta     $C3
         ldx     $09
 L9C5D:  lda     $C2
-        sta     $0624,x
+        sta     L0624,x
         inc     $C2
-        lda     $060F,x
+        lda     L060F,x
         cmp     $08
         bne     L9C75
-        lda     $05FA,x
+        lda     L05FA,x
         tax
         inc     $C3
         bne     L9C5D
@@ -501,7 +499,7 @@ L9C5D:  lda     $C2
 L9C75:  cmp     #$24
         bcs     L9C2E
         sta     $08
-        lda     $05FA,x
+        lda     L05FA,x
         sta     $09
 L9C80:  jsr     L0582
         iny
@@ -517,7 +515,7 @@ L9C84:  bvc     L9C84
         ldx     $54
         cpx     $43
         bcs     L9C2E
-        lda     $0624,x
+        lda     L0624,x
         cmp     #$FF
         beq     L9C80
         stx     $C0
@@ -546,7 +544,7 @@ L9CCC:  sta     $34
         lda     $0624,x
         sta     $53
         lda     #$FF
-        sta     $0624,x
+        sta     L0624,x
         jsr     $F6D0 ; drive ROM
         lda     #$42
         sta     $36
@@ -556,6 +554,7 @@ L9CE8:  lda     $1800
         lsr     a
         bcc     L9CE8
         ldy     #$00
+L04F6:
         dec     $36
         sty     $1800
         bne     L9CFE
@@ -626,20 +625,22 @@ L9D15:  lda     ($30),y
         lda     ($30),y
         and     #$1F
         sta     $57
+L0564:
         iny
         sty     $C1
         ldy     #$08
         sty     $1800
         ldx     $55,y
-L9D68:  lda     $05C2,x
+:       lda     L05CA - 8,x ; ???
         sta     $1800
-        lda     $05DA,x
+        lda     L05DA,x
         ldx     $54,y
         sta     $1800
         dey
-        bne     L9D68
+        bne     :-
         jmp     L04F6
 
+L0582:
         ldx     #$03
         stx     $31
 L9D80:  inx
@@ -678,17 +679,21 @@ L9DBB:  inx
         sty     $1800
         jmp     $E60A ; drive ROM
 
-; ??? unreferenced?
+L05CA:
         .byte   0, 10, 10, 2
         .byte   0, 10, 10, 2
         .byte   0, 0, 8, 0
         .byte   0, 0, 8, 0
+L05DA:
         .byte   0, 2, 8, 0
         .byte   0, 2, 8, 0
         .byte   0, 8, 10, 10, 0, 0, 2, 2
         .byte   0, 0, 10, 10, 0, 0, 2, 2
         .byte   0, 8, 8, 8
         .byte   0, 0, 0, 0
+L05FA:
+L060F := L05FA + 21
+L0624 := L060F + 21
 
 ; ----------------------------------------------------------------
 ; drive code $0500
@@ -731,7 +736,7 @@ LA534:  ldy     #$00
         lda     $81
         sta     ($94),y
         iny
-LA542:  jsr     $0564
+LA542:  jsr     L0564
         sta     ($30),y
         iny
         cpy     L0611
