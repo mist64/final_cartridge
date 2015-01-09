@@ -7,39 +7,43 @@
 ; Monitor (~4750 bytes)
 ; ----------------------------------------------------------------
 
-L0220           := $0220
+entry_type      := $0251
+bank            := $0253
+cartridge_bank  := $0257
 
-.segment "monitor"
+.segment "monitor1"
+
+.import __monitor_ram_code_LOAD__
+.import __monitor_ram_code_RUN__
 
 .global monitor
 monitor: ; $AB00
-        lda     #<(brk_entry - ram_code + L0220)
+        lda     #<brk_entry
         sta     $0316
-        lda     #>(brk_entry - ram_code + L0220)
+        lda     #>brk_entry
         sta     $0317 ; BRK vector
-        lda     #$43
-        sta     $0251
+        lda     #'C'
+        sta     entry_type
         lda     #$37
-        sta     $0253 ; bank 7
+        sta     bank ; bank 7
         lda     #$70
-        sta     $0257 ; value of $DFFF, by default, hide cartridge
+        sta     cartridge_bank ; by default, hide cartridge
         ldx     #ram_code_end - ram_code - 1
-LAB1B:  lda     ram_code,x
-        sta     L0220,x
+LAB1B:  lda     __monitor_ram_code_LOAD__,x
+        sta     __monitor_ram_code_RUN__,x
         dex
         bpl     LAB1B
         brk ; <- nice!
 
+.segment "monitor_ram_code"
 ; code that will be copied to $0220
 ram_code:
-; $0220
 ; read from memory with a specific ROM and cartridge config
         sta     $DFFF ; set cartridge config
         pla
         sta     $01 ; set ROM config
         lda     ($C1),y ; read
-; $0228
-; enable all ROMs
+enable_all_roms:
         pha
         lda     #$37
         sta     $01 ; restore ROM config
@@ -47,17 +51,19 @@ ram_code:
         sta     $DFFF ; resture cartridge config
         pla
         rts
-; $0234
-; rti
+
+disable_rom_rti:
         jsr     _disable_rom
         sta     $01
         lda     $024B ; A register
         rti
 
 brk_entry:
-        jsr     $0228; enable all ROMs
+        jsr     enable_all_roms
         jmp     LAB48
 ram_code_end:
+
+.segment "monitor2"
 
 LAB48:  cld ; <- important :)
         pla
@@ -77,7 +83,7 @@ LAB48:  cld ; <- important :)
         jsr     set_irq_vector
         jsr     set_io_vectors
         jsr     print_cr
-        lda     $0251
+        lda     entry_type
         cmp     #'C'
         bne     LAB76
         .byte   $2C ; XXX bne + skip = beq + 2
@@ -94,8 +100,8 @@ LAB76:  lda     #'B'
         lda     $BA
         and     #$FB
         sta     $BA
-        lda     #$42
-        sta     $0251
+        lda     #'B'
+        sta     entry_type
         lda     #$80
         sta     $028A
         bne     LABA5 ; always
@@ -125,7 +131,7 @@ print_registers:
         lda     $024F ; $0314
         jsr     print_hex_byte2 ; IRQ lo
         jsr     print_space
-        lda     $0253 ; bank
+        lda     bank
         bpl     LABE6
         lda     #'D'
         jsr     BSOUT
@@ -429,7 +435,7 @@ LAE12:  jsr     get_hex_byte2
         cmp     #$08
         bcs     LAE3D ; syntax error
         ora     #$30
-LAE1B:  sta     $0253 ; bank
+LAE1B:  sta     bank
         ldx     #$00
 LAE20:  jsr     basin_if_more
         jsr     get_hex_byte
@@ -545,7 +551,7 @@ cmd_g:
         jmp     syntax_error
 
 LAF03:  jsr     copy_pc_to_c3_c4_and_c1_c2
-LAF06:  lda     $0253 ; bank
+LAF06:  lda     bank
         bmi     LAF2B ; drive
         jsr     set_irq_vector
         jsr     set_io_vectors_with_hidden_rom
@@ -559,8 +565,8 @@ LAF06:  lda     $0253 ; bank
         pha
         ldx     $024C
         ldy     $024D
-        lda     $0253 ; bank
-        jmp     $0234 ; rti
+        lda     bank
+        jmp     disable_rom_rti
 LAF2B:  lda     #'E' ; send M-E to drive
         jsr     send_m_dash2
         lda     $C3
@@ -1069,18 +1075,18 @@ LB2CB:  lda     #'W' ; send M-W to drive
 ; loads a byte at ($C1),y from RAM with the correct ROM config
 load_byte:
         sei
-        lda     $0253 ; bank
+        lda     bank
         bmi     LB2B4 ; drive
         clc
         pha
-        lda     $0257 ; value for $DFFF
-        jmp     L0220 ; "lda ($C1),y" with ROM and cartridge config
+        lda     cartridge_bank
+        jmp     ram_code ; "lda ($C1),y" with ROM and cartridge config
 
 ; stores a byte at ($C1),y in RAM with the correct ROM config
 store_byte:
         sei
         pha
-        lda     $0253 ; bank
+        lda     bank
         bmi     LB2CB ; drive
         cmp     #$35
         bcs     LB306 ; I/O on
@@ -1110,7 +1116,7 @@ cmd_b:  jsr     basin_cmp_cr
         ora     #$40 ; make $40 - $43
         .byte   $2C
 LB326:  lda     #$70 ; by default, hide cartridge
-        sta     $0257
+        sta     cartridge_bank
         jmp     print_cr_then_input_loop
 
 LB32E:  jmp     syntax_error
@@ -1135,7 +1141,7 @@ LB33F:  lda     #$37 ; bank 7
         bcc     LB32E ; syntax error
         .byte   $2C
 LB34A:  lda     #$80 ; drive
-        sta     $0253 ; bank
+        sta     bank
         jmp     print_cr_then_input_loop
 
 listen_command_channel:
@@ -2264,7 +2270,7 @@ LBBF4:  jmp     syntax_error
 ; "P" - set output to printer
 ; ----------------------------------------------------------------
 cmd_p:
-        lda     $0253 ; bank
+        lda     bank
         bmi     LBBF4 ; drive? syntax error
         ldx     #$FF
         lda     $BA ; device number
