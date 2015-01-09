@@ -14,6 +14,7 @@ CSR_HOME        := $13
 CSR_RIGHT       := $1D
 CSR_UP          := $91
 
+KEY_STOP        := $03
 KEY_F3          := $86
 KEY_F5          := $87
 KEY_F7          := $88
@@ -187,7 +188,7 @@ LABEB:  ldy     #0
         lda     registers,y
         jsr     print_hex_byte2 ; registers...
         iny
-        cpy     #$04
+        cpy     #4
         bne     :-
         jsr     print_space
         lda     reg_p
@@ -339,7 +340,7 @@ dump_sprite_line:
 LACFD:  jsr     load_byte
         jsr     print_bin
         iny
-        cpy     #$03
+        cpy     #3
         bne     LACFD
         jsr     print_8_spaces
         tya ; 3
@@ -417,7 +418,7 @@ cmd_rightbracket:
 LAD9C:  jsr     get_bin_byte
 LAD9F:  jsr     store_byte
         iny
-        cpy     #$03
+        cpy     #3
         bne     LAD9C
         jsr     print_up
         jsr     dump_sprite_line
@@ -474,7 +475,7 @@ cmd_semicolon:
         ora     #$80 ; XXX why not lda #$80?
         bmi     LAE1B ; always
 LAE12:  jsr     get_hex_byte2
-        cmp     #$08
+        cmp     #8
         bcs     syn_err1
         ora     #$30
 LAE1B:  sta     bank
@@ -483,7 +484,7 @@ LAE20:  jsr     basin_if_more
         jsr     get_hex_byte
         sta     registers,x ; registers
         inx
-        cpx     #$04
+        cpx     #4
         bne     LAE20
         jsr     basin_if_more
         jsr     get_bin_byte
@@ -499,7 +500,7 @@ syn_err1:
 ; ----------------------------------------------------------------
 cmd_comma:
         jsr     get_hex_word3
-        ldx     #$03
+        ldx     #3
         jsr     read_x_bytes
         lda     #$2C
         jsr     LAE7C
@@ -635,7 +636,7 @@ LAF52:  jsr     load_byte
         jsr     print_hex_byte2
 LAF58:  jsr     print_space
         iny
-        cpy     #$03
+        cpy     #3
         bne     LAF43
         pla
         rts
@@ -672,7 +673,7 @@ LAF89:  tax
         and     #$8F
         tax
         tya
-        ldy     #$03
+        ldy     #3
         cpx     #$8A
         beq     LAFAB
 LAFA0:  lsr     a
@@ -692,9 +693,9 @@ LAFAF:  tay
         sta     $020A
         lda     nmemos2,y
         sta     $0208
-        ldx     #$03
+        ldx     #3
 LAFBE:  lda     #0
-        ldy     #$05
+        ldy     #5
 LAFC2:  asl     $0208
         rol     $020A
         rol     a
@@ -706,8 +707,8 @@ LAFC2:  asl     $0208
         bne     LAFBE
         jmp     print_space
 
-LAFD7:  ldx     #$06
-LAFD9:  cpx     #$03
+LAFD7:  ldx     #6
+LAFD9:  cpx     #3
         bne     LAFF4
         ldy     $0205
         beq     LAFF4
@@ -763,14 +764,14 @@ LB035:  jsr     basin_if_more
         beq     LB030
         sta     $0200,x
         inx
-        cpx     #$03
+        cpx     #3
         bne     LB035
 LB044:  dex
         bmi     LB05B
         lda     $0200,x
         sec
         sbc     #$3F
-        ldy     #$05
+        ldy     #5
 LB04F:  lsr     a
         ror     $0211
         ror     $0210
@@ -779,7 +780,7 @@ LB04F:  lsr     a
         beq     LB044
 LB05B:  rts
 
-LB05C:  ldx     #$02
+LB05C:  ldx     #2
 LB05E:  jsr     BASIN
         cmp     #CR
         beq     LB089
@@ -815,8 +816,8 @@ LB08D:  ldx     #0
         lda     nmemos1,x
         jmp     LB130
 
-LB0AB:  ldx     #$06
-LB0AD:  cpx     #$03
+LB0AB:  ldx     #6
+LB0AD:  cpx     #3
         bne     LB0C5
         ldy     $0205
         beq     LB0C5
@@ -1100,7 +1101,7 @@ LB2B4:  lda     #'R' ; send M-R to drive
 LB2CB:  lda     #'W' ; send M-W to drive
         jsr     send_m_dash2
         jsr     iec_send_c1_c2_plus_y
-        lda     #$01
+        lda     #1 ; count
         jsr     IECOUT
         pla
         pha
@@ -1212,7 +1213,7 @@ LB35C:  lda     #$16
 ; "L"/"S" - load/save file
 ; ----------------------------------------------------------------
 cmd_ls:
-        ldy     #$02
+        ldy     #2
         sty     $BC
         dey
         sty     SECADDR
@@ -1241,7 +1242,7 @@ LB3A6:  ldx     #0
 LB3A8:  lda     $F0BD,x ; "I/O ERROR"
         jsr     BSOUT
         inx
-        cpx     #$0A
+        cpx     #10
         bne     LB3A8
 LB3B3:  jmp     input_loop
 
@@ -1266,14 +1267,14 @@ LB3D6:  bne     syn_err4
         jsr     get_hex_byte
         and     #$0F
         beq     syn_err4
-        cmp     #$01
+        cmp     #1 ; tape
         beq     LB3E7
-        cmp     #$04
-        bcc     syn_err4
+        cmp     #4
+        bcc     syn_err4 ; illegal device number
 LB3E7:  sta     DEV
         jsr     basin_cmp_cr
         beq     LB388
-        cmp     #$2C
+        cmp     #','
 LB3F0:  bne     LB3D6
         jsr     get_hex_word3
         jsr     swap_c1_c2_and_c3_c4
@@ -1284,7 +1285,7 @@ LB3F0:  bne     LB3D6
         bne     LB3F0
         dec     SECADDR
         beq     LB38F
-LB408:  cmp     #$2C
+LB408:  cmp     #','
 LB40A:  bne     LB3F0
         jsr     get_hex_word3
         jsr     basin_skip_spaces_cmp_cr
@@ -1416,10 +1417,11 @@ basin_cmp_cr:
         rts
 
 LB4DB:  pha
-        ldx     #$08
+        ldx     #8
         bne     LB4E6
+
 get_bin_byte:
-        ldx     #$08
+        ldx     #8
 LB4E2:  pha
         jsr     basin_if_more
 LB4E6:  cmp     #'*'
@@ -1512,7 +1514,7 @@ print_hex_byte2:
         rts
 
 print_bin:
-        ldx     #$08
+        ldx     #8
 LB565:  rol     a
         pha
         lda     #'*'
@@ -1533,7 +1535,7 @@ inc_c1_c2:
 :       rts
 
 dump_8_hex_bytes:
-        ldx     #$08
+        ldx     #8
         ldy     #0
 :       jsr     print_space
         jsr     load_byte
@@ -1544,7 +1546,7 @@ dump_8_hex_bytes:
         rts
 
 dump_8_ascii_characters:
-       ldx     #$08
+        ldx     #8
 dump_ascii_characters:
         ldy     #0
 LB594:  jsr     load_byte
@@ -1591,7 +1593,7 @@ LB5C8:  sty     $0209
         rts
 
 read_8_bytes:
-        ldx     #$08
+        ldx     #8
 read_x_bytes:
         ldy     #0
         jsr     copy_c3_c4_to_c1_c2
@@ -1858,7 +1860,7 @@ LB7A2:  jsr     inc_c1_c2
         jsr     dump_char_line
         jmp     LB7C7
 
-LB7AE:  lda     #$03
+LB7AE:  lda     #3
         jsr     add_a_to_c1_c2
         jsr     print_cr
         jsr     dump_sprite_line
@@ -1903,12 +1905,12 @@ LB800:  jsr     swap_c1_c2_and_c3_c4
         jsr     dump_assembly_line
         clc
         bcc     LB7CD
-LB817:  lda     #$01
+LB817:  lda     #1
         jsr     LB8EE
         jsr     dump_char_line
         jmp     LB7CD
 
-LB822:  lda     #$03
+LB822:  lda     #3
         jsr     LB8EE
         jsr     dump_sprite_line
         jmp     LB7CD
@@ -1924,7 +1926,7 @@ LB838:  lda     $D1
         stx     $C4
         lda     #$19
         sta     $020D
-LB845:  ldy     #$01
+LB845:  ldy     #1
         jsr     LB88B
         cmp     #':'
         beq     LB884
@@ -1998,7 +2000,7 @@ LB8B1:  jsr     LB88B
         ora     $020B
         rts
 
-LB8C8:  lda     #$08
+LB8C8:  lda     #8
 add_a_to_c1_c2:
         clc
         adc     $C1
@@ -2020,7 +2022,7 @@ LB8D9:  lda     #$FF
         sta     $CF
 LB8EB:  rts
 
-LB8EC:  lda     #$08
+LB8EC:  lda     #8
 LB8EE:  sta     $020E
         sec
         lda     $C1
@@ -2244,7 +2246,7 @@ LBB00:  jsr     IECIN
         bne     LBB00
         jsr     UNTALK
         jsr     send_bp
-        ldx     #$02
+        ldx     #2
         jsr     CHKIN
         ldy     #0
         sty     $C1
@@ -2256,7 +2258,7 @@ LBB16:  jsr     IECIN
         jmp     LBB42 ; close 2 and print drive status
 
 LBB25:  jsr     send_bp
-        ldx     #$02
+        ldx     #2
         jsr     CKOUT
         ldy     #0
         sty     $C1
@@ -2270,18 +2272,18 @@ LBB31:  jsr     load_byte
 LBB42:  jsr     close_2
         jmp     print_drive_status
 
-LBB48:  lda     #$02
+LBB48:  lda     #2
         tay
         ldx     DEV
         jsr     SETLFS
-        lda     #$01
-        ldx     #$CF
-        ldy     #$BB
+        lda     #1
+        ldx     #<s_hash
+        ldy     #>s_hash
         jsr     SETNAM
         jmp     OPEN
 
 close_2:
-        lda     #$02
+        lda     #2
         jmp     CLOSE
 
 to_dec:
@@ -2340,7 +2342,8 @@ s_bp:
         .byte   "B-P 2 0"
 s_bp_end:
 
-        .byte   "#" ; ??? unused?
+s_hash:
+        .byte   "#"
 
 send_m_dash2:
         pha
@@ -2375,7 +2378,7 @@ cmd_p:
         bmi     syn_err8 ; drive?
         ldx     #$FF
         lda     DEV
-        cmp     #$04
+        cmp     #4
         beq     LBC11 ; printer
         jsr     basin_cmp_cr
         beq     LBC16 ; no argument
@@ -2414,7 +2417,7 @@ LBC4C:  stx     $C1
         sta     $C2
 LBC50:  lda     #$31
         sta     $C3
-        ldx     #$04
+        ldx     #4
 LBC56:  dec     $C3
 LBC58:  lda     #$2F
         sta     $C4
@@ -2520,8 +2523,8 @@ LBD09:  lda     #$1F ; ???BLUE
 LBD0B:  jsr     $E716 ; KERNAL: output character to screen
         inc     $D8
         jsr     GETIN
-        cmp     #$03
-        beq     LBD2F ; STOP
+        cmp     #KEY_STOP
+        beq     LBD2F
         cmp     #' '
         bne     LBD20
 LBD1B:  jsr     GETIN
@@ -2561,7 +2564,7 @@ LBD57:  lda     #$1F
 LBD59:  jsr     $E716 ; KERNAL: output character to screen
         inc     $D8
         jsr     GETIN
-        cmp     #$03
+        cmp     #KEY_STOP
         beq     LBD7D
         cmp     #$20
         bne     LBD6E
