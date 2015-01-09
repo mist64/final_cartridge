@@ -14,7 +14,12 @@ CSR_HOME        := $13
 CSR_RIGHT       := $1D
 CSR_UP          := $91
 
+KEY_F3          := $86
+KEY_F5          := $87
+KEY_F7          := $88
+
 ; C64 Memory Map
+KBD_BUFFER_COUNT := $C6
 KBD_BUFFER      := $0277
 
 ; variables
@@ -238,9 +243,9 @@ fill_kbd_buffer_with_csr_right:
         ldx     #0
 :       sta     KBD_BUFFER,x ; fill kbd buffer with 7 CSR RIGHT characters
         inx
-        cpx     #$07
+        cpx     #7
         bne     :-
-        stx     $C6 ; 7
+        stx     KBD_BUFFER_COUNT ; 7
         jmp     input_loop2
 
 cmd_mid2:
@@ -490,7 +495,7 @@ syn_err1:
 cmd_comma:
         jsr     get_hex_word3
         ldx     #$03
-        jsr     LB5E7
+        jsr     read_x_bytes
         lda     #$2C
         jsr     LAE7C
         jsr     fill_kbd_buffer_comma
@@ -777,7 +782,7 @@ LB05E:  jsr     BASIN
         beq     LB089
         cmp     #$20
         beq     LB05E
-        jsr     LB61C
+        jsr     is_hex_character
         bcs     LB081
         jsr     get_hex_byte3
         ldy     $C1
@@ -1504,9 +1509,9 @@ print_bin:
 LB565:  rol     a
         pha
         lda     #'*'
-        bcs     LB56D
+        bcs     :+
         lda     #'.'
-LB56D:  jsr     BSOUT
+:       jsr     BSOUT
         pla
         dex
         bne     LB565
@@ -1515,20 +1520,20 @@ LB56D:  jsr     BSOUT
 inc_c1_c2:
         clc
         inc     $C1
-        bne     LB57D
+        bne     :+
         inc     $C2
         sec
-LB57D:  rts
+:       rts
 
 dump_8_hex_bytes:
         ldx     #$08
         ldy     #0
-LB582:  jsr     print_space
+:       jsr     print_space
         jsr     load_byte
         jsr     print_hex_byte2
         iny
         dex
-        bne     LB582
+        bne     :-
         rts
 
 dump_8_ascii_characters:
@@ -1569,18 +1574,19 @@ LB5C8:  sty     $0209
         jsr     basin_if_more
         ldy     $0209
         plp
-        bmi     LB5E0
+        bmi     :+
         cmp     #$60
-        bcs     LB5E0
+        bcs     :+
         jsr     store_byte
-LB5E0:  iny
+:       iny
         dex
         bne     LB5C8
         rts
 
 read_8_bytes:
         ldx     #$08
-LB5E7:  ldy     #0
+read_x_bytes:
+        ldy     #0
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_skip_spaces_if_more
         jsr     get_hex_byte2
@@ -1602,21 +1608,22 @@ LB60A:  iny
 
 basin_if_more_cmp_space:
         jsr     basin_cmp_cr
-        bne     LB616
+        bne     :+
         pla
         pla
-LB616:  cmp     #' '
+:       cmp     #' '
         rts
 
 syn_err6:
         jmp     syntax_error
 
-LB61C:  cmp     #$30
-        bcc     LB623
-        cmp     #$47
+; XXX this detects :;<=>?@ as hex characters, see also get_hex_digit
+is_hex_character:
+        cmp     #'0'
+        bcc     :+
+        cmp     #'F' + 1
         rts
-
-LB623:  sec
+:       sec
         rts
 
 swap_c1_c2_and_c3_c4:
@@ -1654,7 +1661,7 @@ LB64D:  lda     $C2
         rts
 
 LB655:  jsr     STOP
-        beq     LB66C
+        beq     :+
         lda     $C3
         ldy     $C4
         sec
@@ -1665,8 +1672,7 @@ LB655:  jsr     STOP
         tay ; $C4 - $C2
         ora     $0209
         rts
-
-LB66C:  clc
+:       clc
         rts
 
 fill_kbd_buffer_comma:
@@ -1693,12 +1699,12 @@ fill_kbd_buffer_singlequote:
         sty     KBD_BUFFER + 2
         lda     $C1
         jsr     byte_to_hex_ascii
-        sta     $027A
-        sty     $027B
+        sta     KBD_BUFFER + 3
+        sty     KBD_BUFFER + 4
         lda     #' '
-        sta     $027C
-        lda     #$06 ; number of characters
-        sta     $C6
+        sta     KBD_BUFFER + 5
+        lda     #6 ; number of characters
+        sta     KBD_BUFFER_COUNT
         rts
 
 ; print 7x cursor right
@@ -1758,7 +1764,7 @@ irq_handler:
 after_irq:
         lda     disable_f_keys
         bne     LB6FA
-        lda     $C6 ; number of characters in keyboard buffer
+        lda     KBD_BUFFER_COUNT
         bne     LB700
 LB6FA:  pla ; XXX JMP $EA81
         tay
@@ -1768,7 +1774,7 @@ LB6FA:  pla ; XXX JMP $EA81
         rti
 
 LB700:  lda     KBD_BUFFER
-        cmp     #$88 ; F7 key
+        cmp     #KEY_F7
         bne     LB71C
         lda     #'@'
         sta     KBD_BUFFER
@@ -1776,11 +1782,11 @@ LB700:  lda     KBD_BUFFER
         sta     KBD_BUFFER + 1
         lda     #CR
         sta     KBD_BUFFER + 2 ; store "@$' + CR into keyboard buffer
-        lda     #$03 ; 3 characters
-        sta     $C6
+        lda     #3
+        sta     KBD_BUFFER_COUNT
         bne     LB6FA ; always
 
-LB71C:  cmp     #$87 ; F5 key
+LB71C:  cmp     #KEY_F5
         bne     LB733
         ldx     #24
         cpx     $D6 ; cursor line
@@ -1790,7 +1796,7 @@ LB71C:  cmp     #$87 ; F5 key
         jsr     $E50C ; KERNAL set cursor position
 LB72E:  lda     #CSR_DOWN
         sta     KBD_BUFFER
-LB733:  cmp     #$86
+LB733:  cmp     #KEY_F3
         bne     LB74A
         ldx     #0
         cpx     $D6
@@ -1861,7 +1867,7 @@ LB7C7:  lda     #CSR_UP
 LB7CD:  lda     #CR
         ldx     #CSR_HOME
 LB7D1:  ldy     #0
-        sty     $C6
+        sty     KBD_BUFFER_COUNT
         sty     disable_f_keys
         jsr     print_a_x
         jsr     print_7_csr_right
@@ -2332,8 +2338,8 @@ cmd_p:
 LBC11:  jsr     basin_cmp_cr
         bne     syn_err8
 LBC16:  sta     KBD_BUFFER
-        inc     $C6
-        lda     #$04
+        inc     KBD_BUFFER_COUNT
+        lda     #4
         cmp     $BA
         beq     LBC39 ; printer
         stx     $B9
@@ -2353,7 +2359,7 @@ LBC39:  lda     $B8
         lda     #$08
         sta     $BA
         lda     #0
-        sta     $C6
+        sta     KBD_BUFFER_COUNT
         jmp     input_loop
 
 LBC4C:  stx     $C1
