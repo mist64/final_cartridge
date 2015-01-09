@@ -7,9 +7,26 @@
 ; Monitor (~4750 bytes)
 ; ----------------------------------------------------------------
 
-entry_type      := $0251
-bank            := $0253
-cartridge_bank  := $0257
+reg_pc_hi       := ram_code_end + 5
+reg_pc_lo       := ram_code_end + 6
+reg_p           := ram_code_end + 7
+
+registers       := ram_code_end + 8
+reg_a           := ram_code_end + 8
+reg_x           := ram_code_end + 9
+reg_y           := ram_code_end + 10
+reg_s           := ram_code_end + 11
+
+irq_lo          := ram_code_end + 12
+irq_hi          := ram_code_end + 13
+
+entry_type      := ram_code_end + 14
+command_index   := ram_code_end + 15 ; command index from "command_names", or 'C'/'S' in EC/ES case
+bank            := ram_code_end + 16
+disable_f_keys  := ram_code_end + 17
+tmp1            := ram_code_end + 18
+tmp2            := ram_code_end + 19
+cartridge_bank  := ram_code_end + 20
 
 .segment "monitor1"
 
@@ -55,56 +72,59 @@ enable_all_roms:
 disable_rom_rti:
         jsr     _disable_rom
         sta     $01
-        lda     $024B ; A register
+        lda     reg_a
         rti
 
 brk_entry:
         jsr     enable_all_roms
-        jmp     LAB48
+        jmp     brk_entry2
 ram_code_end:
+
+; XXX ram_code is here - why put it between ROM code, so we have to jump over it?
 
 .segment "monitor2"
 
-LAB48:  cld ; <- important :)
+brk_entry2:
+        cld ; <- important :)
         pla
-        sta     $024D ; Y
+        sta     reg_y
         pla
-        sta     $024C ; X
+        sta     reg_x
         pla
-        sta     $024B ; A
+        sta     reg_a
         pla
-        sta     $024A ; P
+        sta     reg_p
         pla
-        sta     $0249 ; PC lo
+        sta     reg_pc_lo
         pla
-        sta     $0248 ; PC hi
+        sta     reg_pc_hi
         tsx
-        stx     $024E
+        stx     reg_s
         jsr     set_irq_vector
         jsr     set_io_vectors
         jsr     print_cr
         lda     entry_type
         cmp     #'C'
-        bne     LAB76
+        bne     :+
         .byte   $2C ; XXX bne + skip = beq + 2
-LAB76:  lda     #'B'
+:       lda     #'B'
         ldx     #'*'
         jsr     print_a_x
         clc
-        lda     $0249 ; PC lo
+        lda     reg_pc_lo
         adc     #$FF
-        sta     $0249 ; PC lo
-        lda     $0248
+        sta     reg_pc_lo
+        lda     reg_pc_hi
         adc     #$FF
-        sta     $0248 ; decrement PC
+        sta     reg_pc_hi ; decrement PC
         lda     $BA
         and     #$FB
         sta     $BA
         lda     #'B'
         sta     entry_type
         lda     #$80
-        sta     $028A
-        bne     LABA5 ; always
+        sta     $028A ; enable key repeat for all keys
+        bne     dump_registers ; always
 
 ; ----------------------------------------------------------------
 ; "R" - dump registers
@@ -112,43 +132,44 @@ LAB76:  lda     #'B'
 cmd_r:
         jsr     basin_cmp_cr
         bne     syntax_error
-LABA5:  ldx     #$00
-LABA7:  lda     s_regs,x
-        beq     print_registers
+dump_registers:
+        ldx     #0
+:       lda     s_regs,x ; "PC  IRQ  BK AC XR YR SP NV#BDIZC"
+        beq     dump_registers2
         jsr     BSOUT
         inx
-        bne     LABA7
-print_registers:
+        bne     :-
+dump_registers2:
         ldx     #';'
         jsr     print_dot_x
-        lda     $0248 ; PC hi
+        lda     reg_pc_hi
         jsr     print_hex_byte2 ; address hi
-        lda     $0249 ; PC lo
+        lda     reg_pc_lo
         jsr     print_hex_byte2 ; address lo
         jsr     print_space
-        lda     $0250 ; $0315
+        lda     irq_hi
         jsr     print_hex_byte2 ; IRQ hi
-        lda     $024F ; $0314
+        lda     irq_lo
         jsr     print_hex_byte2 ; IRQ lo
         jsr     print_space
         lda     bank
-        bpl     LABE6
+        bpl     :+
         lda     #'D'
         jsr     BSOUT
         lda     #'R'
         jsr     BSOUT
         bne     LABEB ; negative bank means drive ("DR")
-LABE6:  and     #$0F
+:       and     #$0F
         jsr     print_hex_byte2 ; bank
-LABEB:  ldy     #$00
-LABED:  jsr     print_space
-        lda     $024B,y
+LABEB:  ldy     #0
+:       jsr     print_space
+        lda     registers,y
         jsr     print_hex_byte2 ; registers...
         iny
         cpy     #$04
-        bne     LABED
+        bne     :-
         jsr     print_space
-        lda     $024A ; processor status
+        lda     reg_p
         jsr     print_bin
         beq     input_loop ; always
 
@@ -160,10 +181,10 @@ print_cr_then_input_loop:
         jsr     BSOUT
 
 input_loop:
-        ldx     $024E
+        ldx     reg_s
         txs
-        lda     #$00
-        sta     $0254
+        lda     #0
+        sta     disable_f_keys
         jsr     print_cr_dot
 input_loop2:
         jsr     basin_if_more
@@ -174,7 +195,7 @@ input_loop2:
         ldx     #$1A
 LAC27:  cmp     command_names,x
         bne     LAC3B
-        stx     $0252 ; save command index
+        stx     command_index
         txa
         asl     a
         tax
@@ -203,16 +224,16 @@ fill_kbd_buffer_with_csr_right:
         ldx     #$0D ; CR
         jsr     print_a_x
         lda     #$1D ; CSR RIGHT
-        ldx     #$00
-LAC59:  sta     $0277,x ; fill kbd buffer with 7 CSR RIGHT characters
+        ldx     #0
+:       sta     $0277,x ; fill kbd buffer with 7 CSR RIGHT characters
         inx
         cpx     #$07
-        bne     LAC59
+        bne     :-
         stx     $C6 ; 7
         jmp     input_loop2
 
 cmd_mid2:
-        sta     $0252 ; write 'C' or 'S' into command index
+        sta     command_index ; write 'C' or 'S'
 
 ; ----------------------------------------------------------------
 ; "M"/"I"/"D" - dump 8 hex byes, 32 ASCII bytes, or disassemble
@@ -235,7 +256,7 @@ cmd_fhct:
         jsr     basin_if_more
 LAC80:  jsr     swap_c1_c2_and_c3_c4
         jsr     get_hex_word3
-LAC86:  lda     $0252 ; command index (or 'C'/'S')
+LAC86:  lda     command_index
         beq     is_mie ; 'M' (hex dump)
         cmp     #$17
         beq     is_mie ; 'I' (ASCII dump)
@@ -257,7 +278,7 @@ LACAB:  jmp     fill_kbd_buffer_with_csr_right
 
 is_mie:
         jsr     print_cr
-        lda     $0252 ; command index (or 'C'/'S')
+        lda     command_index
         beq     LACC4 ; 'M'
         cmp     #'S'
         beq     LACD0
@@ -293,7 +314,7 @@ dump_sprite_line:
         jsr     print_dot_x
         jsr     print_hex_16
         jsr     print_space
-        ldy     #$00
+        ldy     #0
 LACFD:  jsr     load_byte
         jsr     print_bin
         iny
@@ -308,7 +329,7 @@ dump_char_line:
         jsr     print_dot_x
         jsr     print_hex_16
         jsr     print_space
-        ldy     #$00
+        ldy     #0
         jsr     load_byte
         jsr     print_bin
         jsr     print_8_spaces
@@ -354,7 +375,7 @@ cmd_leftbracket:
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_skip_spaces_if_more
         jsr     LB4DB
-        ldy     #$00
+        ldy     #0
         jsr     store_byte
         jsr     print_up
         jsr     dump_char_line
@@ -370,7 +391,7 @@ cmd_rightbracket:
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_skip_spaces_if_more
         jsr     LB4DB
-        ldy     #$00
+        ldy     #0
         beq     LAD9F
 LAD9C:  jsr     get_bin_byte
 LAD9F:  jsr     store_byte
@@ -413,15 +434,15 @@ cmd_colon:
 cmd_semicolon:
         jsr     get_hex_word
         lda     $C4
-        sta     $0248 ; PC hi
+        sta     reg_pc_hi
         lda     $C3
-        sta     $0249 ; PC lo
+        sta     reg_pc_lo
         jsr     basin_if_more
         jsr     get_hex_word3
         lda     $C3
-        sta     $024F ; $0314
+        sta     irq_lo
         lda     $C4
-        sta     $0250 ; $0315
+        sta     irq_hi
         jsr     basin_if_more ; skip upper nybble of bank
         jsr     basin_if_more
         cmp     #'D' ; "drive"
@@ -436,18 +457,18 @@ LAE12:  jsr     get_hex_byte2
         bcs     LAE3D ; syntax error
         ora     #$30
 LAE1B:  sta     bank
-        ldx     #$00
+        ldx     #0
 LAE20:  jsr     basin_if_more
         jsr     get_hex_byte
-        sta     $024B,x ; registers
+        sta     registers,x ; registers
         inx
         cpx     #$04
         bne     LAE20
         jsr     basin_if_more
         jsr     get_bin_byte
-        sta     $024A ; processor status
+        sta     reg_p
         jsr     print_up
-        jmp     print_registers
+        jmp     dump_registers2
 
 LAE3D:  jmp     syntax_error
 
@@ -470,9 +491,9 @@ cmd_a:
         jsr     get_hex_word
         jsr     LB030
         jsr     LB05C
-        ldx     #$00
+        ldx     #0
         stx     $0206
-LAE61:  ldx     $024E
+LAE61:  ldx     reg_s
         txs
         jsr     LB08D
         jsr     LB0AB
@@ -497,7 +518,7 @@ LAE88:  jsr     LB655
 LAE90:  sty     $020A
         jsr     basin_if_more
         jsr     get_hex_word3
-        lda     $0252 ; command index (or 'C'/'S')
+        lda     command_index
         cmp     #$08 ; 'C'
         beq     LAEA6
         jsr     LB1CB
@@ -507,7 +528,7 @@ LAEA6:  jsr     LB245
         jmp     input_loop
 
 LAEAC:  jsr     basin_if_more
-        ldx     #$00
+        ldx     #0
         stx     $020B
         jsr     basin_if_more
         cmp     #$22
@@ -533,7 +554,7 @@ LAEDC:  sta     $0200,x
         bne     LAED4
 LAEE4:  jmp     syntax_error
 
-LAEE7:  stx     $0252 ; command index (or 'C'/'S')
+LAEE7:  stx     command_index
         txa
         beq     LAEE4
         jsr     LB293
@@ -555,16 +576,16 @@ LAF06:  lda     bank
         bmi     LAF2B ; drive
         jsr     set_irq_vector
         jsr     set_io_vectors_with_hidden_rom
-        ldx     $024E
+        ldx     reg_s
         txs
         lda     $C4
         pha
         lda     $C3
         pha
-        lda     $024A; processor status
+        lda     reg_p
         pha
-        ldx     $024C
-        ldy     $024D
+        ldx     reg_x
+        ldy     reg_y
         lda     bank
         jmp     disable_rom_rti
 LAF2B:  lda     #'E' ; send M-E to drive
@@ -580,7 +601,7 @@ LAF2B:  lda     #'E' ; send M-E to drive
 ; assembler/disassembler
 ; ----------------------------------------------------------------
 LAF40:  pha
-        ldy     #$00
+        ldy     #0
 LAF43:  cpy     $0205
         beq     LAF52
         bcc     LAF52
@@ -596,7 +617,7 @@ LAF58:  jsr     print_space
         pla
         rts
 
-LAF62:  ldy     #$00
+LAF62:  ldy     #0
         jsr     load_byte
 LAF67:  tay
         lsr     a
@@ -618,7 +639,7 @@ LAF76:  lsr     a
 LAF81:  and     #$0F
         bne     LAF89
 LAF85:  ldy     #$80
-        lda     #$00
+        lda     #0
 LAF89:  tax
         lda     asmtab2,x
         sta     $0207
@@ -649,7 +670,7 @@ LAFAF:  tay
         lda     nmemos2,y
         sta     $0208
         ldx     #$03
-LAFBE:  lda     #$00
+LAFBE:  lda     #0
         ldy     #$05
 LAFC2:  asl     $0208
         rol     $020A
@@ -712,7 +733,7 @@ LB028:  jsr     LB01B
         sty     $C2
         rts
 
-LB030:  ldx     #$00
+LB030:  ldx     #0
         stx     $0211
 LB035:  jsr     basin_if_more
         cmp     #$20
@@ -759,7 +780,7 @@ LB081:  sta     $0210,x
 LB089:  stx     $020A
         rts
 
-LB08D:  ldx     #$00
+LB08D:  ldx     #0
         stx     $0204
         lda     $0206
         jsr     LAF67
@@ -866,7 +887,7 @@ cmd_dollar:
 ; "#" - convert decimal to hex
 ; ----------------------------------------------------------------
 cmd_hash:
-        ldy     #$00
+        ldy     #0
         sty     $C1
         sty     $C2
         jsr     basin_skip_spaces_if_more
@@ -916,9 +937,9 @@ LB19B:  jsr     print_up_dot
 cmd_x:
         jsr     set_irq_vector
         jsr     set_io_vectors_with_hidden_rom
-        lda     #$00
+        lda     #0
         sta     $028A
-        ldx     $024E
+        ldx     reg_s
         txs
         jmp     _basic_warm_start
 
@@ -927,8 +948,8 @@ LB1CB:  lda     $C3
         lda     $C4
         sbc     $C2
         bcs     LB1FC
-        ldy     #$00
-        ldx     #$00
+        ldy     #0
+        ldx     #0
 LB1D9:  jsr     load_byte
         pha
         jsr     swap_c1_c2_and_c3_c4
@@ -963,9 +984,9 @@ LB20E:  jsr     load_byte
         pla
         jsr     store_byte
         jsr     swap_c1_c2_and_c3_c4
-        cpy     #$00
+        cpy     #0
         bne     LB229
-        cpx     #$00
+        cpx     #0
         beq     LB22D
         dec     $C2
         dec     $C4
@@ -975,7 +996,7 @@ LB229:  dey
 
 LB22D:  rts
 
-LB22E:  ldy     #$00
+LB22E:  ldy     #0
 LB230:  jsr     store_byte
         ldx     $C1
         cpx     $C3
@@ -995,15 +1016,15 @@ LB245:  jsr     print_cr
         lda     $C2
         adc     $020A
         sta     $020A
-        ldy     #$00
+        ldy     #0
 LB25B:  jsr     load_byte
-        sta     $0252 ; command index (or 'C'/'S')
+        sta     command_index
         jsr     swap_c1_c2_and_c3_c4
         jsr     load_byte
         pha
         jsr     swap_c1_c2_and_c3_c4
         pla
-        cmp     $0252 ; command index (or 'C'/'S')
+        cmp     command_index
         beq     LB274
         jsr     print_space_hex_16
 LB274:  jsr     STOP
@@ -1024,12 +1045,12 @@ LB292:  rts
 LB293:  jsr     print_cr
 LB296:  jsr     LB655
         bcc     LB2B3
-        ldy     #$00
+        ldy     #0
 LB29D:  jsr     load_byte
         cmp     $0200,y
         bne     LB2AE
         iny
-        cpy     $0252 ; command index (or 'C'/'S')
+        cpy     command_index
         bne     LB29D
         jsr     print_space_hex_16
 LB2AE:  jsr     inc_c1_c2
@@ -1177,7 +1198,7 @@ cmd_ls:
         sta     $BB
         jsr     basin_skip_spaces_cmp_cr
         bne     LB3B6
-LB388:  lda     $0252 ; command index (or 'C'/'S')
+LB388:  lda     command_index
         cmp     #$0B ; 'L'
         bne     LB3CC
 LB38F:  jsr     LB35C
@@ -1190,7 +1211,7 @@ LB38F:  jsr     LB35C
         jsr     set_irq_vector
         plp
 LB3A4:  bcc     LB3B3
-LB3A6:  ldx     #$00
+LB3A6:  ldx     #0
 LB3A8:  lda     $F0BD,x ; "I/O ERROR"
         jsr     BSOUT
         inx
@@ -1231,7 +1252,7 @@ LB3F0:  bne     LB3D6
         jsr     swap_c1_c2_and_c3_c4
         jsr     basin_cmp_cr
         bne     LB408
-        lda     $0252 ; command index (or 'C'/'S')
+        lda     command_index
         cmp     #$0B ; 'L'
         bne     LB3F0
         dec     $B9
@@ -1243,7 +1264,7 @@ LB40A:  bne     LB3F0
         bne     LB40A
         ldx     $C3
         ldy     $C4
-        lda     $0252 ; command index (or 'C'/'S')
+        lda     command_index
         cmp     #$0C ; 'S'
         bne     LB40A
         dec     $B9
@@ -1256,7 +1277,7 @@ LB42D:  lda     #>(_enable_rom - 1)
         pha
         lda     #<(_enable_rom - 1)
         pha
-        lda     #$00
+        lda     #0
         jmp     LOAD
 
 LB438:  lda     #>(_enable_rom - 1)
@@ -1400,8 +1421,8 @@ LB500:  sta     $C4
 
 ; get a 8 bit ASCII hex number from the user, return it in A
 get_hex_byte:
-        lda     #$00
-        sta     $0256 ; XXX not necessary?
+        lda     #0
+        sta     tmp2 ; XXX not necessary?
         jsr     basin_if_more
 get_hex_byte2:
         jsr     validate_hex_digit
@@ -1411,10 +1432,10 @@ get_hex_byte3:
         asl     a
         asl     a
         asl     a
-        sta     $0256 ; low nybble
+        sta     tmp2 ; low nybble
         jsr     get_hex_digit
         jsr     hex_digit_to_nybble
-        ora     $0256
+        ora     tmp2
         sec
         rts
 
@@ -1456,9 +1477,9 @@ print_hex_16:
         lda     $C1
 
 print_hex_byte2:
-        sty     $0255
+        sty     tmp1
         jsr     print_hex_byte
-        ldy     $0255
+        ldy     tmp1
         rts
 
 print_bin:
@@ -1484,7 +1505,7 @@ LB57D:  rts
 
 dump_8_hex_bytes:
         ldx     #$08
-        ldy     #$00
+        ldy     #0
 LB582:  jsr     print_space
         jsr     load_byte
         jsr     print_hex_byte2
@@ -1496,7 +1517,7 @@ LB582:  jsr     print_space
 dump_8_ascii_characters:
        ldx     #$08
 dump_ascii_characters:
-        ldy     #$00
+        ldy     #0
 LB594:  jsr     load_byte
         cmp     #$20
         bcs     LB59F
@@ -1510,7 +1531,7 @@ LB59F:  cmp     #$80
         ora     #$60
         inc     $C7
 LB5AD:  jsr     BSOUT
-        lda     #$00
+        lda     #0
         sta     $C7
         sta     $D4
         iny
@@ -1521,7 +1542,7 @@ LB5AD:  jsr     BSOUT
 
 read_ascii:
         ldx     #$20
-        ldy     #$00
+        ldy     #0
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_if_more
 LB5C8:  sty     $0209
@@ -1542,7 +1563,7 @@ LB5E0:  iny
 
 read_8_bytes:
         ldx     #$08
-LB5E7:  ldy     #$00
+LB5E7:  ldy     #0
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_skip_spaces_if_more
         jsr     get_hex_byte2
@@ -1596,9 +1617,9 @@ swap_c1_c2_and_c3_c4:
         rts
 
 copy_pc_to_c3_c4_and_c1_c2:
-        lda     $0248 ; PC hi
+        lda     reg_pc_hi
         sta     $C4
-        lda     $0249 ; PC lo
+        lda     reg_pc_lo
         sta     $C3
 
 copy_c3_c4_to_c1_c2:
@@ -1689,13 +1710,13 @@ set_irq_vector:
         beq     LB6D3
 LB6C1:  lda     $0314
         ldx     $0315
-        sta     $024F ; $0314
-        stx     $0250 ; $0315
+        sta     irq_lo
+        stx     irq_hi
         lda     #<irq_handler
         ldx     #>irq_handler
         bne     LB6D9 ; always
-LB6D3:  lda     $024F ; $0314
-        ldx     $0250 ; $0315
+LB6D3:  lda     irq_lo
+        ldx     irq_hi
 LB6D9:  sei
         sta     $0314
         stx     $0315
@@ -1707,7 +1728,7 @@ irq_handler:
         pha
         lda     #<after_irq
         pha
-        lda     #$00 ; fill A/X/Y/P
+        lda     #0 ; fill A/X/Y/P
         pha
         pha
         pha
@@ -1715,7 +1736,7 @@ irq_handler:
         jmp     $EA31 ; run normal IRQ handler, then return to this code
 
 after_irq:
-        lda     $0254
+        lda     disable_f_keys
         bne     LB6FA
         lda     $C6 ; number of characters in keyboard buffer
         bne     LB700
@@ -1751,7 +1772,7 @@ LB72E:  lda     #$11 ; DOWN
         sta     $0277 ; kbd buffer
 LB733:  cmp     #$86
         bne     LB74A
-        ldx     #$00
+        ldx     #0
         cpx     $D6
         beq     LB745
         jsr     LB8D9
@@ -1819,9 +1840,9 @@ LB7C7:  lda     #$91 ; UP
         bne     LB7D1
 LB7CD:  lda     #$0D ; CR
         ldx     #$13 ; HOME
-LB7D1:  ldy     #$00
+LB7D1:  ldy     #0
         sty     $C6
-        sty     $0254
+        sty     disable_f_keys
         jsr     print_a_x
         jsr     LB6A2
         jmp     LB6FA
@@ -1954,7 +1975,7 @@ add_a_to_c1_c2:
 LB8D3:  rts
 
 LB8D4:  lda     #$FF
-        sta     $0254
+        sta     disable_f_keys
 LB8D9:  lda     #$FF
         sta     $CC
         lda     $CF
@@ -1962,7 +1983,7 @@ LB8D9:  lda     #$FF
         lda     $CE
         ldy     $D3
         sta     ($D1),y
-        lda     #$00
+        lda     #0
         sta     $CF
 LB8EB:  rts
 
@@ -1976,7 +1997,7 @@ LB8EE:  sta     $020E
         dec     $C2
 LB8FD:  rts
 
-LB8FE:  ldx     #$00
+LB8FE:  ldx     #0
         jsr     $E96C ; insert line at top of screen
         lda     #$94
         sta     $D9
@@ -1991,7 +2012,7 @@ LB913:  sec
         sbc     $020D
         sta     $C1
         lda     $C4
-        sbc     #$00
+        sbc     #0
         sta     $C2
 LB921:  jsr     LAF62
         lda     $0205
@@ -2150,7 +2171,7 @@ LBB00:  jsr     IECIN
         jsr     LBBAE
         ldx     #$02
         jsr     CHKIN
-        ldy     #$00
+        ldy     #0
         sty     $C1
 LBB16:  jsr     IECIN
         jsr     store_byte ; receive block
@@ -2162,7 +2183,7 @@ LBB16:  jsr     IECIN
 LBB25:  jsr     LBBAE
         ldx     #$02
         jsr     CKOUT
-        ldy     #$00
+        ldy     #0
         sty     $C1
 LBB31:  jsr     load_byte
         jsr     IECOUT ; send block
@@ -2198,7 +2219,7 @@ LBB6B:  adc     #$3A
         rts
 
 LBB6E:  pha
-        ldx     #$00
+        ldx     #0
 LBB71:  lda     s_u1,x
         sta     $0200,x
         inx
@@ -2217,7 +2238,7 @@ LBB71:  lda     s_u1,x
         stx     $020A
         sta     $020B
         jsr     listen_command_channel
-        ldx     #$00
+        ldx     #0
 LBBA0:  lda     $0200,x
         jsr     IECOUT
         inx
@@ -2226,7 +2247,7 @@ LBBA0:  lda     $0200,x
         jmp     UNLSTN
 
 LBBAE:  jsr     listen_command_channel
-        ldx     #$00
+        ldx     #0
 LBBB3:  lda     s_bp,x
         jsr     IECOUT
         inx
@@ -2261,7 +2282,7 @@ iec_send_c1_c2_plus_y:
         jsr     IECOUT
         plp
         lda     $C2
-        adc     #$00
+        adc     #0
         jmp     IECOUT
 
 LBBF4:  jmp     syntax_error
@@ -2292,7 +2313,7 @@ LBC16:  sta     $0277; kbd buffer
         stx     $B9
         sta     $BA ; set device 4
         sta     $B8
-        ldx     #$00
+        ldx     #0
         stx     $B7
         jsr     CLOSE
         jsr     OPEN
@@ -2305,7 +2326,7 @@ LBC39:  lda     $B8
         jsr     CLRCH
         lda     #$08
         sta     $BA
-        lda     #$00
+        lda     #0
         sta     $C6
         jmp     input_loop
 
@@ -2440,7 +2461,7 @@ LBD2D:  bne     LBCDF ; next line
 LBD2F:  jmp     $F646 ; CLOSE
 
 init_drive:
-        lda     #$00
+        lda     #0
         sta     $90 ; clear status
         lda     #$08
         cmp     $BA ; drive 8 and above ok
@@ -2480,7 +2501,7 @@ LBD6E:  dex
         bne     LBD2D
 LBD7D:  jmp     $F646 ; CLOSE
 
-        lda     #$00
+        lda     #0
         sta     $90
         lda     #$08
         cmp     $BA
