@@ -895,23 +895,36 @@ L85E2:  jsr     L85BF
         bne     L85E2
         rts
 
-L85E8:  lda     $7A
+save_chrget_ptr:
+        lda     $7A
         sta     $5A
         lda     $7B
         sta     $5B
         rts
 
-L85F1:  ldx     #$03
+L85F1:  ldx     #L8606_end - L8606 - 1
 L85F3:  lda     L8606,x
         sta     $0334,x
         dex
         bpl     L85F3
         rts
 
-L85FD:  .byte   $9B,$8A,$A7,$89,$8D,$CB
-L8603:  .byte   $AB,$A4,$2C
-L8606:  .byte   $64,$00,$0A,$00,$FF
+L85FD:
+        .byte   $9B,$8A,$A7,$89,$8D,$CB
+L85FD_end:
 
+L8603:
+        .byte   $AB,$A4,$2C
+L8603_end:
+
+L8606:
+        .byte   $64,$00,$0A,$00
+L8606_end:
+
+; ??? unused?
+        .byte   $FF
+
+new_basic_keywords:
         .byte   "OF", 'F' + $80
         .byte   "AUT", 'O' + $80
         .byte   "DE", 'L' + $80
@@ -1119,21 +1132,22 @@ L87CB:  lda     #$20
 L87D1:  jsr     _CHRGET
 L87D4:  tax
         beq     L87BB
-        cmp     #$22
+        cmp     #'"'
         beq     L87C8
         ldy     $C1
         bne     L87D1
         cmp     #$8F
         beq     L87CB
-        ldx     #$05
+        ldx     #L85FD_end - L85FD - 1
 L87E5:  cmp     L85FD,x
         beq     L87EF
         dex
         bpl     L87E5
         bmi     L87D1
-L87EF:  jsr     L85E8
+
+L87EF:  jsr     save_chrget_ptr
         jsr     _CHRGET
-L87F5:  ldx     #$02
+L87F5:  ldx     #L8603_end - L8603 - 1
 L87F7:  cmp     L8603,x
         beq     L87EF
         dex
@@ -1245,7 +1259,7 @@ FIND:   ldy     #$00
         jsr     L85BF
         ldy     #$22
 L88D4:  sty     $C1
-        jsr     L85E8
+        jsr     save_chrget_ptr
 L88D9:  ldx     #$00
         stx     $C4
         beq     L88EB
@@ -1706,18 +1720,19 @@ L8C03:  lda     $028D
         jmp     _list
 
 L8C11:  cmp     #$E9
-        bcs     L8C5F
+        bcs     L8C5F ; token above
         cmp     #$80
-        bcc     L8C59
+        bcc     L8C59 ; below
         bit     $0F
         bmi     L8C55
         cmp     #$CC
-        bcc     L8C2B
+        bcc     L8C2B ; standard C64 token
         sbc     #$4C
-        ldx     #$0B
+        ldx     #<new_basic_keywords
         stx     $22
-        ldx     #$86
+        ldx     #>new_basic_keywords
         bne     L8C31
+        
 L8C2B:  ldx     #<basic_keywords
         stx     $22
         ldx     #>basic_keywords
@@ -2075,7 +2090,7 @@ REPLACE:
         jsr     L85BF
         ldy     #$22
 L8EDC:  sty     $C1
-        jsr     L85E8
+        jsr     save_chrget_ptr
         ldx     #$00
         stx     $C3
         beq     L8EF3
@@ -4126,12 +4141,17 @@ L9DBB:  inx
         sty     $1800
         jmp     $E60A ; drive ROM
 
-        .byte   $00,$0A,$0A,$02,$00,$0A,$0A,$02
-        .byte   $00,$00,$08,$00,$00,$00,$08,$00
-        .byte   $00,$02,$08,$00,$00,$02,$08,$00
-        .byte   $00,$08,$0A,$0A,$00,$00,$02,$02
-        .byte   $00,$00,$0A,$0A,$00,$00,$02,$02
-        .byte   $00,$08,$08,$08,$00,$00,$00,$00
+; ??? unreferenced?
+        .byte   0, 10, 10, 2
+        .byte   0, 10, 10, 2
+        .byte   0, 0, 8, 0
+        .byte   0, 0, 8, 0
+        .byte   0, 2, 8, 0
+        .byte   0, 2, 8, 0
+        .byte   0, 8, 10, 10, 0, 0, 2, 2
+        .byte   0, 0, 10, 10, 0, 0, 2, 2
+        .byte   0, 8, 8, 8
+        .byte   0, 0, 0, 0
 
 ; ----------------------------------------------------------------
 ; I/O Area ROM
@@ -8515,9 +8535,9 @@ freezer: ; $FFA0
         lda     $DC0B ; CIA 1 TOD hours
         lda     $DD0B ; CIA 2 TOD hours (???)
         txa
-        pha
-        tya ; ???
-        pha
+        pha ; save X
+        tya
+        pha ; save Y
         lda     $02A1 ; RS-232 interrupt enabled
         pha
         ldx     #$0A
