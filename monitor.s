@@ -14,6 +14,10 @@ CSR_HOME        := $13
 CSR_RIGHT       := $1D
 CSR_UP          := $91
 
+; C64 Memory Map
+KBD_BUFFER      := $0277
+
+; variables
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
 reg_p           := ram_code_end + 7
@@ -232,7 +236,7 @@ fill_kbd_buffer_with_csr_right:
         jsr     print_a_x
         lda     #CSR_RIGHT
         ldx     #0
-:       sta     $0277,x ; fill kbd buffer with 7 CSR RIGHT characters
+:       sta     KBD_BUFFER,x ; fill kbd buffer with 7 CSR RIGHT characters
         inx
         cpx     #$07
         bne     :-
@@ -1433,7 +1437,7 @@ LB500:  sta     $C4
 ; get a 8 bit ASCII hex number from the user, return it in A
 get_hex_byte:
         lda     #0
-        sta     tmp2 ; XXX not necessary?
+        sta     tmp2 ; XXX not necessary
         jsr     basin_if_more
 get_hex_byte2:
         jsr     validate_hex_digit
@@ -1457,6 +1461,7 @@ hex_digit_to_nybble:
         adc     #'A' - '9'
 LB530:  rts
 
+; ??? unused?
         clc
         rts
 
@@ -1681,11 +1686,11 @@ fill_kbd_buffer_rightbracket:
         .byte   $2C
 fill_kbd_buffer_singlequote:
         lda     #$27 ; "'"
-        sta     $0277 ; keyboard buffer
+        sta     KBD_BUFFER
         lda     $C2
         jsr     byte_to_hex_ascii
-        sta     $0278
-        sty     $0279
+        sta     KBD_BUFFER + 1
+        sty     KBD_BUFFER + 2
         lda     $C1
         jsr     byte_to_hex_ascii
         sta     $027A
@@ -1762,15 +1767,15 @@ LB6FA:  pla ; XXX JMP $EA81
         pla
         rti
 
-LB700:  lda     $0277 ; keyboard buffer
+LB700:  lda     KBD_BUFFER
         cmp     #$88 ; F7 key
         bne     LB71C
         lda     #'@'
-        sta     $0277
+        sta     KBD_BUFFER
         lda     #'$'
-        sta     $0278
+        sta     KBD_BUFFER + 1
         lda     #CR
-        sta     $0279 ; store "@$' + CR into keyboard buffer
+        sta     KBD_BUFFER + 2 ; store "@$' + CR into keyboard buffer
         lda     #$03 ; 3 characters
         sta     $C6
         bne     LB6FA ; always
@@ -1784,7 +1789,7 @@ LB71C:  cmp     #$87 ; F5 key
         ldy     $D3
         jsr     $E50C ; KERNAL set cursor position
 LB72E:  lda     #CSR_DOWN
-        sta     $0277 ; kbd buffer
+        sta     KBD_BUFFER
 LB733:  cmp     #$86
         bne     LB74A
         ldx     #0
@@ -1794,7 +1799,7 @@ LB733:  cmp     #$86
         ldy     $D3
         jsr     $E50C ; KERNAL set cursor position
 LB745:  lda     #CSR_UP
-        sta     $0277 ; kbd buffer
+        sta     KBD_BUFFER
 LB74A:  cmp     #CSR_DOWN
         beq     LB758
         cmp     #CSR_UP
@@ -1920,7 +1925,7 @@ LB845:  ldy     #$01
         beq     LB884
         dec     $020D
         beq     LB889
-        lda     $0277 ; kbd buffer
+        lda     KBD_BUFFER
         cmp     #CSR_DOWN
         bne     LB877
         sec
@@ -2326,7 +2331,7 @@ cmd_p:
         tax
 LBC11:  jsr     basin_cmp_cr
         bne     syn_err8
-LBC16:  sta     $0277; kbd buffer
+LBC16:  sta     KBD_BUFFER
         inc     $C6
         lda     #$04
         cmp     $BA
