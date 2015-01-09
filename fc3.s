@@ -30,19 +30,6 @@
         .setcpu "6502"
         .include "persistent.i"
 
-.global new_bsout
-.global new_ckout
-.global new_clall
-.global new_clrch
-.global new_detokenize
-.global new_execute
-.global new_expression
-.global new_load
-.global new_mainloop
-.global new_save
-.global kbd_handler
-.global load_and_run_program
-
 CHRGET          := $0073
 CHRGOT          := $0079
 
@@ -341,6 +328,7 @@ L8194:  jsr     listen_second
 L819A:  ldx     #$05
         jmp     L9873
 
+.global new_expression
 new_expression:
         lda     #$00
         sta     $0D
@@ -395,6 +383,7 @@ AUTO:   jsr     L85F1
         lda     #$40
 L81FB:  sta     $02A9
 
+.global new_mainloop
 new_mainloop: ; $81FE
         jsr     L8C71
         jsr     cond_init_load_save_vectors
@@ -536,6 +525,7 @@ L830B:  sta     $01FD,y
         sta     $7A
         rts
 
+.global new_execute
 new_execute:
         beq     L8342
         ldx     $3A
@@ -1670,7 +1660,7 @@ L8B95:  jsr     L8453
         jmp     L8A53
 
 set_filename_or_colon_asterisk:
-        lda     #<(a_colon_asterisk_end - a_colon_asterisk); ":*" (XXX "<" required to make ca65 happy)
+        lda     #<(_a_colon_asterisk_end - _a_colon_asterisk); ":*" (XXX "<" required to make ca65 happy)
         .byte   $2C
 set_filename_or_empty:
         lda     #$00 ; empty filename
@@ -1687,8 +1677,8 @@ set_filename:
         rts ; XXX jsr/rts -> jmp
 
 set_colon_asterisk:
-        ldx     #<a_colon_asterisk
-        ldy     #>a_colon_asterisk
+        ldx     #<_a_colon_asterisk
+        ldy     #>_a_colon_asterisk
         jsr     SETNAM
 set_drive:
         lda     #$00
@@ -1726,6 +1716,7 @@ L8BF5:  tya
         inc     $7B
 L8BFF:  jmp     UNLSTN
 
+.global new_detokenize
 new_detokenize: ; $8C02
         tax
 L8C03:  lda     $028D
@@ -2560,6 +2551,7 @@ pack_header_end:
 
 .segment "part1b"
 
+.global kbd_handler
 kbd_handler:
         lda     $CC
         bne     L927C ; do not flash cursor
@@ -2922,6 +2914,7 @@ reset_load_and_run:
 ; ----------------------------------------------------------------
 
 ; file name at $0200
+.global load_and_run_program
 load_and_run_program:
         ldx     #a_ready - messages
         jsr     print_msg ; print "READY."
@@ -3488,8 +3481,10 @@ L98C7:  lda     #>($E175 - 1)
 
 ; ----------------------------------------------------------------
 
+.global new_load
 new_load: ; $9900
 	jmp new_load2
+.global new_save
 new_save: ; $9903
 	jmp new_save2
 
@@ -4359,6 +4354,7 @@ set_io_vectors2:
         rts
 
 ; ----------------------------------------------------------------
+.global new_ckout
 new_ckout: ; $A161
         txa
         pha
@@ -4394,6 +4390,7 @@ LA183:  jsr     LA09F
         clc
 LA19B:  rts
 
+.global new_bsout
 new_bsout: ; $A19C
         jsr     new_bsout2
         jmp     _disable_rom
@@ -4420,10 +4417,12 @@ LA1C0:  lda     $95
         clc
         rts
 
+.global new_clall
 new_clall: ; $A1C5
         jsr     new_clall2
         jmp     _disable_rom
 
+.global new_clrch
 new_clrch: ; $A1CB
         jsr     new_clrch2
         jmp     _disable_rom
