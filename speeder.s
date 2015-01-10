@@ -16,10 +16,10 @@ DEV             := $BA ; device number
 .segment "speeder_a"
 
 .global new_load
-new_load: ; $9900
+new_load:
 	jmp new_load2
 .global new_save
-new_save: ; $9903
+new_save:
 	jmp new_save2
 
 L9906:  pha

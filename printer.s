@@ -191,7 +191,7 @@ set_io_vectors2:
 
 ; ----------------------------------------------------------------
 .global new_ckout
-new_ckout: ; $A161
+new_ckout:
         txa
         pha
         jsr     $F30F ; find LFN
@@ -227,7 +227,7 @@ LA183:  jsr     LA09F
 LA19B:  rts
 
 .global new_bsout
-new_bsout: ; $A19C
+new_bsout:
         jsr     new_bsout2
         jmp     _disable_rom
 
@@ -254,12 +254,12 @@ LA1C0:  lda     $95
         rts
 
 .global new_clall
-new_clall: ; $A1C5
+new_clall:
         jsr     new_clall2
         jmp     _disable_rom
 
 .global new_clrch
-new_clrch: ; $A1CB
+new_clrch:
         jsr     new_clrch2
         jmp     _disable_rom
 

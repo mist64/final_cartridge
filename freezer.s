@@ -13,7 +13,7 @@
 
 .segment "freezer"
 
-freezer: ; $FFA0
+freezer:
         sei
         pha
         lda     $00

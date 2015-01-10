@@ -12,10 +12,13 @@
 .include "kernal.i"
 .include "persistent.i"
 
+; from basic
 .import list_line
 .import store_d1_spaces
 .import print_dec
 .import send_printer_listen
+
+; from printer
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 

@@ -34,8 +34,8 @@ jentry:
 ; this vector is called from other banks
         jmp     perform_desktop_disk_operation
 
-.global do_fast_format
-do_fast_format: ; monitor calls this
+.global jfast_format
+jfast_format: ; monitor calls this
         jmp     fast_format
 
 ; this vector is called from other banks

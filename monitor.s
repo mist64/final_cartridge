@@ -14,7 +14,7 @@
 .include "persistent.i"
 
 ; from vectors
-.import do_fast_format
+.import jfast_format
 
 ; from printer
 .import set_io_vectors
@@ -69,7 +69,7 @@ cartridge_bank  := ram_code_end + 20
 .import __monitor_ram_code_RUN__
 
 .global monitor
-monitor: ; $AB00
+monitor:
         lda     #<brk_entry
         sta     $0316
         lda     #>brk_entry
@@ -1342,7 +1342,7 @@ cmd_at:
         beq     LB475
         cmp     #'F'
         bne     LB458
-        jsr     do_fast_format
+        jsr     jfast_format
         lda     #'F'
 LB458:  jsr     IECOUT
         jsr     basin_cmp_cr

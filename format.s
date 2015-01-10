@@ -4,6 +4,7 @@
 
 .include "kernal.i"
 
+; from drive
 .import check_iec_error
 .import cmd_channel_listen
 .import listen_second

@@ -122,7 +122,7 @@ auto_current_line_number   := $0334
 auto_line_number_increment := $0336
 
 .global new_mainloop
-new_mainloop: ; $81FE
+new_mainloop:
         jsr     set_irq_and_kbd_handlers
         jsr     cond_init_load_save_vectors
         jsr     L81E3
@@ -1515,7 +1515,7 @@ L8BFF:  jmp     UNLSTN
 ; ----------------------------------------------------------------
 
 .global new_detokenize
-new_detokenize: ; $8C02
+new_detokenize:
         tax
 L8C03:  lda     $028D
         and     #$02
@@ -2273,7 +2273,7 @@ pack_code_end:
 
 .segment "unpack_header"
 
-unpack_header: ; $918B
+unpack_header:
         .word   pack_link ; BASIC link pointer
         .word   1987 ; line number
         .byte   $9E ; SYS token
