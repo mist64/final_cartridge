@@ -13,8 +13,10 @@
 
 .include "persistent.i"
 
-; from fc3
+; from vectors
 .import do_fast_format
+
+; from printer
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 

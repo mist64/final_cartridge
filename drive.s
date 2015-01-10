@@ -6,8 +6,10 @@
 
 CR              := $0D
 
-; from fc3
+; from wrapper
 .import disable_rom_jmp_error
+
+; from basic
 .import set_drive
 
 .segment "drive"

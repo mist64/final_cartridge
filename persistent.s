@@ -7,19 +7,25 @@
 ; It mostly contains wrappers around BASIC, KERNAL or cartridge
 ; functions that switch the ROM config in addition.
 
-; from fc3
+; from printer
 .import new_clrch
 .import new_clall
 .import new_bsout
 .import new_ckout
-.import new_tokenize
-.import kbd_handler
-.import disable_rom_then_warm_start
+
+; from basic
 .import reset_warmstart
+.import new_tokenize
 .import new_execute
 .import new_expression
 .import new_detokenize
 .import new_mainloop
+
+; from editor
+.import kbd_handler
+
+; from wrapper
+.import disable_rom_then_warm_start
 
 ; from speeder
 .import new_save

@@ -2,10 +2,7 @@
 ; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
 ; ----------------------------------------------------------------
 
-; from fc3
-.import _disable_rom
-.import _enable_rom
-.import _load_bb_indy
+.include "persistent.i"
 
 .global WA3BF
 .global WA49F
