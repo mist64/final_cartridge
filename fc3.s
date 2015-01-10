@@ -55,12 +55,6 @@ CHRGOT          := $0079
 CR              := $0D
 
 ; ----------------------------------------------------------------
-; RAM locations
-; ----------------------------------------------------------------
-L0100           := $0100
-L0110           := $0110
-
-; ----------------------------------------------------------------
 ; Bank 2 (Desktop, Freezer/Print) Symbols
 ; ----------------------------------------------------------------
 L8000           := $8000
@@ -2218,16 +2212,15 @@ L8FF9:  sty     $39
         sbc     $3A
 L900B:  rts
 
-.import __pack_header_LOAD__
-.import __pack_header_RUN__
-
 ; ----------------------------------------------------------------
 ; "UNPACK" Command - decompress a program
 ; ----------------------------------------------------------------
+.import __unpack_header_LOAD__
+.import __unpack_header_RUN__
 UNPACK: bne     L900B
         ldx     #$11 ; arbitrary length
-L9010:  lda     __pack_header_LOAD__,x
-        cmp     __pack_header_RUN__,x
+L9010:  lda     __unpack_header_LOAD__,x
+        cmp     __unpack_header_RUN__,x
         bne     L900B ; do nothing if not packed
         dex
         bpl     L9010
@@ -2252,6 +2245,8 @@ L9035:  jmp     L8734
 ; ----------------------------------------------------------------
 ; "PACK" Command - compress a program
 ; ----------------------------------------------------------------
+.import __pack_code_LOAD__
+.import __pack_code_RUN__
 PACK:   bne     L900B
         lda     $2B
         cmp     $2D
@@ -2276,8 +2271,6 @@ L9050:  sta     $FE00,y
         sta     $AF
         ldy     $2B
         ldx     #$00
-.import __pack_code_LOAD__
-.import __pack_code_RUN__
 L9067:  lda     __pack_code_LOAD__,x
         sta     __pack_code_RUN__,x
         inx
@@ -2285,12 +2278,12 @@ L9067:  lda     __pack_code_LOAD__,x
         bne     L9067
         sei
         lda     #$34
-        jsr     L0100
+        jsr     pack_code
         ldy     #$00
-L907A:  lda     __pack_header_LOAD__,y
-        sta     __pack_header_RUN__,y
+L907A:  lda     __unpack_header_LOAD__,y
+        sta     __unpack_header_RUN__,y
         iny
-        cpy     #pack_header_end - pack_header
+        cpy     #unpack_header_end - unpack_header
         bne     L907A
         lda     $FF
         sta     $0848
@@ -2431,9 +2424,9 @@ L9188:  ldx     $AD
         rts
 pack_code_end:
 
-.segment "pack_header"
+.segment "unpack_header"
 
-pack_header: ; $918B
+unpack_header: ; $918B
         .word   pack_link ; BASIC link pointer
         .word   1987 ; line number
         .byte   $9E, "2061", 0
@@ -2466,7 +2459,7 @@ L91BC:  lda     stack_code,x; copy to $0100
         dex
         bpl     L91BC
         txs
-        jmp     L0100
+        jmp     $0100
 
 stack_code: ; lives at $0100
         ldx     #$00
@@ -2517,11 +2510,11 @@ stack_selfmod2:
         sta     $1000,x
         inx
         bne     L9218
-        inc     L0110
+        inc     stack_selfmod1 - stack_code + 2 + $0100
         inc     $0156
         bne     L9218
 stack_code_end:
-pack_header_end:
+unpack_header_end:
 pack_data:
 
 ; ----------------------------------------------------------------
