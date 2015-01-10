@@ -55,9 +55,9 @@ load_and_run_program:
         sty     $0A
         sty     $BB ; file name pointer low
         sty     $02A8
-        lda     #$01
+        lda     #1 ; secondary address
         sta     $B9
-        lda     #$02 
+        lda     #>$0200
         sta     $BC ; read filename from $0200
         sta     $7B
 L9533:  lda     ($BB),y

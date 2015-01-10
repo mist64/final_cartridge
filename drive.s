@@ -60,7 +60,7 @@ talk_second:
 m_w_and_m_e:
         sta     $C3
         sty     $C4
-        ldy     #$00
+        ldy     #0
 L8154:  lda     #'W'
         jsr     send_m_dash
         tya
@@ -104,6 +104,6 @@ listen_or_error:
 
 .global device_not_present
 device_not_present:
-        ldx     #$05 ; "DEVICE NOT PRESENT"
+        ldx     #5 ; "DEVICE NOT PRESENT"
         jmp     disable_rom_jmp_error
 

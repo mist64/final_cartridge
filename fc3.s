@@ -1632,7 +1632,8 @@ L8B95:  jsr     print_dir
         jmp     L8A53
 
 ; ----------------------------------------------------------------
-; drive helpers
+; common code for DLOAD/DVERIDY/DSAVE/DOS
+; ----------------------------------------------------------------
 
 set_filename_or_colon_asterisk:
         lda     #<(_a_colon_asterisk_end - _a_colon_asterisk); ":*" (XXX "<" required to make ca65 happy)
@@ -1664,7 +1665,6 @@ set_drive:
         bcc     L8BD1 ; device number 9 or above
 L8BCE:  sta     $BA
 L8BD0:  rts
-
 L8BD1:  lda     #$09
         cmp     $BA
         bcs     L8BD0 ; RTS
@@ -1692,6 +1692,8 @@ L8BF5:  tya
         inc     $7B
 L8BFF:  jmp     UNLSTN
 
+; ----------------------------------------------------------------
+; Detokenize: Decode a BASIC token to a keyword
 ; ----------------------------------------------------------------
 
 .global new_detokenize
@@ -2450,9 +2452,15 @@ pack_code_end:
 unpack_header: ; $918B
         .word   pack_link ; BASIC link pointer
         .word   1987 ; line number
-        .byte   $9E, "2061", 0
+        .byte   $9E ; SYS token
+        ; decimal ASCII representation of "unpack_entry" :)
+        .byte   <(((unpack_entry /  1000) .mod 10) + '0')
+        .byte   <(((unpack_entry /   100) .mod 10) + '0')
+        .byte   <(((unpack_entry /    10) .mod 10) + '0')
+        .byte   <(((unpack_entry /     1) .mod 10) + '0')
+        .byte   0 ; BASIC line end marker
 pack_link:
-        .word 0
+        .word 0 ; BASIC link pointer
 ; decompression
 unpack_entry:
         sei

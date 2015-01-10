@@ -35,7 +35,7 @@ freezer: ; $FFA0
         pha ; save Y
         lda     $02A1 ; RS-232 interrupt enabled
         pha
-        ldx     #$0A
+        ldx     #10
 LBFC7:  lda     $02,x ; copy $02 - $0C onto stack
         pha
         dex
@@ -44,12 +44,12 @@ LBFC7:  lda     $02,x ; copy $02 - $0C onto stack
         pha
         lda     $DD0F ; CIA 2 Timer B Control
         pha
-        lda     #$00
+        lda     #0
         sta     $DD0E ; disable CIA 2 Timer A
         sta     $DD0F ; disable CIA 2 Timer B
         lda     #$7C
         sta     $DD0D ; disable some NMIs? (???)
-        ldx     #$03
+        ldx     #3
         jmp     LDFE0 ; ???
 
 .segment "freezer_vectors"

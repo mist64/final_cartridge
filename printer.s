@@ -69,7 +69,7 @@ LA058:  lda     $D012
         bne     LA058
 LA065:  lda     #$11
         sta     $DD0E
-        ldx     #$0A
+        ldx     #10
         clc
         bcc     LA077
 LA06F:  lda     $DD0D
@@ -201,12 +201,12 @@ LA168:  pla
         jmp     $F250 ; KERNAL CKOUT
 
 LA16D:  pla
-        lda     #$04
+        lda     #4
         jmp     $F279 ; set output to IEC bus
 
 LA173:  jsr     $F31F ; set file par from table
         lda     $BA
-        cmp     #$04 ; printer
+        cmp     #4 ; printer
         bne     LA168
         jsr     LA183
         bcs     LA16D
@@ -220,7 +220,7 @@ LA183:  jsr     LA09F
         sei
         jsr     LA0C7
         bcs     LA19B
-        lda     #$04
+        lda     #4
         sta     $9A
         jsr     LA1FC
         clc
@@ -234,7 +234,7 @@ new_bsout: ; $A19C
 new_bsout2:
         pha
         lda     $9A
-        cmp     #$04
+        cmp     #4
         beq     LA1AD
 LA1A9:  pla
         jmp     $F1CA ; KERNAL BSOUT
@@ -264,11 +264,11 @@ new_clrch: ; $A1CB
         jmp     _disable_rom
 
 new_clall2:
-        lda     #$00
+        lda     #0
         sta     $98
 new_clrch2:
-        lda     #$04
-        ldx     #$03
+        lda     #4
+        ldx     #3
         cmp     $9A
         bne     LA1E7
         bit     $DD0C
@@ -282,7 +282,7 @@ LA1EE:  cpx     $99
         bcs     LA1F5
         jsr     $EDEF ; UNTALK
 LA1F5:  stx     $9A
-        lda     #$00
+        lda     #0
         sta     $99
         rts
 
@@ -291,13 +291,13 @@ LA1FC:  lda     $B9
         beq     LA219
         and     #$0F
         beq     LA219
-        cmp     #$07
+        cmp     #7
         beq     LA21C
-        cmp     #$09
+        cmp     #9
         beq     LA21F
-        cmp     #$0A
+        cmp     #10
         beq     LA222
-        cmp     #$08
+        cmp     #8
         beq     LA225
         lda     #$C0
         .byte   $2C
@@ -468,9 +468,9 @@ LA327:  clc
         jsr     LA00D
         lda     $95
         jsr     LA00D
-        lda     #$00
+        lda     #0
         jsr     LA00D
-        lda     #$09
+        lda     #9
         jsr     LA00D
         lda     $DD0C
         and     #$F3
@@ -500,7 +500,7 @@ LA369:  cmp     #$C1
 LA373:  sta     $95
         rts
 
-LA376:  ldy     #$03
+LA376:  ldy     #3
 LA378:  asl     a
         rol     $FC
         dey
@@ -524,7 +524,7 @@ LA37F:  sta     $A4
         rts
 
 LA39A:  lda     $95
-        cmp     #$0A
+        cmp     #10
         beq     LA3BF
         cmp     #$0D
         beq     LA3BF
@@ -549,7 +549,7 @@ LA3BF:  pha
         jsr     LA49C
         tya
         pha
-        lda     #$00
+        lda     #0
         sta     $FC
         lda     $033C
         jsr     LA376
@@ -565,7 +565,7 @@ LA3E1:  lda     $FB
         sbc     #$64
         tay
         lda     $FC
-        sbc     #$00
+        sbc     #0
         bcc     LA3F4
         sta     $FC
         sty     $FB
@@ -576,10 +576,10 @@ LA3F4:  txa
         ldx     #$30
 LA3FA:  lda     $FB
         sec
-        sbc     #$0A
+        sbc     #10
         tay
         lda     $FC
-        sbc     #$00
+        sbc     #0
         bcc     LA40D
         sta     $FC
         sty     $FB
@@ -598,13 +598,13 @@ LA41D:  lda     $FB
         jsr     LA00D
         lda     $FC
         jsr     LA00D
-LA427:  ldy     #$00
+LA427:  ldy     #0
 LA429:  lda     $033D,y
         jsr     LA37F
         iny
         cpy     $033C
         bne     LA429
-        lda     #$00
+        lda     #0
         sta     $033C
         pla
         tay
@@ -615,9 +615,9 @@ LA43C:  pla
 
 LA441:  lda     #$80
         sta     $A4
-LA445:  lda     #$00
+LA445:  lda     #0
         sta     $A5
-        ldy     #$07
+        ldy     #7
         jsr     LA483
         lda     $DD0C
         lsr     a
@@ -632,7 +632,7 @@ LA45A:  sta     $A5
         bne     LA471 ; not RS-232
         txa
         pha
-        ldx     #$08
+        ldx     #8
         lda     $A5
 LA469:  asl     a
         ror     $A5
