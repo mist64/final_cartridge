@@ -1,3 +1,8 @@
+; ----------------------------------------------------------------
+; Disk and Tape Speeder
+; ----------------------------------------------------------------
+; This speeds up LOAD and SAVE on both disk and tape
+
 .include "kernal.i"
 .include "persistent.i"
 
@@ -116,14 +121,16 @@ L9995:  lda     $DD00
         bpl     L9995
         rts
 
+; *** tape
 L99B5:  tax
         beq     L99C3
         ldx     #$16
-L99BA:  lda     L9A50,x
+:       lda     L9A50,x
         sta     L0110,x
         dex
-        bpl     L99BA
+        bpl     :-
 L99C3:  jmp     LA851
+; *** tape
 
 L99C6:  jmp     $F530 ; IEC LOAD - used in the error case
 
@@ -196,7 +203,7 @@ L9A35:  jsr     print_loading
 
 ; ----------------------------------------------------------------
 
-.segment "code_at_0100"
+.segment "tape_stack_code"
 
 ; will be placed at $0100
 load_ac_indy:
@@ -213,9 +220,9 @@ L9A50:  lda     #$0C
         sta     $01
         lda     ($C3),y
         cmp     $BD
-        beq     L9A5C
+        beq     :+
         stx     $90
-L9A5C:  eor     $D7
+:       eor     $D7
         sta     $D7
         lda     #$0F
         sta     $01
@@ -705,6 +712,8 @@ L0624 := L060F + 21
 ; ----------------------------------------------------------------
 .segment "drive_code_save"
 
+ram_code := $0150
+
 drive_code_save:
         lda     L0612
         tax
@@ -746,7 +755,7 @@ LA542:  jsr     L0564
         iny
         cpy     L0611
         bne     LA542
-        jsr     $0150
+        jsr     ram_code
         inc     $B6
         ldx     L0612
         lda     $81
@@ -805,11 +814,11 @@ LA5A6:  lda     L0589,x
 L05AF:
         ldx     #$64
 LA5B1:  lda     $F575 - 1,x; copy "write data block to disk" to RAM
-        sta     $0150 - 1,x
+        sta     ram_code - 1,x
         dex
         bne     LA5B1
         lda     #$60
-        sta     $01B4 ; add RTS at the end, just after GCR decoding
+        sta     ram_code + $64 ; add RTS at the end, just after GCR decoding
         inx
         stx     $82
         stx     $83
@@ -842,10 +851,10 @@ LA5F4:  ldx     L0612 + 1
 
 LA5FA:  ldx     #L0608_end - L0608
 LA5FC:  lda     L0608 - 1,x
-        sta     $0150 - 1,x
+        sta     ram_code - 1,x
         dex
         bne     LA5FC
-        jmp     $0150
+        jmp     ram_code
 
 L0608:
         jsr     $DBA5 ; write directory entry

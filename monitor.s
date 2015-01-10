@@ -14,7 +14,7 @@
 .include "persistent.i"
 
 ; from fc3
-.import fast_format
+.import do_fast_format
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
@@ -1340,7 +1340,7 @@ cmd_at:
         beq     LB475
         cmp     #'F'
         bne     LB458
-        jsr     fast_format
+        jsr     do_fast_format
         lda     #'F'
 LB458:  jsr     IECOUT
         jsr     basin_cmp_cr

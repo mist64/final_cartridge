@@ -41,11 +41,9 @@
 .import listen_6F_or_error
 .import listen_or_error
 .import device_not_present
-.import check_iec_error
 .import cmd_channel_listen
 .import command_channel_talk
 .import listen_second
-.import m_w_and_m_e
 .import print_line_from_drive
 .import talk_second
 
@@ -70,7 +68,7 @@
 .import disable_rom_then_warm_start
 
 ; from format
-.import fast_format2
+.import fast_format
 .import init_read_disk_name
 .import init_write_bam
 
@@ -97,22 +95,19 @@ bar_flag        := $02A8
 
 entry:  jmp     entry2
 
+; this vector is called from other banks
         jmp     perform_desktop_disk_operation
 
-.global fast_format
-fast_format: ; $A00F
-        jmp     fast_format2
+.global do_fast_format
+do_fast_format: ; monitor calls this
+        jmp     fast_format
 
+; this vector is called from other banks
         jmp     init_read_disk_name
-
         jmp     init_write_bam
-
         jmp     init_vectors_jmp_bank_2
-
         jmp     go_basic
-
         jmp     print_screen
-
         jmp     init_load_and_basic_vectors
 
 ; ----------------------------------------------------------------
@@ -1487,7 +1482,7 @@ send_drive_command:
         beq     change_disk_name
         cmp     #'F' ; drive command "F": fast format
         bne     L8A84
-        jsr     fast_format2
+        jsr     fast_format
 L8A84:  jmp     L8BE3
 
 ; drive command "D": change disk name

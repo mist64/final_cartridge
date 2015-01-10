@@ -14,8 +14,8 @@
 .import __fast_format_drive_LOAD__
 .import __fast_format_drive_RUN__
 
-.global fast_format2
-fast_format2:
+.global fast_format
+fast_format:
         lda     #$05
         sta     $93 ; times $20 bytes
         lda     #<__fast_format_drive_LOAD__
@@ -76,11 +76,9 @@ drive_cmd_u2:
 
 .segment "fast_format_drive"
 
-; XXX
-L045C           := $045C
-L0463           := $0463
-L0630           := $0630
+ram_code := $0630
 
+; this lives at $0400
 fast_format_drive_code:
         jmp     L0463
 
@@ -103,12 +101,12 @@ L977E:  lda     $0200,y
         lda     $0201,y
         sta     $13
         ldx     #$78
-L978A:  lda     $FC35,x
-        sta     $062F,x
+L978A:  lda     $FC36 - 1,x
+        sta     ram_code - 1,x ; copy drive kernal code to RAM
         dex
         bne     L978A
-        lda     #$60
-        sta     $06A8
+        lda     #$60 ; add RTS at the end
+        sta     ram_code + $78
         lda     #$01
         sta     $80
         sta     $51
@@ -125,11 +123,13 @@ L97AA:  lda     #$E0
 
 L97B6:  jmp     $EE40 ; drive ROM
 
+L045C:
         sta     $01
 L97BB:  lda     $01
         bmi     L97BB
         rts
 
+L0463:
         lda     $51
         cmp     ($32),y
         beq     L97CB
@@ -195,10 +195,10 @@ L9826:  sec
         bmi     L9831
 L982E:  inx
         bne     L9826
-L9831:  stx     $0626
+L9831:  stx     $0626 ; ??? never read
         cpx     #$04
         bcc     L97F8
-L9838:  jsr     L0630
+L9838:  jsr     ram_code
         lda     $1C0C
         and     #$1F
         ora     #$C0

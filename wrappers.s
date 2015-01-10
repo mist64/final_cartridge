@@ -1,3 +1,6 @@
+; ----------------------------------------------------------------
+; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
+; ----------------------------------------------------------------
 
 ; from fc3
 .import _disable_rom
@@ -18,11 +21,7 @@
 .global disable_rom_jmp_overflow_error
 .global disable_rom_then_warm_start
 
-; ----------------------------------------------------------------
-; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
-; ----------------------------------------------------------------
-
-.segment "part2"
+.segment "wrappers"
 
 WAF08:  lda     #>($AF08 - 1)
         pha

@@ -1,6 +1,8 @@
 ; ----------------------------------------------------------------
 ; Centronics and RS-232 printer drivers
 ; ----------------------------------------------------------------
+; This hooks CKOUT, BSOUT, CLRCH and CLALL to support Centronics
+; and RS-232 printers as device #4.
 
 .include "kernal.i"
 .include "persistent.i"
@@ -705,4 +707,5 @@ LA4E6:  lda     $DD0C
 LA4F0:  rts
 ; ----------------------------------------------------------------
 
-        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+        .byte   $FF,$FF,$FF,$FF,$FF,$FF,$FF
