@@ -59,7 +59,6 @@ CR              := $0D
 ; ----------------------------------------------------------------
 L0100           := $0100
 L0110           := $0110
-L01B8           := $01B8
 
 ; ----------------------------------------------------------------
 ; Bank 2 (Desktop, Freezer/Print) Symbols
@@ -2042,7 +2041,7 @@ s_bytes: .byte   "BYTES", CR, 0
 TRACE:  tax
         lda     trace_flag
         cpx     #$CC
-        beq     L8EC6
+        beq     L8EC6 ; OFF
         ora     #$01
         .byte   $2C
 L8EC6:  and     #$FE
@@ -2222,6 +2221,9 @@ L900B:  rts
 .import __pack_header_LOAD__
 .import __pack_header_RUN__
 
+; ----------------------------------------------------------------
+; "UNPACK" Command - decompress a program
+; ----------------------------------------------------------------
 UNPACK: bne     L900B
         ldx     #$11 ; arbitrary length
 L9010:  lda     __pack_header_LOAD__,x
@@ -2247,6 +2249,9 @@ alt_pack_run_end:
 
 L9035:  jmp     L8734
 
+; ----------------------------------------------------------------
+; "PACK" Command - compress a program
+; ----------------------------------------------------------------
 PACK:   bne     L900B
         lda     $2B
         cmp     $2D
@@ -2271,10 +2276,12 @@ L9050:  sta     $FE00,y
         sta     $AF
         ldy     $2B
         ldx     #$00
-L9067:  lda     L90C6,x
-        sta     L0100,x
+.import __pack_code_LOAD__
+.import __pack_code_RUN__
+L9067:  lda     __pack_code_LOAD__,x
+        sta     __pack_code_RUN__,x
         inx
-        cpx     #$C5
+        cpx     #pack_code_end - pack_code
         bne     L9067
         sei
         lda     #$34
@@ -2300,21 +2307,25 @@ L907A:  lda     __pack_header_LOAD__,y
         sta     $0861
         lda     $AE
         clc
-        adc     #$01
+        adc     #1
         sta     $2D
         lda     $AF
         adc     #$00
         sta     $2E
         sec
-        lda     #$9F
+        lda     #<pack_data
         sbc     $2D
         sta     $0813
-        lda     #$08
+        lda     #>pack_data
         sbc     $2E
         sta     $0817
         jmp     L8980
 
-L90C6:  sta     $01
+.segment "pack_code"
+
+; this lives at $0100
+pack_code:
+        sta     $01
 L90C8:  lda     ($AE),y
         tax
         inc     $FE00,x
@@ -2360,9 +2371,9 @@ L9113:  dec     $AE
         lda     $2C
         sbc     $AF
         bcc     L9105
-        lda     #$9F
+        lda     #<pack_data
         sta     $AE
-        lda     #$08
+        lda     #>pack_data
         sta     $AF
         jsr     L01B8
 L912E:  sta     ($AE),y
@@ -2410,7 +2421,7 @@ L9179:  lda     #$37
         sta     $01
         rts
 
-; ??? unused?
+L01B8:
         ldx     #$00
         lda     ($AC,x)
         inc     $AC
@@ -2418,6 +2429,7 @@ L9179:  lda     #$37
         inc     $AD
 L9188:  ldx     $AD
         rts
+pack_code_end:
 
 .segment "pack_header"
 
@@ -2510,6 +2522,7 @@ stack_selfmod2:
         bne     L9218
 stack_code_end:
 pack_header_end:
+pack_data:
 
 ; ----------------------------------------------------------------
 
