@@ -689,14 +689,14 @@ talk_60:
         cmp     #$03
         beq     L84DB ; output to screen
         bit     $DD0C
-        bmi     L84DB ; RS-232 printer disabled
+        bmi     L84DB ; centronics printer disabled
         jsr     UNLSTN
         lda     #$60
         jsr     talk_second
 L84DB:  rts
 
 L84DC:  bit     $DD0C
-        bmi     L84EC ; RS-232 printer disabled
+        bmi     L84EC ; centronics printer disabled
         pha
         lda     $9A
         cmp     #$03
@@ -2229,9 +2229,9 @@ L901D:  lda     alt_pack_run,x
         sta     pack_run,x
         dex
         bpl     L901D
-        lda     #>(pack_entry - 1)
+        lda     #>(unpack_entry - 1)
         pha
-        lda     #<(pack_entry - 1)
+        lda     #<(unpack_entry - 1)
         pha
         jmp     _disable_rom
 
@@ -2433,7 +2433,7 @@ unpack_header: ; $918B
 pack_link:
         .word 0
 ; decompression
-pack_entry:
+unpack_entry:
         sei
         lda     #$34
         sta     $01
@@ -2461,7 +2461,13 @@ L91BC:  lda     stack_code,x; copy to $0100
         txs
         jmp     $0100
 
-stack_code: ; lives at $0100
+; this lives at $0100
+; it's double copied:
+; * PACK copies the whole unpacker from ROM to $0801
+; * when running it, it copies the core to $0100
+; cl65 can't deal with the double copying, so we need to
+; adjust addresses manually
+stack_code:
         ldx     #$00
 L91C9:  lda     ($AE),y
 L91CB:  inc     $AE
@@ -2517,6 +2523,8 @@ stack_code_end:
 unpack_header_end:
 pack_data:
 
+; ----------------------------------------------------------------
+; screen editor improvements
 ; ----------------------------------------------------------------
 
 .segment "part1b"
@@ -2605,7 +2613,8 @@ L92B7:  lda     fkey_strings,x
 L92C3:  sty     $C6
 L92C5:  lda     #$7F
         sta     $DC00
-        bne     L927F
+        bne     L927F ; always
+
 L92CC:  sei
         lsr     $02A7
         lsr     $CC
@@ -3070,10 +3079,9 @@ L984D:  bvc     L984D
         jmp     $FCB1 ; drive ROM
 
 ; ----------------------------------------------------------------
+; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
 
 .segment "part2"
-
-; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
 
 L9855:  lda     #>($AF08 - 1)
         pha
@@ -3168,8 +3176,10 @@ L98C7:  lda     #>($E175 - 1)
         lda     #$00
         jmp     _disable_rom
 
-        .byte   $DE,$84,$93
+; ----------------------------------------------------------------
+; junk?
 
+        .byte   $DE,$84,$93
         tya
         ldy     $BA
         cpy     #$07
@@ -3194,7 +3204,8 @@ L98C7:  lda     #>($E175 - 1)
         .byte $20
 
 ; ----------------------------------------------------------------
-
+; Centronics and RS-232 printer drivers
+; ----------------------------------------------------------------
 ; This is at $A000
 
 .segment "part4"
@@ -3214,11 +3225,6 @@ set_io_vectors:
 something_with_printer:
         jmp     LA183
 
-.segment "part4b"
-
-; ----------------------------------------------------------------
-; Centronics and RS-232 printer drivers
-; ----------------------------------------------------------------
 LA00D:  pha
         lda     $DC0C
         cmp     #$FE
@@ -3509,6 +3515,7 @@ LA225:  lda     #$D0
         sta     $DD0C
         rts
 
+; PETSCII/ASCII conversion
 LA22B:  lda     $95
         cmp     #$C0
         bcc     LA245
@@ -3559,11 +3566,11 @@ LA27B:  lsr     a
         rts
 
 LA282:  lda     $95
-        cmp     #$0A
+        cmp     #$0A ; LF
         beq     LA29A
-        cmp     #$0D
+        cmp     #CR
         beq     LA29A
-        cmp     #$20
+        cmp     #' '
         bcc     LA298
         cmp     #$80
         bcc     LA29A
@@ -3573,9 +3580,9 @@ LA298:  sec
         rts
 
 LA29A:  lda     $D018
-        and     #$02
+        and     #$02 ; lowercase font enabled?
         beq     LA2A4
-        jsr     LA34F
+        jsr     to_lower
 LA2A4:  clc
         rts
 
@@ -3596,7 +3603,7 @@ LA2B0:  lda     $DD0C
 
 LA2BC:  and     #$10
         beq     LA2C3
-LA2C0:  jsr     LA34F
+LA2C0:  jsr     to_lower
 LA2C3:  clc
         rts
 
@@ -3673,7 +3680,8 @@ LA34A:  sta     $DD0C
         sec
         rts
 
-LA34F:  lda     $95
+to_lower:
+        lda     $95
         cmp     #$41
         bcc     LA373
         cmp     #$5B
