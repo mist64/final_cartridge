@@ -11,7 +11,7 @@
 .import _enable_rom
 .import _evaluate_modifier
 .import _execute_statement
-.import _get_element_in_expression
+.import _expression_cont
 .import _get_filename
 .import _get_int
 .import _get_line_number

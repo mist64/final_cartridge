@@ -144,8 +144,8 @@ _add_A_to_FAC: ; $DE85
         jsr     $BD7E ; add A to FAC
         jmp     _enable_rom
 
-.global _get_element_in_expression
-_get_element_in_expression: ; $DE8E
+.global _expression_cont
+_expression_cont: ; $DE8E
         jsr     _disable_rom
         jmp     $AE8D ; get element in expression
 

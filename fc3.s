@@ -37,6 +37,18 @@
 ; from desktop_helper
 .import perform_desktop_disk_operation
 
+; from drive
+.import listen_6F_or_error
+.import listen_or_error
+.import device_not_present
+.import check_iec_error
+.import cmd_channel_listen
+.import command_channel_talk
+.import listen_second
+.import m_w_and_m_e
+.import print_line_from_drive
+.import talk_second
+
 CHRGET          := $0073
 CHRGOT          := $0079
 
@@ -81,6 +93,8 @@ fast_format: ; $A00F
 
         jmp     init_load_and_basic_vectors
 
+; ----------------------------------------------------------------
+; startup and vectors
 ; ----------------------------------------------------------------
 
 .segment "part1a"
@@ -222,41 +236,27 @@ L810F:  rts
 
 ; ----------------------------------------------------------------
 
-.import L8192
-.import L8194
-.import device_not_present
-.import check_iec_error
-.import cmd_channel_listen
-.import command_channel_talk
-.import listen_second
-.import m_w_and_m_e
-.import print_line_from_drive
-.import talk_second
-
-.global disable_rom_jmp_error
-.global set_drive
-
-
 .segment "part1aa"
 
 .global new_expression
 new_expression:
-        lda     #$00
-        sta     $0D
-        jsr     _CHRGET
-        cmp     #$24
-        beq     L81B0
-        jsr     _CHRGOT
-        jmp     _get_element_in_expression
+        lda     #$00    ; same first three
+        sta     $0D     ; instructions as
+        jsr     _CHRGET ; original code at $AE86
+        cmp     #'$'
+        beq     evaluate_hex_expression
+        jsr     _CHRGOT ; set flags so code can continue
+        jmp     _expression_cont ; continue at $AE8D with ROM off
 
-L81B0:  lda     #$00
-        ldx     #$0A
-L81B4:  sta     $5D,x
+evaluate_hex_expression:
+        lda     #0
+        ldx     #10
+:       sta     $5D,x
         dex
-        bpl     L81B4
+        bpl     :-
 L81B9:  jsr     _CHRGET
         bcc     L81C4
-        cmp     #$41
+        cmp     #'A'
         bcc     L81DF
         sbc     #$08
 L81C4:  sbc     #$2F
@@ -267,7 +267,7 @@ L81C4:  sbc     #$2F
         beq     L81D8
         adc     #$04
         bcc     L81D6
-        jmp     L985E
+        jmp     disable_rom_jmp_overflow_error
 
 L81D6:  sta     $61
 L81D8:  pla
@@ -293,6 +293,8 @@ AUTO:   jsr     L85F1
         pla
         lda     #$40
 L81FB:  sta     $02A9
+
+; ----------------------------------------------------------------
 
 .global new_mainloop
 new_mainloop: ; $81FE
@@ -617,6 +619,8 @@ pow10lo:
 pow10hi:
         .byte   >1,>10,>100,>1000,>10000
 
+; ----------------------------------------------------------------
+
 L8453:  lda     #$60
         jsr     talk_second
         jsr     IECIN
@@ -631,7 +635,7 @@ L845E:  jsr     L84C8
         bne     L84C0
         jsr     L84DC
         jsr     L8412
-        lda     #$20 ; ' '
+        lda     #' '
         jsr     _basic_bsout
         ldx     #$18
 L847F:  jsr     L84C8
@@ -717,7 +721,8 @@ L8512:  jsr     _CHRGOT
         jsr     L858E
 L8528:  rts
 
-        jmp     L985E
+; ??? unreferenced?
+        jmp     disable_rom_jmp_overflow_error
 
 L852C:  jmp     L9855
 
@@ -976,7 +981,7 @@ L871C:  jsr     L85BF
         sta     $2E
         jmp     L897D
 
-L8734:  jmp     L985E
+L8734:  jmp     disable_rom_jmp_overflow_error
 
 L8737:  jmp     L9855
 
@@ -1403,7 +1408,7 @@ L8A35:  jsr     L8986
 ; ----------------------------------------------------------------
 DOS:    cmp     #'"'
         beq     L8A5D ; DOS with a command
-L8A47:  jsr     L8192
+L8A47:  jsr     listen_6F_or_error
         jsr     UNLSTN
         jsr     command_channel_talk
         jsr     print_line_from_drive
@@ -1424,7 +1429,7 @@ L8A69:  cmp     #$38
         beq     L8A54
         cmp     #$39
         beq     L8A54
-        jsr     L8192
+        jsr     listen_6F_or_error
 .global send_drive_command
 send_drive_command:
         ldy     #$00
@@ -1565,7 +1570,7 @@ PDIR:   jsr     L8AF0
         bcs     L8B6D
 L8B79:  jsr     UNLSTN
         lda     #$F0
-        jsr     L8194
+        jsr     listen_or_error
         lda     $9A
         cmp     #$04
         bne     L8B92
@@ -1602,6 +1607,7 @@ set_colon_asterisk:
         ldx     #<_a_colon_asterisk
         ldy     #>_a_colon_asterisk
         jsr     SETNAM
+.global set_drive
 set_drive:
         lda     #$00
         sta     $90
@@ -3034,7 +3040,8 @@ disable_rom_jmp:
         pha
         jmp     _disable_rom
 
-L985E:  lda     #>($B97E - 1) ; OVERFLOW ERROR
+disable_rom_jmp_overflow_error:
+        lda     #>($B97E - 1) ; OVERFLOW ERROR
         pha
         lda     #<($B97E - 1)
         bne     disable_rom_jmp ; always
@@ -3049,6 +3056,7 @@ L9865:  lda     #>($A49F - 1) ; used to be $A4A2 in 1988-05
         lda     #<($A7AE - 1) ; interpreter loop
         bne     disable_rom_jmp ; always
 
+.global disable_rom_jmp_error
 disable_rom_jmp_error:
         lda     #>($A437 - 1)
         pha

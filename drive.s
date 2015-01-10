@@ -2,15 +2,9 @@
 
 CR              := $0D
 
+; from fc3
 .import disable_rom_jmp_error
 .import set_drive
-
-.global L8192
-.global L8194
-.global device_not_present
-
-; ----------------------------------------------------------------
-; drive related
 
 .segment "drive"
 
@@ -87,7 +81,7 @@ L8166:  lda     ($C3),y
         lda     #'E'
 send_m_dash:
         pha
-        jsr     L8192
+        jsr     listen_6F_or_error
         lda     #'M'
         jsr     IECOUT
         lda     #'-'
@@ -95,11 +89,16 @@ send_m_dash:
         pla
         jmp     IECOUT
 
-L8192:  lda     #$6F
-L8194:  jsr     listen_second
+.global listen_6F_or_error
+listen_6F_or_error:
+        lda     #$6F
+.global listen_or_error
+listen_or_error:
+        jsr     listen_second
         bmi     device_not_present
         rts
 
+.global device_not_present
 device_not_present:
         ldx     #$05 ; "DEVICE NOT PRESENT"
         jmp     disable_rom_jmp_error
