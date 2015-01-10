@@ -1,12 +1,12 @@
 ; ----------------------------------------------------------------
-; $A000 Vectors
+; $8000 Vectors
 ; ----------------------------------------------------------------
 
 .include "kernal.i"
 .include "persistent.i"
 
 ; from init
-.import entry2
+.import entry
 .import go_basic
 .import init_load_and_basic_vectors
 .import init_vectors_jmp_bank_2
@@ -22,13 +22,14 @@
 ; from desktop_helper
 .import perform_desktop_disk_operation
 
-.segment "A000_vectors"
+.segment "vectors_8000"
 
-        .addr   entry ; FC3 entry
-        .addr   $FE5E ; default cartridge soft reset entry point
+        .addr   jentry ; cartridge hard reset entry point: cartridge init
+        .addr   $FE5E  ; cartridge soft reset entry point: default value
         .byte   $C3,$C2,$CD,"80" ; 'cbm80'
 
-entry:  jmp     entry2
+jentry:
+        jmp     entry
 
 ; this vector is called from other banks
         jmp     perform_desktop_disk_operation

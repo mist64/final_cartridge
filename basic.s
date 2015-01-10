@@ -38,7 +38,7 @@
 .import disable_rom_jmp_overflow_error
 .import disable_rom_then_warm_start
 
-; from fc3
+; from init
 .import go_basic
 .import go_desktop
 .import cond_init_load_save_vectors
@@ -1284,6 +1284,7 @@ L8A69:  cmp     #'8'
         cmp     #'9'
         beq     L8A54
         jsr     listen_6F_or_error
+
 .global send_drive_command
 send_drive_command:
         ldy     #$00

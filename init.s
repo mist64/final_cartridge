@@ -11,12 +11,12 @@
 ; from printer
 .import set_io_vectors_with_hidden_rom
 
-.global entry2
+.global entry
 .global init_load_and_basic_vectors
 .global init_vectors_jmp_bank_2
 
 ; Bank 2 (Desktop, Freezer/Print) Symbols
-L8000           := $8000
+desktop_entry   := $8000
 LBFFA           := $BFFA
 
 .segment "basic_init"
@@ -47,7 +47,7 @@ init_vectors_jmp_bank_2:
         lda     #$42 ; bank 2
         jmp     _jmp_bank
 
-entry2: 
+entry:
         ; short-circuit startup, skipping memory test
         jsr     $FDA3 ; init I/O
         lda     $D011
@@ -103,9 +103,9 @@ go_desktop:
         lda     #$80 ; bar on
         sta     bar_flag
         jsr     $E3BF ; init BASIC, print banner
-        lda     #>(L8000 - 1)
+        lda     #>(desktop_entry - 1)
         pha
-        lda     #<(L8000 - 1)
+        lda     #<(desktop_entry - 1)
         pha
         lda     #$42 ; bank 2
         jmp     _jmp_bank ; jump to desktop

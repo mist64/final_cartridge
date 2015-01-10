@@ -8,23 +8,31 @@
 .include "kernal.i"
 .include "persistent.i"
 
-; from fc3
+; from basic
 .import pow10lo
 .import pow10hi
-.import cmd_channel_listen
-.import command_channel_talk
-.import init_basic_vectors
-.import init_load_save_vectors
-.import init_read_disk_name
-.import listen_second
 .import send_drive_command
-.import set_io_vectors
-.import set_io_vectors_with_hidden_rom
-.import talk_second
-.import unlisten_e2
 .import print_msg
 .import messages
 .import a_ready
+
+; from init
+.import init_basic_vectors
+.import init_load_save_vectors
+
+; fom drive
+.import cmd_channel_listen
+.import command_channel_talk
+.import listen_second
+.import talk_second
+
+; from format
+.import init_read_disk_name
+.import unlisten_e2
+
+; from printer
+.import set_io_vectors
+.import set_io_vectors_with_hidden_rom
 
 .segment "desktop_helper"
 
