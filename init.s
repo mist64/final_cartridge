@@ -1,87 +1,23 @@
-;   The Final Cartridge 3
-;
-;   - 4 16K ROM Banks at $8000/$a000 (=64K)
-;
-;        Bank 0:  BASIC, Monitor, Disk-Turbo
-;        Bank 1:  Notepad, BASIC (Menu Bar)
-;        Bank 2:  Desktop, Freezer/Print
-;        Bank 3:  Freezer, Compression
-;
-;   - the cartridges uses the entire io1 and io2 range
-;
-;   - one register at $DFFF:
-;
-;    7      Hide this register (1 = hidden)
-;    6      NMI line   (0 = low = active) *1)
-;    5      GAME line  (0 = low = active) *2)
-;    4      EXROM line (0 = low = active)
-;    2-3    unassigned (usually set to 0)
-;    0-1    number of bank to show at $8000
-;
-;    1) if either the freezer button is pressed, or bit 6 is 0, then
-;       an NMI is generated
-;
-;    2) if the freezer button is pressed, GAME is also forced low
-;
-;    - the rest of io1/io2 contain a mirror of the last 2 pages of the
-;      currently selected rom bank (also at $dfff, contrary to what some
-;      other documents say)
+; ----------------------------------------------------------------
+; Startup and vectors
+; ----------------------------------------------------------------
 
-        .setcpu "6502"
-        .include "kernal.i"
-        .include "persistent.i"
-
-.global set_io_vectors
-.global set_io_vectors_with_hidden_rom
-
-; from format
-.import fast_format
-.import init_read_disk_name
-.import init_write_bam
-
-; from editor
-.import print_screen
-
-; from desktop_helper
-.import perform_desktop_disk_operation
+.include "kernal.i"
+.include "persistent.i"
 
 ; from basic
 .import bar_flag
 
-; ----------------------------------------------------------------
+; from printer
+.import set_io_vectors_with_hidden_rom
+
+.global entry2
+.global init_load_and_basic_vectors
+.global init_vectors_jmp_bank_2
+
 ; Bank 2 (Desktop, Freezer/Print) Symbols
-; ----------------------------------------------------------------
 L8000           := $8000
 LBFFA           := $BFFA
-
-; variables
-
-.segment "A000_vectors"
-
-        .addr   entry ; FC3 entry
-        .addr   $FE5E ; default cartridge soft reset entry point
-        .byte   $C3,$C2,$CD,"80" ; 'cbm80'
-
-entry:  jmp     entry2
-
-; this vector is called from other banks
-        jmp     perform_desktop_disk_operation
-
-.global do_fast_format
-do_fast_format: ; monitor calls this
-        jmp     fast_format
-
-; this vector is called from other banks
-        jmp     init_read_disk_name
-        jmp     init_write_bam
-        jmp     init_vectors_jmp_bank_2
-        jmp     go_basic
-        jmp     print_screen
-        jmp     init_load_and_basic_vectors
-
-; ----------------------------------------------------------------
-; startup and vectors
-; ----------------------------------------------------------------
 
 .segment "basic_init"
 

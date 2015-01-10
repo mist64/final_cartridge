@@ -48,11 +48,6 @@
 .import init_read_disk_name
 .import init_write_bam
 
-.global list_line
-.global print_dec
-.global send_printer_listen
-.global store_d1_spaces
-
 ; variables
 trace_flag      := $02AA
 .global bar_flag
@@ -383,6 +378,7 @@ L83BA:  lda     #CR
         lda     #$0A ; LF
         jmp     _basic_bsout
 
+.global list_line
 list_line:
         ldy     #$03
         sty     $49
@@ -416,6 +412,7 @@ L83F9:  jsr     _lda_5f_indy
         jsr     do_detokenize
         jmp     L83D2 ; loop
 
+.global store_d1_spaces
 store_d1_spaces:
         lda     #' '
         ldy     $D3
@@ -426,6 +423,7 @@ L8408:  sta     ($D1),y
         bne     L8408
 L8411:  rts
 
+.global print_dec
 print_dec:
         stx     $C1
         sta     $C2
@@ -1367,6 +1365,7 @@ get_secaddr_and_send_listen:
         lda     $14
         bpl     send_printer_listen ; 0-128 ok, everything else $FF
 :       lda     #$FF
+.global send_printer_listen
 send_printer_listen:
         sta     $B9 ; secondary address
         jsr     something_with_printer
