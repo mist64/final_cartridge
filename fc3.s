@@ -54,6 +54,20 @@
 .import set_io_vectors_with_hidden_rom
 .import something_with_printer
 
+; from wrappers
+.import WA3BF
+.import WA49F
+.import WA560
+.import WA663_E386
+.import WA6C3
+.import WA8F8
+.import WAF08
+.import WE159
+.import WE16F
+.import WE175
+.import WE1D4
+.import disable_rom_jmp_overflow_error
+.import disable_rom_then_warm_start
 
 CHRGET          := $0073
 CHRGOT          := $0079
@@ -309,7 +323,7 @@ new_mainloop: ; $81FE
         jsr     L8C71
         jsr     cond_init_load_save_vectors
         jsr     L81E3
-        jsr     L98BB
+        jsr     WA560
         stx     $7A ; chrget ptr
         sty     $7B
         jsr     set_io_vectors_with_hidden_rom
@@ -342,7 +356,7 @@ L8234:  bit     $02A9
 L824D:  nop
         nop
         nop ; used to be "jsr new_tokenize" in 1988-05
-        jmp     L9865
+        jmp     WA49F
 
 ; this is 99% identical with the code in BASIC ROM at $A57C
 .global new_tokenize
@@ -749,7 +763,7 @@ L8528:  rts
 ; ??? unreferenced?
         jmp     disable_rom_jmp_overflow_error
 
-L852C:  jmp     L9855
+L852C:  jmp     WAF08
 
 L852F:  beq     L852C
 L8531:  php
@@ -1013,7 +1027,7 @@ L871C:  jsr     L85BF
 
 L8734:  jmp     disable_rom_jmp_overflow_error
 
-L8737:  jmp     L9855
+L8737:  jmp     WAF08
 
 ; ----------------------------------------------------------------
 ; "RENUM" Command - renumber BASIC lines
@@ -1205,7 +1219,7 @@ L88B9:  lda     $5A
         ldx     #$00
         rts
 
-L88C4:  jmp     L9855
+L88C4:  jmp     WAF08
 
 ; ----------------------------------------------------------------
 ; "FIND" Command - find a string in a BASIC program
@@ -1301,7 +1315,7 @@ OLD:    bne     L89BC
 L897D:  jsr     L8986
 L8980:  ldx     #$FC
         txs
-        jmp     L988F
+        jmp     WA663_E386
 
 L8986:  jsr     _relink
         clc
@@ -1356,7 +1370,7 @@ BAR:    tax
         beq     L89CB ; OFF
         lda     #$80 ; bar on
 L89CB:  sta     bar_flag
-        jmp     L9888
+        jmp     WA8F8
 
 ; ----------------------------------------------------------------
 ; "DESKTOP" Command - start Desktop
@@ -1407,13 +1421,13 @@ DVERIFY:
         lda     #$01 ; verify flag
         sta     $0A
         jsr     set_filename_or_colon_asterisk
-        jmp     L989A
+        jmp     WE16F
 
 ; ----------------------------------------------------------------
 ; "DSAVE" Command - save a program to disk
 ; ----------------------------------------------------------------
 DSAVE:  jsr     set_filename_or_empty
-        jmp     L98AF
+        jmp     WE159
 
 ; ----------------------------------------------------------------
 ; "DAPPEND" Command - append a program from disk to program in RAM
@@ -1425,13 +1439,13 @@ DAPPEND:
 ; ----------------------------------------------------------------
 ; "APPEND" Command - append a program to program in RAM
 ; ----------------------------------------------------------------
-APPEND: jsr     L98A9
+APPEND: jsr     WE1D4
 L8A35:  jsr     L8986
         lda     #$00
         sta     $B9
         ldx     $22
         ldy     $23
-        jmp     L98C7
+        jmp     WE175
 
 ; ----------------------------------------------------------------
 ; "DOS" Command - send command to drive
@@ -1561,7 +1575,7 @@ L8B35:  lda     #$04
         sta     $9A
         rts
 
-L8B3A:  jmp     L9855
+L8B3A:  jmp     WAF08
 
 ; ----------------------------------------------------------------
 ; "PLIST" Command - send BASIC listing to printer
@@ -1575,7 +1589,7 @@ PLIST:  jsr     L8AF0
         lda     #<_new_warmstart
         ldx     #>_new_warmstart
         jsr     L8B66 ; set $0300 vector, catch direct mode at "reset_warmstart"
-        jmp     L987A
+        jmp     WA6C3
 
 .global reset_warmstart
 reset_warmstart:
@@ -2047,7 +2061,7 @@ TRACE:  tax
         .byte   $2C
 L8EC6:  and     #$FE
         sta     trace_flag
-        jmp     L9888
+        jmp     WA8F8
 
 L8ECE:  jmp     L852C
 
@@ -2190,7 +2204,7 @@ L8FB6:  jsr     _lda_5a_indy
         lda     $5B
         adc     #$00
         sta     $59
-        jsr     L98C1
+        jsr     WA3BF
         ldy     #$00
 L8FD8:  lda     $033C,y
         sta     ($8D),y
@@ -3086,134 +3100,12 @@ L984D:  bvc     L984D
         jmp     $FCB1 ; drive ROM
 
 ; ----------------------------------------------------------------
-; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
-
-.segment "part2"
-
-L9855:  lda     #>($AF08 - 1)
-        pha
-        lda     #<($AF08 - 1) ; SYNTAX ERROR
-disable_rom_jmp:
-        pha
-        jmp     _disable_rom
-
-disable_rom_jmp_overflow_error:
-        lda     #>($B97E - 1) ; OVERFLOW ERROR
-        pha
-        lda     #<($B97E - 1)
-        bne     disable_rom_jmp ; always
-
-L9865:  lda     #>($A49F - 1) ; used to be $A4A2 in 1988-05
-        pha
-        lda     #<($A49F - 1) ; input line
-        bne     disable_rom_jmp ; always
-
-        lda     #>($A7AE - 1)
-        pha
-        lda     #<($A7AE - 1) ; interpreter loop
-        bne     disable_rom_jmp ; always
-
-.global disable_rom_jmp_error
-disable_rom_jmp_error:
-        lda     #>($A437 - 1)
-        pha
-        lda     #<($A437 - 1) ; ERROR
-        bne     disable_rom_jmp
-
-L987A:  lda     #>($A6C3 - 1)
-        pha
-        lda     #<($A6C3 - 1) ; LIST worker code
-        bne     disable_rom_jmp
-
-.global disable_rom_then_warm_start
-disable_rom_then_warm_start:
-        lda     #>($E386 - 1) ; BASIC warm start
-        pha
-        lda     #<($E386 - 1)
-        bne     disable_rom_jmp
-
-L9888:  lda     #>($A8F8 - 1)
-        pha
-        lda     #<($A8F8 - 1) ; DATA
-        bne     disable_rom_jmp
-
-L988F:  ldx     #>($A663 - 1)
-        ldy     #<($A663 - 1) ; CLR
-        lda     #>($E386 - 1)
-        pha
-        lda     #<($E386 - 1) ; BASIC warm start
-        bne     L98A3
-
-L989A:  ldx     #>($E16F - 1)
-        ldy     #<($E16F - 1) ; LOAD
-jsr_with_rom_disabled:
-        lda     #>(_enable_rom - 1)
-        pha
-        lda     #<(_enable_rom - 1)
-L98A3:  pha
-        txa ; push X/Y address
-        pha
-        tya
-        bne     disable_rom_jmp
-
-L98A9:  ldx     #>($E1D4 - 1)
-        ldy     #<($E1D4 - 1) ; get args for LOAD/SAVE
-        bne     jsr_with_rom_disabled
-
-L98AF:  ldx     #>($E159 - 1)
-        ldy     #<($E159 - 1) ; SAVE
-L98B3:  bne     jsr_with_rom_disabled
-
-        ldx     #>($A579 - 1)
-        ldy     #<($A579 - 1) ; tokenize
-L98B9:  bne     jsr_with_rom_disabled
-
-L98BB:  ldx     #>($A560 - 1)
-        ldy     #<($A560 - 1) ; line input
-        bne     jsr_with_rom_disabled
-
-L98C1:  ldx     #>($A3BF - 1)
-        ldy     #<($A3BF - 1) ; BASIC memory management
-        bne     jsr_with_rom_disabled
-
-L98C7:  lda     #>($E175 - 1)
-        pha
-        lda     #<($E175 - 1) ; LOAD worker
-        pha
-        lda     #$00
-        jmp     _disable_rom
-
-; ----------------------------------------------------------------
-; junk?
-
-        .byte   $DE,$84,$93
-        tya
-        ldy     $BA
-        cpy     #$07
-        beq     L98B3
-        cpy     #$08
-        bcc     L98B9
-        cpy     #$0A
-        bcs     L98B9
-        tay
-        bne     L98B9
-        lda     $B7
-        beq     L98B9
-        jsr     _load_bb_indy
-        cmp     #$24
-        beq     L98B9
-        ldx     $B9
-        cpx     #$02
-        beq     L98B9
-        jsr     $A762 ; ???
-        lda     #$60
-        sta     $B9
-        .byte $20
-
-; ----------------------------------------------------------------
 
 .segment "part5b"
 
+; This is a redundant copy of the BASIC keywords in ROM.
+; They are probably here for speed reasons, so the tokenizer doesn't
+; have to switch banks.
 basic_keywords:
         .byte   "EN", 'D' + $80
         .byte   "FO", 'R' + $80
