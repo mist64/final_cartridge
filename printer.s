@@ -9,7 +9,7 @@ CR              := $0D
 ; ----------------------------------------------------------------
 ; This is at $A000
 
-.segment "part4"
+.segment "printer"
 
 ; ??? unused?
         .addr   go_basic

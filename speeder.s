@@ -9,7 +9,7 @@ CR              := $0D
 SECADDR         := $B9 ; secondary address
 DEV             := $BA ; device number
 
-.segment "part2b"
+.segment "speeder_a"
 
 .global new_load
 new_load: ; $9900
@@ -210,8 +210,6 @@ load_ac_indy:
         jmp     LA9BB
 load_ac_indy_end:
 
-.segment "code_at_0110"
-
 L9A50:  lda     #$0C
         sta     $01
         lda     ($C3),y
@@ -224,7 +222,7 @@ L9A5C:  eor     $D7
         sta     $01
         jmp     LA8FF
 
-.segment "part3"
+.segment "speeder_b"
 
 L9A67:  jmp     $F636 ; LDA #0 : SEC : RTS
 
@@ -303,11 +301,11 @@ L9AF0:  jsr     UNTALK
         jsr     LA691
         lda     #6
         sta     $93
-.import __drive_code_LOAD__
-.import __drive_code_RUN__
-        lda     #<__drive_code_LOAD__
-        ldy     #>__drive_code_LOAD__
-        ldx     #>__drive_code_RUN__ ; $0400
+.import __drive_code_load_LOAD__
+.import __drive_code_load_RUN__
+        lda     #<__drive_code_load_LOAD__
+        ldy     #>__drive_code_load_LOAD__
+        ldx     #>__drive_code_load_RUN__ ; $0400
         jsr     transfer_code_to_drive
         lda     #<L059A
         jsr     IECOUT
@@ -440,9 +438,9 @@ L9BF7:  jmp     L9B3D
 
 ; ----------------------------------------------------------------
 
-.segment "drive_code" ; $0400
+.segment "drive_code_load" ; $0400
 
-drive_code:
+drive_code_load:
         lda     $43
         sta     $C1
 L9BFE:  jsr     L0582
@@ -706,9 +704,9 @@ L0624 := L060F + 21
 ; ----------------------------------------------------------------
 ; drive code $0500
 ; ----------------------------------------------------------------
-.segment "drive_code2"
+.segment "drive_code_save"
 
-drive_code2:
+drive_code_save:
         lda     L0612
         tax
         lsr     a
@@ -767,7 +765,7 @@ receive_byte:
 :       bit     $1800
         bne     :-
         sta     $C0
-drive_code2_timing_selfmod1:
+drive_code_save_timing_selfmod1:
         sta     $C0
         lda     $1800
         asl     a
@@ -798,8 +796,8 @@ L0589_end:
 
 L059C:
         lda     #$EA
-        sta     drive_code2_timing_selfmod1
-        sta     drive_code2_timing_selfmod1 + 1 ; insert 1 cycle into code
+        sta     drive_code_save_timing_selfmod1
+        sta     drive_code_save_timing_selfmod1 + 1 ; insert 1 cycle into code
         ldx     #L0589_end - L0589 - 1
 LA5A6:  lda     L0589,x
         sta     L058A,x ; insert 3 cycles into code
@@ -864,7 +862,7 @@ L0612:
 ; ----------------------------------------------------------------
 ; C64 IEC code
 ; ----------------------------------------------------------------
-.segment "part5"
+.segment "speeder_c"
 
 LA612:  pha
         lda     $BA
@@ -905,11 +903,11 @@ LA648:
         bne     LA647
         lda     #7
         sta     $93
-.import __drive_code2_LOAD__
-.import __drive_code2_RUN__
-        lda     #<__drive_code2_LOAD__
-        ldy     #>__drive_code2_LOAD__
-        ldx     #>__drive_code2_RUN__
+.import __drive_code_save_LOAD__
+.import __drive_code_save_RUN__
+        lda     #<__drive_code_save_LOAD__
+        ldy     #>__drive_code_save_LOAD__
+        ldx     #>__drive_code_save_RUN__
         jsr     transfer_code_to_drive
         lda     $0330
         cmp     #<_new_load

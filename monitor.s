@@ -7,7 +7,6 @@
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
-
 ; ----------------------------------------------------------------
 ; Monitor (~4750 bytes)
 ; ----------------------------------------------------------------
@@ -55,7 +54,7 @@ tmp1            := ram_code_end + 18
 tmp2            := ram_code_end + 19
 cartridge_bank  := ram_code_end + 20
 
-.segment "monitor1"
+.segment "monitor_a"
 
 .import __monitor_ram_code_LOAD__
 .import __monitor_ram_code_RUN__
@@ -109,7 +108,7 @@ ram_code_end:
 
 ; XXX ram_code is here - why put it between ROM code, so we have to jump over it?
 
-.segment "monitor2"
+.segment "monitor_b"
 
 brk_entry2:
         cld ; <- important :)

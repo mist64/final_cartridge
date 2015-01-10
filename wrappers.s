@@ -20,6 +20,7 @@
 
 ; ----------------------------------------------------------------
 ; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
+; ----------------------------------------------------------------
 
 .segment "part2"
 
@@ -120,16 +121,17 @@ WE175:  lda     #>($E175 - 1)
         jmp     _disable_rom
 
 ; ----------------------------------------------------------------
-; junk?
+; junk - this is a copy of "new_load2"
 
-        .byte   $DE,$84,$93
+        .byte   $DE
+        sty     $93
         tya
         ldy     $BA
-        cpy     #$07
+        cpy     #7
         beq     L98B3
-        cpy     #$08
+        cpy     #8
         bcc     L98B9
-        cpy     #$0A
+        cpy     #10
         bcs     L98B9
         tay
         bne     L98B9
@@ -139,7 +141,7 @@ WE175:  lda     #>($E175 - 1)
         cmp     #$24
         beq     L98B9
         ldx     $B9
-        cpx     #$02
+        cpx     #2
         beq     L98B9
         jsr     $A762 ; ???
         lda     #$60

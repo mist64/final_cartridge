@@ -84,7 +84,7 @@ LBFFA           := $BFFA
 trace_flag      := $02AA
 bar_flag        := $02A8
 
-.segment "part1"
+.segment "A000_vectors"
 
         .addr   entry ; FC3 entry
         .addr   $FE5E ; default cartridge soft reset entry point
@@ -114,7 +114,7 @@ fast_format: ; $A00F
 ; startup and vectors
 ; ----------------------------------------------------------------
 
-.segment "part1a"
+.segment "basic_init"
 
 ; ??? unused?
         jsr     set_io_vectors_with_hidden_rom
@@ -254,7 +254,7 @@ L810F:  rts
 
 ; ----------------------------------------------------------------
 
-.segment "part1aa"
+.segment "basic_commands"
 
 .global new_expression
 new_expression:
@@ -2548,7 +2548,7 @@ pack_data:
 ; screen editor improvements
 ; ----------------------------------------------------------------
 
-.segment "part1b"
+.segment "screen_editor"
 
 .global kbd_handler
 kbd_handler:
@@ -2899,7 +2899,7 @@ fkey_strings:
 
 ; ----------------------------------------------------------------
 
-.segment "part1c"
+.segment "fast_format"
 
 .import __fast_format_drive_LOAD__
 .import __fast_format_drive_RUN__
@@ -3101,7 +3101,7 @@ L984D:  bvc     L984D
 
 ; ----------------------------------------------------------------
 
-.segment "part5b"
+.segment "basic_keywords"
 
 ; This is a redundant copy of the BASIC keywords in ROM.
 ; They are probably here for speed reasons, so the tokenizer doesn't
