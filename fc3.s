@@ -67,6 +67,9 @@ L01B8           := $01B8
 L8000           := $8000
 LBFFA           := $BFFA
 
+; variables
+trace_flag      := $02AA
+
 .segment "part1"
 
         .addr   entry ; FC3 entry
@@ -293,6 +296,7 @@ AUTO:   jsr     L85F1
         pla
         lda     #$40
 L81FB:  sta     $02A9
+; code is laid out so it flows into new_mainloop
 
 ; ----------------------------------------------------------------
 
@@ -339,6 +343,7 @@ L824D:  nop
 ; this is 99% identical with the code in BASIC ROM at $A57C
 .global new_tokenize
 new_tokenize:
+; **** this is the same code as BASIC ROM $A579-$A5AD (start) ****
         ldx     $7A; chrget pointer lo
         ldy     #$04
         sty     $0F
@@ -364,6 +369,8 @@ L827B:  cmp     #'0'
         cmp     #$3C
         bcc     L82B6
 L8283:  sty     $71
+; **** this is the same code as BASIC ROM $A579-$A5AD (end) ****
+
         stx     $7A
         ldy     #$0A
         sty     $22
@@ -390,6 +397,8 @@ L829B:  lda     $0200,x
         .byte   $2C
 L82B2:  ora     $0B
 L82B4:  ldy     $71
+
+; **** this is the same code as BASIC ROM $A5C9-$A5F8 (start) ****
 L82B6:  inx
         iny
         sta     $01FB,y
@@ -415,6 +424,8 @@ L82DB:  iny
         bne     L82D2
 L82E2:  ldx     $7A
         inc     $0B
+; **** this is the same code as BASIC ROM $A5C9-$A5F8 (end) ****
+
 L82E6:  lda     ($22),y
         php
         inc     $22
@@ -431,7 +442,9 @@ L82EF:  plp
         sta     $23
         lda     #$FF
         sta     $22
-        bne     L828F
+        bne     L828F ; always
+
+; **** this is the same code as BASIC ROM $A604-$A612 (start) ****
 L8306:  lda     $0200,x
         bpl     L82B4
 L830B:  sta     $01FD,y
@@ -439,6 +452,7 @@ L830B:  sta     $01FD,y
         lda     #$FF
         sta     $7A
         rts
+; **** this is the same code as BASIC ROM $A604-$A612 (end) ****
 
 .global new_execute
 new_execute:
@@ -446,9 +460,9 @@ new_execute:
         ldx     $3A
         inx
         beq     L8327 ; direct mode
-        ldx     $02AA
-        beq     L8327
-        jsr     L8345
+        ldx     trace_flag
+        beq     L8327 ; no tracing
+        jsr     trace_command
         jsr     _CHRGOT
 L8327:  cmp     #$CC ; first new token
         bcs     L832F
@@ -460,15 +474,16 @@ L832F:  cmp     #$E9 ; last new token + 1
         sbc     #$CB
         asl     a
         tay
-        lda     L8693+1,y
+        lda     command_vectors+1,y
         pha
-        lda     L8693,y
+        lda     command_vectors,y
         pha
         jmp     _CHRGET
 
 L8342:  jmp     _disable_rom
 
-L8345:  lda     $D3
+trace_command:
+        lda     $D3 ; save cursor state
         pha
         lda     $D5
         pha
@@ -476,19 +491,19 @@ L8345:  lda     $D3
         pha
         lda     $D4
         pha
-L8351:  lda     $028D
+L8351:  lda     $028D ; modifier key
         lsr     a
         lsr     a
-        bcs     L8351
+        bcs     L8351 ; CBM is down
         lsr     a
-        bcc     L8369
-        lda     #$02
-        ldx     #$00
+        bcc     L8369 ; CTRL is now down
+        lda     #2
+        ldx     #0
 L835F:  iny
-        bne     L835F
+        bne     L835F ; delay for a bit
         inx
         bne     L835F
-        sbc     #$01
+        sbc     #1
         bne     L835F
 L8369:  jsr     $E566 ; cursor home
         jsr     L839D
@@ -621,11 +636,13 @@ pow10hi:
 
 ; ----------------------------------------------------------------
 
-L8453:  lda     #$60
+; XXX this seems like a redundant "directory" implementation
+print_dir:
+        lda     #$60
         jsr     talk_second
         jsr     IECIN
         jsr     IECIN
-L845E:  jsr     L84C8
+L845E:  jsr     talk_60
         jsr     IECIN
         jsr     IECIN
         jsr     IECIN
@@ -638,11 +655,11 @@ L845E:  jsr     L84C8
         lda     #' '
         jsr     _basic_bsout
         ldx     #$18
-L847F:  jsr     L84C8
+L847F:  jsr     talk_60
         jsr     IECIN
 L8485:  cmp     #CR
         beq     L848D
-        cmp     #$8D
+        cmp     #CR + $80
         bne     L848F
 L848D:  lda     #$1F
 L848F:  ldy     $90
@@ -651,15 +668,15 @@ L848F:  ldy     $90
         jsr     _basic_bsout
         inc     $D8
         jsr     GETIN
-        cmp     #$03
+        cmp     #3 ; STOP
         beq     L84C0
-        cmp     #$20
+        cmp     #' '
         bne     L84AB
 L84A6:  jsr     GETIN
         beq     L84A6
 L84AB:  dex
         bpl     L847F
-        jsr     L84C8
+        jsr     talk_60
         jsr     IECIN
         bne     L8485
         jsr     L84DC
@@ -670,25 +687,29 @@ L84C0:  lda     #$E0
         jsr     talk_second
         jmp     UNLSTN
 
-L84C8:  lda     $9A
+talk_60:
+        lda     $9A
         cmp     #$03
-        beq     L84DB
+        beq     L84DB ; output to screen
         bit     $DD0C
-        bmi     L84DB
+        bmi     L84DB ; RS-232 printer disabled
         jsr     UNLSTN
         lda     #$60
         jsr     talk_second
 L84DB:  rts
 
 L84DC:  bit     $DD0C
-        bmi     L84EC
+        bmi     L84EC ; RS-232 printer disabled
         pha
         lda     $9A
         cmp     #$03
-        beq     L84EB
+        beq     L84EB ; output to screen
         jsr     L8B19
 L84EB:  pla
 L84EC:  rts
+
+; ----------------------------------------------------------------
+; common code of RENUM/AUTO/DEL/ORDER/FIND/REPLACE
 
 L84ED:  lda     $0334
         ldy     $0335
@@ -738,13 +759,13 @@ L8531:  php
         ldx     $AD
         stx     $AF
         plp
-        bne     L854B
+        bne     :+
         dec     $AF
         dec     $15
-L854B:  tax
-        beq     L8568
+:       tax
+        beq     :+
         cmp     #$3A
-        beq     L8568
+        beq     :+
         cmp     #$AB
         bne     L852C
         jsr     _CHRGET
@@ -753,10 +774,10 @@ L854B:  tax
         jsr     L85A0
         bne     L852C
         plp
-        bne     L8568
+        bne     :+
         dec     $15
         dec     $AF
-L8568:  lda     $AE
+:       lda     $AE
         cmp     $AC
         lda     $AF
         sbc     $AD
@@ -766,7 +787,7 @@ L8568:  lda     $AE
         lda     $60
         sta     $7B
         jsr     _search_for_line
-        bcc     L858D
+        bcc     :+
         ldy     #$00
         jsr     _lda_5f_indy
         tax
@@ -774,7 +795,7 @@ L8568:  lda     $AE
         jsr     _lda_5f_indy
         sta     $60
         stx     $5F
-L858D:  rts
+:       rts
 
 L858E:  jsr     _get_line_number
         lda     $14
@@ -801,9 +822,9 @@ L85AE:  lda     $0334
 L85BB:  jsr     L85BF
         tay
 L85BF:  inc     $7A
-        bne     L85C5
+        bne     :+
         inc     $7B
-L85C5:  ldx     #$00
+:       ldx     #$00
         jsr     _lda_7a_indx
         rts
 
@@ -814,9 +835,9 @@ L85CB:  clc
         lda     $AD
         adc     $0337
         sta     $AD
-        bcs     L85DE
+        bcs     :+
         cmp     #$FA
-L85DE:  rts
+:       rts
 
 L85DF:  jsr     L85BB
 L85E2:  jsr     L85BF
@@ -831,10 +852,10 @@ save_chrget_ptr:
         rts
 
 L85F1:  ldx     #L8606_end - L8606 - 1
-L85F3:  lda     L8606,x
+:       lda     L8606,x
         sta     $0334,x
         dex
-        bpl     L85F3
+        bpl     :-
         rts
 
 L85FD:
@@ -884,7 +905,8 @@ new_basic_keywords:
         .byte   "MWRIT", 'E' + $80
         .byte 0
 
-L8693:  .word   OFF-1
+command_vectors:
+        .word   OFF-1
         .word   AUTO-1
         .word   DEL-1
         .word   RENUM-1
@@ -1071,7 +1093,7 @@ L87E5:  cmp     L85FD,x
         beq     L87EF
         dex
         bpl     L87E5
-        bmi     L87D1
+        bmi     L87D1 ; always
 
 L87EF:  jsr     save_chrget_ptr
         jsr     _CHRGET
@@ -1580,7 +1602,7 @@ L8B79:  jsr     UNLSTN
         jmp     L8B95
 
 L8B92:  jsr     L8BE3
-L8B95:  jsr     L8453
+L8B95:  jsr     print_dir
         jsr     set_io_vectors
         jsr     CLRCH
         jsr     set_io_vectors_with_hidden_rom
@@ -2004,13 +2026,13 @@ s_bytes: .byte   "BYTES", CR, 0
 ; "TRACE" Command - enable/disable printing each BASIC line executed
 ; ----------------------------------------------------------------
 TRACE:  tax
-        lda     $02AA
+        lda     trace_flag
         cpx     #$CC
         beq     L8EC6
         ora     #$01
         .byte   $2C
 L8EC6:  and     #$FE
-        sta     $02AA
+        sta     trace_flag
         jmp     L9888
 
 L8ECE:  jmp     L852C
