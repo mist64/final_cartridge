@@ -289,7 +289,7 @@ L81E3:  lda     #$16
 ; ----------------------------------------------------------------
 ; "AUTO" Command - automatically number a BASIC program
 ; ----------------------------------------------------------------
-AUTO:   jsr     L85F1
+AUTO:   jsr     load_auto_defaults
         jsr     L8512
         jsr     L84ED
         pla
@@ -299,6 +299,9 @@ L81FB:  sta     $02A9
 ; code is laid out so it flows into new_mainloop
 
 ; ----------------------------------------------------------------
+
+auto_current_line_number   := $0334
+auto_line_number_increment := $0336
 
 .global new_mainloop
 new_mainloop: ; $81FE
@@ -329,11 +332,11 @@ L8234:  bit     $02A9
         bvc     L824D
         clc
         lda     $14
-        adc     $0336
-        sta     $0334
+        adc     auto_line_number_increment
+        sta     auto_current_line_number
         lda     $15
-        adc     $0337
-        sta     $0335
+        adc     auto_line_number_increment + 1
+        sta     auto_current_line_number + 1
         jsr     L84ED
 L824D:  nop
         nop
@@ -711,8 +714,8 @@ L84EC:  rts
 ; ----------------------------------------------------------------
 ; common code of RENUM/AUTO/DEL/ORDER/FIND/REPLACE
 
-L84ED:  lda     $0334
-        ldy     $0335
+L84ED:  lda     auto_current_line_number
+        ldy     auto_current_line_number + 1
         jsr     L8508
         ldy     #$00
 L84F8:  iny
@@ -799,10 +802,10 @@ L8531:  php
 
 L858E:  jsr     _get_line_number
         lda     $14
-        sta     $0334,y
+        sta     auto_current_line_number,y
         iny
         lda     $15
-        sta     $0334,y
+        sta     auto_current_line_number,y
         iny
         jmp     _CHRGOT
 
@@ -813,9 +816,9 @@ L85A0:  jsr     _get_line_number
         stx     $AD,y
         jmp     _CHRGOT
 
-L85AE:  lda     $0334
+L85AE:  lda     auto_current_line_number
         sta     $AC
-        lda     $0335
+        lda     auto_current_line_number + 1
         sta     $AD
         jmp     _set_txtptr_to_start
 
@@ -830,10 +833,10 @@ L85BF:  inc     $7A
 
 L85CB:  clc
         lda     $AC
-        adc     $0336
+        adc     auto_line_number_increment
         sta     $AC
         lda     $AD
-        adc     $0337
+        adc     auto_line_number_increment + 1
         sta     $AD
         bcs     :+
         cmp     #$FA
@@ -851,9 +854,10 @@ save_chrget_ptr:
         sta     $5B
         rts
 
-L85F1:  ldx     #L8606_end - L8606 - 1
-:       lda     L8606,x
-        sta     $0334,x
+load_auto_defaults: ; for AUTO and RENUM
+        ldx     #auto_defaults_end - auto_defaults - 1
+:       lda     auto_defaults,x
+        sta     auto_current_line_number,x
         dex
         bpl     :-
         rts
@@ -866,9 +870,10 @@ L8603:
         .byte   $AB,$A4,$2C
 L8603_end:
 
-L8606:
-        .byte   $64,$00,$0A,$00
-L8606_end:
+auto_defaults:
+        .word   100 ; default start line number for AUTO
+        .word   10 ; default increment for AUTO
+auto_defaults_end:
 
 ; ??? unused?
         .byte   $FF
@@ -1010,7 +1015,7 @@ L8737:  jmp     L9855
 ; ----------------------------------------------------------------
 ; "RENUM" Command - renumber BASIC lines
 ; ----------------------------------------------------------------
-RENUM:  jsr     L85F1
+RENUM:  jsr     load_auto_defaults
         jsr     L8512
         beq     L8749
         cmp     #','
