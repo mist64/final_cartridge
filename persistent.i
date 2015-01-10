@@ -48,3 +48,4 @@
 .import _set_txtptr_to_start
 .import _a_colon_asterisk
 .import _a_colon_asterisk_end
+.import _bar_irq

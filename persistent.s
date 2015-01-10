@@ -368,6 +368,8 @@ LDFE0: ; XXX BUG ???
         sei
         lda     #$42 ; bank 2 (Desktop, Freezer/Print)
         sta     $DFFF
+.global _bar_irq
+_bar_irq:
         lda     LDE00 ; $40 ???
         pha
         lda     $A000 ; ???

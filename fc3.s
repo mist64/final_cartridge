@@ -69,6 +69,7 @@ LBFFA           := $BFFA
 
 ; variables
 trace_flag      := $02AA
+bar_flag        := $02A8
 
 .segment "part1"
 
@@ -180,8 +181,8 @@ mg87_signature:
         .byte   "MG87"
 
 go_desktop:
-        lda     #$80
-        sta     $02A8 ; unused
+        lda     #$80 ; bar on
+        sta     bar_flag
         jsr     $E3BF ; init BASIC, print banner
         lda     #>(L8000 - 1)
         pha
@@ -878,6 +879,8 @@ auto_defaults_end:
 ; ??? unused?
         .byte   $FF
 
+; ----------------------------------------------------------------
+
 new_basic_keywords:
         .byte   "OF", 'F' + $80
         .byte   "AUT", 'O' + $80
@@ -1348,11 +1351,11 @@ MON:    bne     L89BC
 ; "BAR" Command - enable/disable pull-down menu
 ; ----------------------------------------------------------------
 BAR:    tax
-        lda     #$00
+        lda     #$00 ; bar off
         cpx     #$CC
-        beq     L89CB
-        lda     #$80
-L89CB:  sta     $02A8
+        beq     L89CB ; OFF
+        lda     #$80 ; bar on
+L89CB:  sta     bar_flag
         jmp     L9888
 
 ; ----------------------------------------------------------------
@@ -1461,15 +1464,16 @@ L8A69:  cmp     #$38
 send_drive_command:
         ldy     #$00
         jsr     _lda_7a_indy
-        cmp     #'D' ; drive command "D"
-        beq     L8A87
-        cmp     #'F' ; drive command "F"
+        cmp     #'D' ; drive command "D": change disk name
+        beq     change_disk_name
+        cmp     #'F' ; drive command "F": fast format
         bne     L8A84
         jsr     fast_format2
 L8A84:  jmp     L8BE3
 
-; drive command "D"
-L8A87:  iny
+; drive command "D": change disk name
+change_disk_name:
+        iny
         lda     ($7A),y
         cmp     #$3A
         bne     L8A84
@@ -1502,7 +1506,7 @@ L8AB5:  cpy     #$12
 L8AC1:  pla
         tay
         pla
-        cmp     #$2C
+        cmp     #','
         bne     L8ADF
         lda     #$A0
         jsr     IECOUT
@@ -1518,11 +1522,11 @@ L8AD3:  jsr     L8BDB
 L8ADF:  jsr     L8BF0
         jsr     init_write_bam
         jsr     cmd_channel_listen
-        lda     #$49
+        lda     #'I'
         jsr     IECOUT
         jmp     UNLSTN
 
-L8AF0:  cmp     #$2C
+L8AF0:  cmp     #','
         bne     L8B04
         jsr     _CHRGET
         bcs     L8B3A
@@ -1570,7 +1574,7 @@ PLIST:  jsr     L8AF0
         stx     $60
         lda     #<_new_warmstart
         ldx     #>_new_warmstart
-        jsr     L8B66 ; set $0300 vector
+        jsr     L8B66 ; set $0300 vector, catch direct mode at "reset_warmstart"
         jmp     L987A
 
 .global reset_warmstart
@@ -1600,18 +1604,21 @@ L8B79:  jsr     UNLSTN
         jsr     listen_or_error
         lda     $9A
         cmp     #$04
-        bne     L8B92
+        bne     :+
         lda     #$24
         jsr     IECOUT
         jsr     UNLSTN
         jmp     L8B95
 
-L8B92:  jsr     L8BE3
+:       jsr     L8BE3
 L8B95:  jsr     print_dir
         jsr     set_io_vectors
         jsr     CLRCH
         jsr     set_io_vectors_with_hidden_rom
         jmp     L8A53
+
+; ----------------------------------------------------------------
+; drive helpers
 
 set_filename_or_colon_asterisk:
         lda     #<(_a_colon_asterisk_end - _a_colon_asterisk); ":*" (XXX "<" required to make ca65 happy)
@@ -1646,12 +1653,12 @@ L8BD0:  rts
 
 L8BD1:  lda     #$09
         cmp     $BA
-        bcs     L8BD0
+        bcs     L8BD0 ; RTS
         lda     #$08 ; set drive 8
         bne     L8BCE
 L8BDB:  jsr     _lda_7a_indy
         beq     L8BE2
-        cmp     #$22
+        cmp     #'"'
 L8BE2:  rts
 
 L8BE3:  ldy     #$00
@@ -1670,6 +1677,8 @@ L8BF5:  tya
         bcc     L8BFF
         inc     $7B
 L8BFF:  jmp     UNLSTN
+
+; ----------------------------------------------------------------
 
 .global new_detokenize
 new_detokenize: ; $8C02
@@ -1745,12 +1754,12 @@ L8C78:  sei
         cli
         rts
 
-L8C89:  lda     #$EE
-        ldx     #$DF
-        bit     $02A8
-        bmi     L8C96
-L8C92:  lda     #$31
-        ldx     #$EA
+L8C89:  lda     #<_bar_irq
+        ldx     #>_bar_irq
+        bit     bar_flag
+        bmi     L8C96 ; bar on
+L8C92:  lda     #<$EA31
+        ldx     #>$EA31
 L8C96:  sei
         sta     $0314
         stx     $0315
