@@ -75,10 +75,10 @@
 ; from editor
 .import print_screen
 
-.global L83C8
-.global L8404
-.global L8412
-.global L8B06
+.global list_line
+.global store_d1_spaces
+.global print_dec
+.global send_printer_listen
 .global set_io_vectors
 .global set_io_vectors_with_hidden_rom
 
@@ -330,7 +330,7 @@ auto_line_number_increment := $0336
 
 .global new_mainloop
 new_mainloop: ; $81FE
-        jsr     L8C71
+        jsr     set_irq_and_kbd_handlers
         jsr     cond_init_load_save_vectors
         jsr     L81E3
         jsr     WA560
@@ -556,20 +556,20 @@ L838C:  rts
 ; ----------------------------------------------------------------
 ; "HELP" Command - list BASIC line of last error
 ; ----------------------------------------------------------------
-HELP:   ldx     $3A
+HELP:   ldx     $3A ; line number hi
         inx
-        bne     L839D
+        bne     L839D ; not direct mode
         lda     $7B
-        cmp     #$02
-        bne     L839D
+        cmp     #>$0200
+        bne     L839D ; not direct mode
         ldx     $02AC
-        stx     $3A
-L839D:  ldx     $3A
+        stx     $3A ; line number hi
+L839D:  ldx     $3A ; line number hi
         stx     $15
         txa
         inx
-        beq     L838C
-        ldx     $39
+        beq     L838C ; RTS
+        ldx     $39 ; line number lo
         stx     $14
         jsr     _print_ax_int
         jsr     _search_for_line
@@ -577,46 +577,49 @@ L839D:  ldx     $3A
         sta     $B0
         lda     $D6
         sta     $B1
-        jsr     L83C8
+        jsr     list_line
 L83BA:  lda     #CR
         jsr     _basic_bsout
         bit     $13
-        bpl     L838C
+        bpl     L838C ; RTS
         lda     #$0A ; LF
         jmp     _basic_bsout
 
-L83C8:  ldy     #$03
+list_line:
+        ldy     #$03
         sty     $49
         sty     $0F
-        lda     #$20 ; ' '
-        and     #$7F
+        lda     #' '
+; **** the following code is very similar to BASIC ROM $A6F1
+        and     #$7F ; XXX no effect
 L83D2:  jsr     _basic_bsout
-        cmp     #$22
-        bne     L83DF
+        cmp     #'"'
+        bne     :+
         lda     $0F
-        eor     #$80
+        eor     #$80 ; BASIC ROM says: "eor #$FF"
         sta     $0F
-L83DF:  iny
+:       iny
         ldx     $60
         tya
         clc
         adc     $5F
-        bcc     L83E9
+        bcc     :+
         inx
-L83E9:  cmp     $7A
+:       cmp     $7A ; chrget lo
         bne     L83F9
-        cpx     $7B
+        cpx     $7B ; chrget hi
         bne     L83F9
         lda     $D3
         sta     $B0
         lda     $D6
         sta     $B1
 L83F9:  jsr     _lda_5f_indy
-        beq     L8404
-        jsr     L8C11
+        beq     store_d1_spaces
+        jsr     do_detokenize
         jmp     L83D2 ; loop
 
-L8404:  lda     #$20
+store_d1_spaces:
+        lda     #' '
         ldy     $D3
 L8408:  sta     ($D1),y
         cpy     $D5
@@ -625,7 +628,8 @@ L8408:  sta     ($D1),y
         bne     L8408
 L8411:  rts
 
-L8412:  stx     $C1
+print_dec:
+        stx     $C1
         sta     $C2
         lda     #$31
         sta     $C3
@@ -679,7 +683,7 @@ L845E:  jsr     talk_60
         ldy     $90
         bne     L84C0
         jsr     L84DC
-        jsr     L8412
+        jsr     print_dec
         lda     #' '
         jsr     _basic_bsout
         ldx     #$18
@@ -773,7 +777,7 @@ L8528:  rts
 ; ??? unreferenced?
         jmp     disable_rom_jmp_overflow_error
 
-L852C:  jmp     WAF08
+L852C:  jmp     WAF08 ; SYNTAX ERROR
 
 L852F:  beq     L852C
 L8531:  php
@@ -1037,7 +1041,7 @@ L871C:  jsr     L85BF
 
 L8734:  jmp     disable_rom_jmp_overflow_error
 
-L8737:  jmp     WAF08
+L8737:  jmp     WAF08 ; SYNTAX ERROR
 
 ; ----------------------------------------------------------------
 ; "RENUM" Command - renumber BASIC lines
@@ -1229,7 +1233,7 @@ L88B9:  lda     $5A
         ldx     #$00
         rts
 
-L88C4:  jmp     WAF08
+L88C4:  jmp     WAF08 ; SYNTAX ERROR
 
 ; ----------------------------------------------------------------
 ; "FIND" Command - find a string in a BASIC program
@@ -1273,12 +1277,12 @@ L8912:  jsr     L85BB
         beq     L896F
         jsr     L85BB
         sta     $3A
-        sty     $39
+        sty     $39 ; line number lo
         cpy     $AC
         sbc     $AD
         bcc     L892E
         ldy     $AE
-        cpy     $39
+        cpy     $39 ; line number lo
         lda     $AF
         sbc     $3A
         bcs     L8933
@@ -1479,9 +1483,9 @@ L8A5D:  jsr     _CHRGET
         bne     L8A69
         jmp     L8B79
 
-L8A69:  cmp     #$38
+L8A69:  cmp     #'8'
         beq     L8A54
-        cmp     #$39
+        cmp     #'9'
         beq     L8A54
         jsr     listen_6F_or_error
 .global send_drive_command
@@ -1550,20 +1554,26 @@ L8ADF:  jsr     L8BF0
         jsr     IECOUT
         jmp     UNLSTN
 
-L8AF0:  cmp     #','
-        bne     L8B04
+; ----------------------------------------------------------------
+; common code for PLIST/PDIR
+; ----------------------------------------------------------------
+
+get_secaddr_and_send_listen:
+        cmp     #','
+        bne     :+
         jsr     _CHRGET
-        bcs     L8B3A
+        bcs     L8B3A ; SYNTAX ERROR
         jsr     _get_line_number
         lda     $15
-        bne     L8B3A
+        bne     L8B3A ; must be < 256, otherwise SYNTAX ERROR
         lda     $14
-        bpl     L8B06
-L8B04:  lda     #$FF
-L8B06:  sta     $B9
+        bpl     send_printer_listen ; 0-128 ok, everything else $FF
+:       lda     #$FF
+send_printer_listen:
+        sta     $B9 ; secondary address
         jsr     something_with_printer
         bcc     L8B35
-        lda     $B9
+        lda     $B9 ; secondary address
         bpl     L8B13
         lda     #$00
 L8B13:  and     #$0F
@@ -1572,7 +1582,7 @@ L8B13:  and     #$0F
 L8B19:  jsr     UNLSTN
         lda     #$00
         sta     $90
-        lda     #$04
+        lda     #4
         jsr     LISTEN
         lda     $B9
         bpl     L8B2E
@@ -1585,12 +1595,12 @@ L8B35:  lda     #$04
         sta     $9A
         rts
 
-L8B3A:  jmp     WAF08
+L8B3A:  jmp     WAF08 ; SYNTAX ERROR
 
 ; ----------------------------------------------------------------
 ; "PLIST" Command - send BASIC listing to printer
 ; ----------------------------------------------------------------
-PLIST:  jsr     L8AF0
+PLIST:  jsr     get_secaddr_and_send_listen
         bcs     L8B6D
         lda     $2B
         ldx     $2C
@@ -1621,7 +1631,7 @@ L8B6D:  lda     #$03
 ; ----------------------------------------------------------------
 ; "PDIR" Command - send disk directoy to printer
 ; ----------------------------------------------------------------
-PDIR:   jsr     L8AF0
+PDIR:   jsr     get_secaddr_and_send_listen
         bcs     L8B6D
 L8B79:  jsr     UNLSTN
         lda     #$F0
@@ -1711,12 +1721,13 @@ new_detokenize: ; $8C02
         tax
 L8C03:  lda     $028D
         and     #$02
-        bne     L8C03
+        bne     L8C03 ; wait while CBM key is pressed
         txa
-        jsr     L8C11
+        jsr     do_detokenize
         jmp     _list
 
-L8C11:  cmp     #$E9
+do_detokenize:
+        cmp     #$E9
         bcs     L8C5F ; token above
         cmp     #$80
         bcc     L8C59 ; below
@@ -1752,7 +1763,6 @@ L8C4B:  lda     ($22),y
         bmi     L8C62
         jsr     _basic_bsout
         jmp     L8C4A
-
 L8C55:  cmp     #CR + $80
         beq     L8C5D
 L8C59:  cmp     #CR
@@ -1760,15 +1770,20 @@ L8C59:  cmp     #CR
 L8C5D:  lda     #$1F
 L8C5F:  inc     $D8
 L8C61:  rts
-
 L8C62:  ldy     $49
         and     #$7F
         bpl     L8C61
 L8C68:  jsr     L8C92
-        lda     #$48
-        ldx     #$EB
-        bne     L8C78
-L8C71:  jsr     L8C89
+        lda     #<$EB48 ; evaluate modifier keys
+        ldx     #>$EB48
+        bne     L8C78 ; always
+
+; ----------------------------------------------------------------
+; Keyboard handler and BAR support setup
+; ----------------------------------------------------------------
+
+set_irq_and_kbd_handlers:
+        jsr     set_irq_handler
         lda     #<_kbd_handler
         ldx     #>_kbd_handler
 L8C78:  sei
@@ -1780,7 +1795,8 @@ L8C78:  sei
         cli
         rts
 
-L8C89:  lda     #<_bar_irq
+set_irq_handler:
+        lda     #<_bar_irq
         ldx     #>_bar_irq
         bit     bar_flag
         bmi     L8C96 ; bar on
@@ -2234,13 +2250,13 @@ L8FF0:  jsr     L85E2
 
 L8FF6:  jmp     L897D
 
-L8FF9:  sty     $39
+L8FF9:  sty     $39 ; line number lo
         sta     $3A
         cpy     $8B
         sbc     $8C
         bcc     L900B
         lda     $8D
-        cmp     $39
+        cmp     $39 ; line number lo
         lda     $8E
         sbc     $3A
 L900B:  rts

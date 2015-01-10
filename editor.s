@@ -1,14 +1,21 @@
 ; ----------------------------------------------------------------
-; screen editor improvements
+; Screen Editor Additions
 ; ----------------------------------------------------------------
+; This adds the following features to the KERNAL screen editor:
+; * CTRL + HOME: put cursor at bottom left
+; * CTRL + DEL: delete to end of line
+; * CTRL + CR: print screen
+; * F-key shortcuts with SpeedDOS layout (LIST/RUN/DLOAD/DOS"$")
+; * auto-scrolling of BASIC programs: when the screen scrolls
+;   either direction, a new BASIC line is LISTed
 
 .include "kernal.i"
 .include "persistent.i"
 
-.import L83C8
-.import L8404
-.import L8412
-.import L8B06
+.import list_line
+.import store_d1_spaces
+.import print_dec
+.import send_printer_listen
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
@@ -68,7 +75,7 @@ L9282:  cmp     #$11 ; DOWN
         sta     $02AB
         pla
         sec
-        sbc     #$85
+        sbc     #$85 ; KEY_F1
         bcc     L927C
         cmp     #$04
         bcs     L927C
@@ -300,15 +307,15 @@ L9448:  ldy     #$01
         tax
         iny
         jsr     _lda_5f_indy
-        jsr     L8412
-        jsr     L83C8
+        jsr     print_dec
+        jsr     list_line
 L9460:  lda     #$00
         sta     $D4
         sta     $D8
         sta     $C7
         rts
 
-L9469:  jsr     L8404
+L9469:  jsr     store_d1_spaces
         bcs     L9460
 L946E:  lda     #$03
         sta     $9A
@@ -316,8 +323,8 @@ L946E:  lda     #$03
 
 .global print_screen
 print_screen:
-        lda     #$07
-        jsr     L8B06
+        lda     #7 ; secondary address
+        jsr     send_printer_listen
         bcs     L946E
         jsr     set_io_vectors
         ldy     #$00
