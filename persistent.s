@@ -1,3 +1,11 @@
+; ----------------------------------------------------------------
+; I/O Area ROM
+; ----------------------------------------------------------------
+; This is a max. 512 byte section that lives at $1E00-$1FFF of
+; bank 0 of the ROM, and will also be mapped into the I/O extension
+; area at $DE00-$DFFF, so it's always visible.
+; It mostly contains wrappers around BASIC, KERNAL or cartridge
+; functions that switch the ROM config in addition.
 
 ; from fc3
 .import new_clrch
@@ -22,10 +30,6 @@
 
 CHRGET          := $0073
 CHRGOT          := $0079
-
-; ----------------------------------------------------------------
-; I/O Area ROM
-; ----------------------------------------------------------------
 
 .segment        "romio"
 

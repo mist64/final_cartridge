@@ -1,3 +1,10 @@
+; ----------------------------------------------------------------
+; Helper code called from Desktop
+; ----------------------------------------------------------------
+; Desktop doesn't know about drives or printers, so it calls into
+; this library code with cross-bank calls. It also calls thsi to
+; start a program in BASIC mode.
+
 .include "kernal.i"
 .include "persistent.i"
 
@@ -18,10 +25,6 @@
 .import print_msg
 .import messages
 .import a_ready
-
-; ----------------------------------------------------------------
-; Helper code called from Desktop
-; ----------------------------------------------------------------
 
 .segment "desktop_helper"
 

@@ -1,7 +1,6 @@
 .include "kernal.i"
 .include "persistent.i"
 
-L0100           := $0100
 L0110           := $0110
 
 CR              := $0D
@@ -535,7 +534,7 @@ L9CA8:  bvc     L9CA8
 L9CB5:  bvc     L9CB5
         clv
         lda     $1C01
-        sta     L0100,y
+        sta     $0100,y
         iny
         bne     L9CB5
         jsr     $F7E8 ; drive ROM

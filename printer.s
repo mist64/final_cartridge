@@ -1,19 +1,13 @@
+; ----------------------------------------------------------------
+; Centronics and RS-232 printer drivers
+; ----------------------------------------------------------------
+
 .include "kernal.i"
 .include "persistent.i"
 
 CR              := $0D
 
-.import go_basic
-; ----------------------------------------------------------------
-; Centronics and RS-232 printer drivers
-; ----------------------------------------------------------------
-; This is at $A000
-
 .segment "printer"
-
-; ??? unused?
-        .addr   go_basic
-        .addr   _basic_warm_start
 
 .global set_io_vectors_with_hidden_rom
 set_io_vectors_with_hidden_rom:

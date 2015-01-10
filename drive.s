@@ -1,3 +1,8 @@
+; ----------------------------------------------------------------
+; Disk and Tape Speeder
+; ----------------------------------------------------------------
+; This speeds up LOAD and SAVE on both disk and tape
+
 .include "kernal.i"
 
 CR              := $0D

@@ -1,14 +1,15 @@
-.include "persistent.i"
-
-; ----------------------------------------------------------------
-.segment "freezer"
-
 ; ----------------------------------------------------------------
 ; Freezer Entry
 ; ----------------------------------------------------------------
 ; In Ultimax mode, we have the following memory layout:
 ; $8000-$9FFF: bank 0 lo
 ; $E000-$FFFF: bank 0 hi
+; This code is mapped into bank 0 hi, and the vectors appear
+; at the very end of this bank.
+
+.include "persistent.i"
+
+.segment "freezer"
 
 freezer: ; $FFA0
         sei

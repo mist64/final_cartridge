@@ -3101,6 +3101,14 @@ L984D:  bvc     L984D
 
 ; ----------------------------------------------------------------
 
+.segment "basic_vectors"
+
+; these have to be at $A000
+        .addr   go_basic          ; BASIC cold start entry point
+        .addr   _basic_warm_start ; BASIC warm start entry point
+
+; ----------------------------------------------------------------
+
 .segment "basic_keywords"
 
 ; This is a redundant copy of the BASIC keywords in ROM.

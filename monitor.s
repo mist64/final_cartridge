@@ -1,3 +1,14 @@
+; ----------------------------------------------------------------
+; Monitor
+; ----------------------------------------------------------------
+; Unique features of this monitor include:
+; * "I" command to dump 32 PETSCII characters, which even renders
+;   control characters correctly.
+; * F3/F5 scroll more lines in (disassembly, dump, ...) on either
+;   the top or the bottom of the screen
+; * "OD" switches all memory dumps/input to the drive's memory.
+; * "B" command to introspect cartridge ROM
+
 .include "kernal.i"
 
 .include "persistent.i"
@@ -6,10 +17,6 @@
 .import fast_format
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
-
-; ----------------------------------------------------------------
-; Monitor (~4750 bytes)
-; ----------------------------------------------------------------
 
 ; PETSCII
 CR              := $0D
