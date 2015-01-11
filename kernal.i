@@ -40,3 +40,27 @@ UDTIM           := $FFEA
 SCREEN          := $FFED
 PLOT            := $FFF0
 IOBASE          := $FFF3
+
+CHRGET          := $0073
+CHRGOT          := $0079
+
+; PETSCII
+CR              := $0D
+CSR_DOWN        := $11
+CSR_HOME        := $13
+CSR_RIGHT       := $1D
+CSR_UP          := $91
+KEY_STOP        := $03
+KEY_F3          := $86
+KEY_F5          := $87
+KEY_F7          := $88
+
+; C64 Memory Map
+TXTPTR          := $7A
+LFN             := $B8 ; logical file number
+SECADDR         := $B9 ; secondary address
+DEV             := $BA ; device number
+CSR_COLUMN      := $D3
+CSR_ROW         := $D6
+KBD_BUFFER_COUNT := $C6
+KBD_BUFFER      := $0277

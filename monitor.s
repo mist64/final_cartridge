@@ -20,27 +20,6 @@
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
-; PETSCII
-CR              := $0D
-CSR_DOWN        := $11
-CSR_HOME        := $13
-CSR_RIGHT       := $1D
-CSR_UP          := $91
-
-KEY_STOP        := $03
-KEY_F3          := $86
-KEY_F5          := $87
-KEY_F7          := $88
-
-; C64 Memory Map
-LFN             := $B8 ; logical file number
-SECADDR         := $B9 ; secondary address
-DEV             := $BA ; device number
-CSR_COLUMN      := $D3
-CSR_ROW         := $D6
-KBD_BUFFER_COUNT := $C6
-KBD_BUFFER      := $0277
-
 ; variables
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6

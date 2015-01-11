@@ -2,6 +2,7 @@
 ; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
 ; ----------------------------------------------------------------
 
+.include "kernal.i"
 .include "persistent.i"
 
 .global WA3BF
@@ -122,7 +123,7 @@ WE175:  lda     #>($E175 - 1)
         .byte   $DE
         sty     $93
         tya
-        ldy     $BA
+        ldy     DEV
         cpy     #7
         beq     L98B3
         cpy     #8
@@ -136,10 +137,10 @@ WE175:  lda     #>($E175 - 1)
         jsr     _load_bb_indy
         cmp     #$24
         beq     L98B9
-        ldx     $B9
+        ldx     SECADDR
         cpx     #2
         beq     L98B9
         jsr     $A762 ; ???
         lda     #$60
-        sta     $B9
+        sta     SECADDR
         .byte $20

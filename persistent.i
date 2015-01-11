@@ -22,8 +22,8 @@
 .import _lda_22_indy
 .import _lda_5a_indy
 .import _lda_5f_indy
-.import _lda_7a_indx
-.import _lda_7a_indy
+.import _lda_TXTPTR_indx
+.import _lda_TXTPTR_indy
 .import _lda_8b_indy
 .import _lda_ae_indx
 .import _list

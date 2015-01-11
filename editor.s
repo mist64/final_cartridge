@@ -22,8 +22,6 @@
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
-CR              := $0D
-
 .segment "screen_editor"
 
 .global kbd_handler
@@ -32,23 +30,23 @@ kbd_handler:
         bne     L927C ; do not flash cursor
         ldy     $CB
         lda     ($F5),y
-        cmp     #$03
+        cmp     #3
         bne     L923A
         jsr     L9460
         beq     L927C
 L923A:  ldx     $028D
-        cpx     #$04 ; CTRL key down
+        cpx     #4 ; CTRL key down
         beq     L9247
-        cpx     #$02 ; CBM key down?
+        cpx     #2 ; CBM key down?
         bcc     L9282 ; SHIFT or nothing
         bcs     L927C ; CBM
 
 L9247:  cmp     #$13 ; CTRL + HOME: put cursor at bottom left
         bne     L925D
         jsr     L93B4
-        ldy     #$00
-        sty     $D3
-        ldy     #$18 ; 25
+        ldy     #0
+        sty     CSR_COLUMN
+        ldy     #24
         jsr     $E56A ; set cursor line
         jsr     L9460
         jmp     L92C5
@@ -74,13 +72,13 @@ L927F:  jmp     _disable_rom
 L9282:  cmp     #$11 ; DOWN
         beq     L92DD
         pha
-        lda     #$00
+        lda     #0
         sta     $02AB
         pla
         sec
         sbc     #$85 ; KEY_F1
         bcc     L927C
-        cmp     #$04
+        cmp     #4
         bcs     L927C
         cpy     $C5
         beq     L927F
@@ -91,7 +89,7 @@ L9282:  cmp     #$11 ; DOWN
         asl     a
         adc     ($F5),y
         sbc     #$84
-        ldx     #$00
+        ldx     #0
         tay
         beq     L92B7
 L92AB:  lda     fkey_strings,x
@@ -102,12 +100,12 @@ L92B3:  inx
         dey
         bne     L92AB
 L92B7:  lda     fkey_strings,x
-        sta     $0277,y ; kbd buffer
+        sta     KBD_BUFFER,y
         beq     L92C3
         inx
         iny
         bne     L92B7
-L92C3:  sty     $C6
+L92C3:  sty     KBD_BUFFER_COUNT
 L92C5:  lda     #$7F
         sta     $DC00
         bne     L927F ; always
@@ -124,15 +122,15 @@ L92D5:  lsr     $02A7
 L92DD:  inc     $02A7
         inc     $CC
         txa
-        and     #$01
+        and     #1
         bne     L9342
-        lda     $D6
-        cmp     #$18
+        lda     CSR_ROW
+        cmp     #24
         bne     L92D5
         jsr     L93B4
         bit     $02AB
         bmi     L9312
-        ldx     #$19
+        ldx     #25
 L92F7:  dex
         bmi     L92D5
         lda     $D9,x
@@ -146,7 +144,7 @@ L9309:  jsr     _search_for_line
         bcs     L9322
         beq     L92D5
         bcc     L9322
-L9312:  ldy     #$00
+L9312:  ldy     #0
         jsr     _lda_5f_indy
         tax
         iny
@@ -159,24 +157,24 @@ L9322:  lda     #$8D
         jsr     L9448
         lda     #$80
         sta     $02AB
-        ldy     $D3
+        ldy     CSR_COLUMN
         beq     L933A
-L9333:  cpy     #$28
+L9333:  cpy     #40
         beq     L933A
         dey
         bne     L9333
-L933A:  sty     $D3
-        lda     #$18
-        sta     $D6
+L933A:  sty     CSR_COLUMN
+        lda     #24
+        sta     CSR_ROW
         bne     L92CC
-L9342:  lda     $D6
+L9342:  lda     CSR_ROW
         bne     L92D5
         jsr     L93B4
         bit     $02AB
         bvs     L9361
         ldx     #$FF
 L9350:  inx
-        cpx     #$19
+        cpx     #25
         beq     L9372
         lda     $D9,x
         bpl     L9350
@@ -189,33 +187,33 @@ L9361:  lda     $5F
         bne     L9375
         cpx     $2C
         bne     L9375
-        lda     #$00
+        lda     #0
         sta     $02AB
 L9372:  jmp     L92D5
 
-L9375:  sta     $7A
+L9375:  sta     TXTPTR
         dex
-        stx     $7B
+        stx     TXTPTR + 1
         ldy     #$FF
 L937C:  iny
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
 L9380:  tax
         bne     L937C
         iny
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
         cmp     $5F
         bne     L9380
         iny
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
         cmp     $60
         bne     L9380
         dey
         tya
         clc
-        adc     $7A
+        adc     TXTPTR
         sta     $5F
-        lda     $7B
-        adc     #$00
+        lda     TXTPTR + 1
+        adc     #0
         sta     $60
         jsr     L9416
         jsr     $E566 ; cursor home
@@ -233,26 +231,26 @@ L93B4:  lsr     $CF
 L93C0:  rts
 
 L93C1:  ldy     $ECF0,x ; low bytes of screen line addresses
-        sty     $7A
-        and     #$03
+        sty     TXTPTR
+        and     #3
         ora     $0288
-        sta     $7B
-        ldy     #$00
-        jsr     _lda_7a_indy
+        sta     TXTPTR + 1
+        ldy     #0
+        jsr     _lda_TXTPTR_indy
         cmp     #$3A
         bcs     L9415
         sbc     #$2F
         sec
         sbc     #$D0
         bcs     L9415
-        ldy     #$00
+        ldy     #0
         sty     $14
         sty     $15
 L93E3:  sbc     #$2F
         sta     $07
         lda     $15
         sta     $22
-        cmp     #$19
+        cmp     #25
         bcs     L9415
         lda     $14
         asl     a
@@ -277,7 +275,7 @@ L940F:  jsr     _CHRGET
 L9415:  rts
 
 L9416:  inc     $0292
-        ldx     #$19
+        ldx     #25
 L941B:  dex
         beq     L942D
         jsr     $E9F0 ; fetch a screen address
@@ -301,7 +299,7 @@ L943C:  sta     $DA,x
         sta     $D9
         rts
 
-L9448:  ldy     #$01
+L9448:  ldy     #1
         sty     $0F
         jsr     _lda_5f_indy
         beq     L9469
@@ -312,7 +310,7 @@ L9448:  ldy     #$01
         jsr     _lda_5f_indy
         jsr     print_dec
         jsr     list_line
-L9460:  lda     #$00
+L9460:  lda     #0
         sta     $D4
         sta     $D8
         sta     $C7
@@ -320,7 +318,7 @@ L9460:  lda     #$00
 
 L9469:  jsr     store_d1_spaces
         bcs     L9460
-L946E:  lda     #$03
+L946E:  lda     #3
         sta     $9A
         rts
 
@@ -330,14 +328,14 @@ print_screen:
         jsr     send_printer_listen
         bcs     L946E
         jsr     set_io_vectors
-        ldy     #$00
+        ldy     #0
         sty     $AC
         lda     $0288 ; video RAM address hi
         sta     $AD
         ldx     #25 ; lines
 L9488:  lda     #CR
         jsr     BSOUT
-        ldy     #$00
+        ldy     #0
 L948F:  lda     ($AC),y
         sta     $D7
         and     #$3F

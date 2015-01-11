@@ -7,8 +7,6 @@
 .include "kernal.i"
 .include "persistent.i"
 
-CR              := $0D
-
 .segment "printer"
 
 .global set_io_vectors_with_hidden_rom
@@ -205,7 +203,7 @@ LA16D:  pla
         jmp     $F279 ; set output to IEC bus
 
 LA173:  jsr     $F31F ; set file par from table
-        lda     $BA
+        lda     DEV
         cmp     #4 ; printer
         bne     LA168
         jsr     LA183
@@ -286,7 +284,7 @@ LA1F5:  stx     $9A
         sta     $99
         rts
 
-LA1FC:  lda     $B9
+LA1FC:  lda     SECADDR
         cmp     #$FF
         beq     LA219
         and     #$0F

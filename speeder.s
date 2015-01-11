@@ -8,11 +8,6 @@
 
 L0110           := $0110
 
-CR              := $0D
-
-SECADDR         := $B9 ; secondary address
-DEV             := $BA ; device number
-
 .segment "speeder_a"
 
 .global new_load
@@ -157,7 +152,7 @@ L99D6:  pla
 new_load2:
         sty     $93
         tya
-        ldy     $BA
+        ldy     DEV
         cpy     #7
         beq     L99B5 ; tape turbo
         cpy     #8
@@ -177,7 +172,7 @@ new_load2:
         lda     #$60
         sta     SECADDR
         jsr     LA71B
-        lda     $BA
+        lda     DEV
         jsr     $ED09 ; TALK
         lda     SECADDR
         jsr     $EDC7 ; SECTLK
@@ -237,7 +232,7 @@ L9A6A:  jmp     $F5ED ; default SAVE vector
 L9A6D:  jmp     $A7C6 ; interpreter loop
 
 new_save2:
-        lda     $BA
+        lda     DEV
         cmp     #7
         beq     L9A6D ; tape turbo
         cmp     #8
@@ -873,14 +868,14 @@ L0612:
 .segment "speeder_c"
 
 LA612:  pha
-        lda     $BA
+        lda     DEV
         jsr     LISTEN
         pla
         jmp     SECOND
 
 LA61C:  lda     #$6F
         pha
-        lda     $BA
+        lda     DEV
         jsr     TALK
         pla
         jmp     TKSA
@@ -1015,7 +1010,7 @@ LA707:  pha
 LA71B:
         ldy     #0
         sty     $90
-        lda     $BA
+        lda     DEV
         jsr     $ED0C ; LISTEN
         lda     SECADDR
         ora     #$F0

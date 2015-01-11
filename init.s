@@ -30,7 +30,7 @@ init_load_and_basic_vectors:
         jsr     init_load_save_vectors
 .global init_basic_vectors
 init_basic_vectors:
-        ldx     #$09
+        ldx     #basic_vectors_end - basic_vectors - 1
 L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
         sta     $0302,x
         dex
@@ -54,7 +54,7 @@ entry:
         pha
         lda     $DC01
         pha
-        lda     #$00 ; clear pages 0, 2, 3
+        lda     #0 ; clear pages 0, 2, 3
         tay
 L805A:  sta     $02,y
         sta     $0200,y
@@ -64,9 +64,9 @@ L805A:  sta     $02,y
         ldx     #<$A000
         ldy     #>$A000
         jsr     $FE2D ; set memtop
-        lda     #$08
+        lda     #>$0800
         sta     $0282 ; start of BASIC $0800
-        lda     #$04
+        lda     #>$0400
         sta     $0288 ; start of screen RAM $0400
         lda     #<$033C
         sta     $B2
@@ -86,7 +86,7 @@ L805A:  sta     $02,y
         beq     go_desktop
         and     #$7F
         beq     go_desktop
-        ldy     #$03
+        ldy     #mg87_signature_end - mg87_signature - 1
 L809D:  lda     $CFFC,y
         cmp     mg87_signature,y
         bne     L80AA
@@ -97,6 +97,7 @@ L80AA:  jmp     ($A000)
 
 mg87_signature:
         .byte   "MG87"
+mg87_signature_end:
 
 .global go_desktop
 go_desktop:
@@ -128,12 +129,14 @@ go_basic:
 load_save_vectors:
         .addr   _new_load       ; $0330 LOAD
         .addr   _new_save       ; $0332 SAVE
+load_save_vectors_end:
 basic_vectors:
         .addr   _new_mainloop   ; $0302 IMAIN  BASIC direct mode
         .addr   _new_tokenize   ; $0304 ICRNCH tokenization
         .addr   _new_detokenize ; $0306 IQPLOP token decoder
         .addr   _new_execute    ; $0308 IGONE  execute instruction
         .addr   _new_expression ; $030A IEVAL  execute expression
+basic_vectors_end:
 
 ; update the load and save vectors only if all hardware vectors are
 ; the KERNAL defaults
@@ -149,7 +152,7 @@ L80EE:  lda     $0314,y
 .global init_load_save_vectors
 init_load_save_vectors:
         jsr     set_io_vectors_with_hidden_rom
-        ldy     #$03
+        ldy     #load_save_vectors_end - load_save_vectors - 1
 L80FE:  lda     load_save_vectors,y ; overwrite LOAD and SAVE vectors
         sta     $0330,y
         dey

@@ -64,10 +64,10 @@ load_and_run_program:
         sty     $BB ; file name pointer low
         sty     $02A8
         lda     #1 ; secondary address
-        sta     $B9
+        sta     SECADDR
         lda     #>$0200
         sta     $BC ; read filename from $0200
-        sta     $7B
+        sta     TXTPTR + 1
 L9533:  lda     ($BB),y
         sta     $C000,y
         beq     L953D
@@ -77,15 +77,15 @@ L953D:  sty     $B7
         lda     #$C0
         sta     $BC ; file name pointer high (fn at $C000)
         lda     #'R'
-        sta     $0277
+        sta     KBD_BUFFER
         lda     #'U'
-        sta     $0278
+        sta     KBD_BUFFER + 1
         lda     #'N'
-        sta     $0279
+        sta     KBD_BUFFER + 2
         lda     #$0D ; CR
-        sta     $027A
-        lda     #$04 ; number of characters in kbd buffer
-        sta     $C6
+        sta     KBD_BUFFER + 3
+        lda     #4 ; number of characters in kbd buffer
+        sta     KBD_BUFFER_COUNT
         jmp     $E16F ; LOAD
 
 ; performs a (fast) disk operation for Desktop
@@ -93,15 +93,15 @@ L953D:  sty     $B7
 perform_desktop_disk_operation:
         tya
         pha ; bank to return to
-        cpx     #$01
+        cpx     #1
         beq     read_directory
-        cpx     #$02
+        cpx     #2
         beq     send_drive_command_at_0200
-        cpx     #$03
+        cpx     #3
         beq     read_cmd_channel
-        cpx     #$04
+        cpx     #4
         beq     read_disk_name
-        cpx     #$05
+        cpx     #5
         beq     reset_load_and_run
         jmp     L969A ; second half of operations (XXX why?)
 
@@ -110,12 +110,12 @@ read_disk_name:
         jsr     cmd_channel_listen
         bmi     zero_terminate ; XXX X is undefined here
         jsr     UNLSTN
-        ldx     #$00
+        ldx     #0
         jsr     init_read_disk_name
         bne     zero_terminate
         lda     #$62
         jsr     talk_second
-        ldx     #$00
+        ldx     #0
 L958D:  jsr     IECIN
         cmp     #$A0 ; terminator
         beq     L959C
@@ -134,7 +134,7 @@ read_cmd_channel:
         jsr     command_channel_talk
         lda     $90
         bmi     jmp_bank_from_stack
-        ldx     #$00
+        ldx     #0
 L95B6:  jsr     IECIN
         cmp     #$0D ; CR
         beq     L95C3
@@ -143,7 +143,7 @@ L95B6:  jsr     IECIN
         bne     L95B6
 L95C3:  jsr     UNTALK
 zero_terminate:
-        lda     #$00
+        lda     #0
         sta     $0200,x ; zero terminate
 jmp_bank_from_stack:
         pla
@@ -153,9 +153,9 @@ send_drive_command_at_0200:
         jsr     cmd_channel_listen
         bmi     jmp_bank_from_stack
         lda     #<$0200
-        sta     $7A
+        sta     TXTPTR
         lda     #>$0200
-        sta     $7B
+        sta     TXTPTR + 1
         jsr     send_drive_command
         jmp     jmp_bank_from_stack
 
@@ -168,9 +168,9 @@ read_directory:
         jsr     IECOUT
         jsr     UNLSTN
         lda     #$60
-        sta     $B9
+        sta     SECADDR
         jsr     talk_second
-        ldx     #$06
+        ldx     #6
 L95FA:  jsr     iecin_or_ret
         dex
         bne     L95FA ; skip 6 bytes
@@ -192,7 +192,7 @@ L9619:  jsr     iecin_or_ret
 
 L9626:  jsr     terminate_directory_name
 L9629:  jsr     iecin_or_ret
-        cmp     #$00
+        cmp     #0
         bne     L9629
         beq     L9602 ; always; loop
 
@@ -213,7 +213,7 @@ decode_decimal:
         sta     $C2
         lda     #$31
         sta     $C3
-        ldx     #$04
+        ldx     #4
 L964F:  dec     $C3
 L9651:  lda     #$2F
         sta     $C4
@@ -240,10 +240,10 @@ L9676:  dex
         jmp     terminate_directory_name ; XXX redundant
 
 terminate_directory_name:
-        lda     #$00
+        lda     #0
 store_directory_byte:
         sty     $AE
-        ldy     #$00
+        ldy     #0
         sta     ($AC),y
         inc     $AC
         bne     L968C
@@ -259,11 +259,11 @@ disk_operation_fallback:
         lda     #$43
         jmp     _jmp_bank ; bank 3
 
-L969A:  cpx     #$0B
+L969A:  cpx     #11
         beq     set_printer_output
-        cpx     #$0C
+        cpx     #12
         beq     print_character
-        cpx     #$0D
+        cpx     #13
         beq     reset_printer_output
         jsr     disk_operation_fallback
         jmp     jmp_bank_from_stack
@@ -272,21 +272,21 @@ reset_printer_output:
         lda     #$0D ; CR
         jsr     BSOUT
         jsr     CLALL
-        lda     #$01
+        lda     #1
         jsr     CLOSE
         jsr     set_io_vectors_with_hidden_rom
         jmp     jmp_bank_from_stack
 
 set_printer_output:
         jsr     set_io_vectors
-        lda     #$01 ; LFN
-        ldy     #$07 ; secondary address
-        ldx     #$04 ; printer
+        lda     #1 ; LFN
+        ldy     #7 ; secondary address
+        ldx     #4 ; printer
         jsr     SETLFS
-        lda     #$00
+        lda     #0
         jsr     SETNAM
         jsr     OPEN
-        ldx     #$01
+        ldx     #1
         jsr     CKOUT
         jmp     jmp_bank_from_stack
 

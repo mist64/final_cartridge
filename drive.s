@@ -4,8 +4,6 @@
 
 .include "kernal.i"
 
-CR              := $0D
-
 ; from wrapper
 .import disable_rom_jmp_error
 

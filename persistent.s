@@ -7,6 +7,8 @@
 ; It mostly contains wrappers around BASIC, KERNAL or cartridge
 ; functions that switch the ROM config in addition.
 
+.include "kernal.i"
+
 ; from printer
 .import new_clrch
 .import new_clall
@@ -33,9 +35,6 @@
 
 ; from desktop_helper
 .import load_and_run_program
-
-CHRGET          := $0073
-CHRGOT          := $0079
 
 .segment        "romio"
 
@@ -283,16 +282,16 @@ _lda_ae_indx: ; $DF40
         lda     ($AE,x)
         jmp     _enable_rom
 
-.global _lda_7a_indy
-_lda_7a_indy: ; $DF48
+.global _lda_TXTPTR_indy
+_lda_TXTPTR_indy: ; $DF48
         jsr     _disable_rom
-        lda     ($7A),y
+        lda     (TXTPTR),y
         jmp     _enable_rom
 
-.global _lda_7a_indx
-_lda_7a_indx: ; DF50
+.global _lda_TXTPTR_indx
+_lda_TXTPTR_indx: ; DF50
         jsr     _disable_rom
-        lda     ($7A,x)
+        lda     (TXTPTR,x)
         jmp     _enable_rom
 
 .global _lda_22_indy

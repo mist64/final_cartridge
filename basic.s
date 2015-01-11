@@ -53,15 +53,11 @@ trace_flag      := $02AA
 .global bar_flag
 bar_flag        := $02A8
 
-CHRGET          := $0073
-
-CR              := $0D
-
 .segment "basic_commands"
 
 .global new_expression
 new_expression:
-        lda     #$00    ; same first three
+        lda     #0      ; same first three
         sta     $0D     ; instructions as
         jsr     _CHRGET ; original code at $AE86
         cmp     #'$'
@@ -79,14 +75,14 @@ L81B9:  jsr     _CHRGET
         bcc     L81C4
         cmp     #'A'
         bcc     L81DF
-        sbc     #$08
+        sbc     #8
 L81C4:  sbc     #$2F
         cmp     #$10
         bcs     L81DF
         pha
         lda     $61
         beq     L81D8
-        adc     #$04
+        adc     #4
         bcc     L81D6
         jmp     disable_rom_jmp_overflow_error
 
@@ -127,8 +123,8 @@ new_mainloop:
         jsr     cond_init_load_save_vectors
         jsr     L81E3
         jsr     WA560
-        stx     $7A ; chrget ptr
-        sty     $7B
+        stx     TXTPTR
+        sty     TXTPTR + 1
         jsr     set_io_vectors_with_hidden_rom
         jsr     L8C68
         jsr     CHRGET
@@ -165,8 +161,8 @@ L824D:  nop
 .global new_tokenize
 new_tokenize:
 ; **** this is the same code as BASIC ROM $A579-$A5AD (start) ****
-        ldx     $7A; chrget pointer lo
-        ldy     #$04
+        ldx     TXTPTR
+        ldy     #4
         sty     $0F
 L8259:  lda     $0200,x ; read character from direct mode
         bpl     L8265
@@ -192,12 +188,12 @@ L827B:  cmp     #'0'
 L8283:  sty     $71
 ; **** this is the same code as BASIC ROM $A579-$A5AD (end) ****
 
-        stx     $7A
-        ldy     #$0A
+        stx     TXTPTR
+        ldy     #<(new_basic_keywords - 1)
         sty     $22
-        ldy     #$86
+        ldy     #>(new_basic_keywords - 1)
         sty     $23
-L828F:  ldy     #$00
+L828F:  ldy     #0
         sty     $0B
         dex
 L8294:  inx
@@ -243,7 +239,7 @@ L82DB:  iny
         sta     $01FB,y
         inx
         bne     L82D2
-L82E2:  ldx     $7A
+L82E2:  ldx     TXTPTR
         inc     $0B
 ; **** this is the same code as BASIC ROM $A5C9-$A5F8 (end) ****
 
@@ -269,9 +265,9 @@ L82EF:  plp
 L8306:  lda     $0200,x
         bpl     L82B4
 L830B:  sta     $01FD,y
-        dec     $7B
+        dec     TXTPTR + 1
         lda     #$FF
-        sta     $7A
+        sta     TXTPTR
         rts
 ; **** this is the same code as BASIC ROM $A604-$A612 (end) ****
 
@@ -304,11 +300,11 @@ L832F:  cmp     #$E9 ; last new token + 1
 L8342:  jmp     _disable_rom
 
 trace_command:
-        lda     $D3 ; save cursor state
+        lda     CSR_COLUMN ; save cursor state
         pha
         lda     $D5
         pha
-        lda     $D6
+        lda     CSR_ROW
         pha
         lda     $D4
         pha
@@ -331,7 +327,7 @@ L8369:  jsr     $E566 ; cursor home
         ldx     $B1
         jsr     $E88C ; set cursor row
         ldy     $B0
-        sty     $D3
+        sty     CSR_COLUMN
         lda     ($D1),y
         eor     #$80
         sta     ($D1),y
@@ -343,7 +339,7 @@ L8369:  jsr     $E566 ; cursor home
         pla
         sta     $D5
         pla
-        sta     $D3
+        sta     CSR_COLUMN
 L838C:  rts
 
 ; ----------------------------------------------------------------
@@ -352,7 +348,7 @@ L838C:  rts
 HELP:   ldx     $3A ; line number hi
         inx
         bne     L839D ; not direct mode
-        lda     $7B
+        lda     TXTPTR + 1
         cmp     #>$0200
         bne     L839D ; not direct mode
         ldx     $02AC
@@ -366,9 +362,9 @@ L839D:  ldx     $3A ; line number hi
         stx     $14
         jsr     _print_ax_int
         jsr     _search_for_line
-        lda     $D3
+        lda     CSR_COLUMN
         sta     $B0
-        lda     $D6
+        lda     CSR_ROW
         sta     $B1
         jsr     list_line
 L83BA:  lda     #CR
@@ -380,7 +376,7 @@ L83BA:  lda     #CR
 
 .global list_line
 list_line:
-        ldy     #$03
+        ldy     #3
         sty     $49
         sty     $0F
         lda     #' '
@@ -399,13 +395,13 @@ L83D2:  jsr     _basic_bsout
         adc     $5F
         bcc     :+
         inx
-:       cmp     $7A ; chrget lo
+:       cmp     TXTPTR
         bne     L83F9
-        cpx     $7B ; chrget hi
+        cpx     TXTPTR + 1 ; chrget hi
         bne     L83F9
-        lda     $D3
+        lda     CSR_COLUMN
         sta     $B0
-        lda     $D6
+        lda     CSR_ROW
         sta     $B1
 L83F9:  jsr     _lda_5f_indy
         beq     store_d1_spaces
@@ -415,7 +411,7 @@ L83F9:  jsr     _lda_5f_indy
 .global store_d1_spaces
 store_d1_spaces:
         lda     #' '
-        ldy     $D3
+        ldy     CSR_COLUMN
 L8408:  sta     ($D1),y
         cpy     $D5
         bcs     L8411
@@ -429,7 +425,7 @@ print_dec:
         sta     $C2
         lda     #$31
         sta     $C3
-        ldx     #$04
+        ldx     #4
 L841C:  dec     $C3
 L841E:  lda     #$2F
         sta     $C4
@@ -517,7 +513,7 @@ L84C0:  lda     #$E0
 
 talk_60:
         lda     $9A
-        cmp     #$03
+        cmp     #3
         beq     L84DB ; output to screen
         bit     $DD0C
         bmi     L84DB ; centronics printer disabled
@@ -530,7 +526,7 @@ L84DC:  bit     $DD0C
         bmi     L84EC ; centronics printer disabled
         pha
         lda     $9A
-        cmp     #$03
+        cmp     #3
         beq     L84EB ; output to screen
         jsr     L8B19
 L84EB:  pla
@@ -542,15 +538,15 @@ L84EC:  rts
 L84ED:  lda     auto_current_line_number
         ldy     auto_current_line_number + 1
         jsr     L8508
-        ldy     #$00
-L84F8:  iny
+        ldy     #0
+:       iny
         lda     $FF,y
         php
         ora     #$20
-        sta     $0276,y
+        sta     KBD_BUFFER - 1,y
         plp
-        bne     L84F8
-        sty     $C6
+        bne     :-
+        sty     KBD_BUFFER_COUNT
         rts
 
 L8508:  sta     $63
@@ -561,7 +557,7 @@ L8508:  sta     $63
 
 L8512:  jsr     _CHRGOT
         beq     L8528
-        ldy     #$00
+        ldy     #0
         jsr     L858E
         beq     L8528
         cmp     #$2C
@@ -577,7 +573,7 @@ L852C:  jmp     WAF08 ; SYNTAX ERROR
 
 L852F:  beq     L852C
 L8531:  php
-        ldy     #$00
+        ldy     #0
         jsr     L85A0
         pha
         jsr     _search_for_line
@@ -598,7 +594,7 @@ L8531:  php
         bne     L852C
         jsr     _CHRGET
         php
-        ldy     #$02
+        ldy     #2
         jsr     L85A0
         bne     L852C
         plp
@@ -611,12 +607,12 @@ L8531:  php
         sbc     $AD
         bcc     L852C
         lda     $5F
-        sta     $7A
+        sta     TXTPTR
         lda     $60
-        sta     $7B
+        sta     TXTPTR + 1
         jsr     _search_for_line
         bcc     :+
-        ldy     #$00
+        ldy     #0
         jsr     _lda_5f_indy
         tax
         iny
@@ -649,11 +645,11 @@ L85AE:  lda     auto_current_line_number
 
 L85BB:  jsr     L85BF
         tay
-L85BF:  inc     $7A
+L85BF:  inc     TXTPTR
         bne     :+
-        inc     $7B
-:       ldx     #$00
-        jsr     _lda_7a_indx
+        inc     TXTPTR + 1
+:       ldx     #0
+        jsr     _lda_TXTPTR_indx
         rts
 
 L85CB:  clc
@@ -673,9 +669,9 @@ L85E2:  jsr     L85BF
         rts
 
 save_chrget_ptr:
-        lda     $7A
+        lda     TXTPTR
         sta     $5A
-        lda     $7B
+        lda     TXTPTR + 1
         sta     $5B
         rts
 
@@ -805,7 +801,7 @@ memcpy_selfmod1:
         lda     ($14),y
 memcpy_selfmod2:
         sta     ($B2),y
-        cpy     #$00
+        cpy     #0
         bne     L86FD
         lda     #$37
         sta     $01
@@ -817,9 +813,9 @@ memcpy_code_at_0110_end:
 ; "DEL" Command - delete BASIC lines
 ; ----------------------------------------------------------------
 DEL:    jsr     L852F
-        ldy     #$00
+        ldy     #0
 L8711:  jsr     _lda_5f_indy
-        sta     ($7A),y
+        sta     (TXTPTR),y
         inc     $5F
         bne     L871C
         inc     $60
@@ -829,9 +825,9 @@ L871C:  jsr     L85BF
         lda     $60
         sbc     $2E
         bcc     L8711
-        lda     $7A
+        lda     TXTPTR
         sta     $2D
-        lda     $7B
+        lda     TXTPTR + 1
         sta     $2E
         jmp     L897D
 
@@ -849,7 +845,7 @@ RENUM:  jsr     load_auto_defaults
         bne     L8737
         jsr     _CHRGET
 L8749:  jsr     L8531
-        ldx     #$03
+        ldx     #3
 L874E:  lda     $AC,x
         sta     $8B,x
         dex
@@ -880,21 +876,21 @@ L8783:  jsr     L87B8
 L878C:  jsr     L85AE
 L878F:  jsr     L85BB
         beq     L87C0
-        ldy     #$02
-        jsr     _lda_7a_indy
+        ldy     #2
+        jsr     _lda_TXTPTR_indy
         pha
         dey
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
         tay
         pla
         jsr     L8FF9
         bcc     L87B3
-        ldy     #$01
+        ldy     #1
         lda     $AC
-        sta     ($7A),y
+        sta     (TXTPTR),y
         iny
         lda     $AD
-        sta     ($7A),y
+        sta     (TXTPTR),y
         jsr     L85CB
 L87B3:  jsr     L85DF
         beq     L878F
@@ -965,7 +961,7 @@ L8840:  ldy     $AD
         lda     $AC
 L8844:  jsr     L8508
         jsr     L88B9
-        ldx     #$01
+        ldx     #1
         stx     $AF
         dex
         stx     $AE
@@ -977,7 +973,7 @@ L8854:  inc     $AE
         ldy     #$FF
         jsr     L8882
 L8862:  jsr     _lda_ae_indx
-        sta     ($7A,x)
+        sta     (TXTPTR,x)
         jsr     L85BF
         cmp     #$3A
         bcs     L8854
@@ -987,46 +983,46 @@ L8873:  jsr     _CHRGOT
         bcc     L887B
         jmp     L87F5
 
-L887B:  ldy     #$01
+L887B:  ldy     #1
         jsr     L8882
         beq     L8873
-L8882:  lda     #$03
+L8882:  lda     #3
         sta     $15
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
         bne     L888D
         inc     $15
 L888D:  tax
-        lda     $7A
+        lda     TXTPTR
         pha
-        lda     $7B
+        lda     TXTPTR + 1
         pha
         txa
-        ldx     #$00
+        ldx     #0
         iny
 L8898:  sta     $14
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
         pha
         lda     $14
-        sta     ($7A,x)
+        sta     (TXTPTR,x)
         beq     L88A8
-        lda     #$04
+        lda     #4
         sta     $15
 L88A8:  jsr     L85BF
         pla
         dec     $15
         bne     L8898
         pla
-        sta     $7B
+        sta     TXTPTR + 1
         pla
-        sta     $7A
-        ldx     #$00
+        sta     TXTPTR
+        ldx     #0
         rts
 
 L88B9:  lda     $5A
-        sta     $7A
+        sta     TXTPTR
         lda     $5B
-        sta     $7B
-        ldx     #$00
+        sta     TXTPTR + 1
+        ldx     #0
         rts
 
 L88C4:  jmp     WAF08 ; SYNTAX ERROR
@@ -1034,7 +1030,7 @@ L88C4:  jmp     WAF08 ; SYNTAX ERROR
 ; ----------------------------------------------------------------
 ; "FIND" Command - find a string in a BASIC program
 ; ----------------------------------------------------------------
-FIND:   ldy     #$00
+FIND:   ldy     #0
         sty     $C2
         eor     #$22
         bne     L88D4
@@ -1042,7 +1038,7 @@ FIND:   ldy     #$00
         ldy     #$22
 L88D4:  sty     $C1
         jsr     save_chrget_ptr
-L88D9:  ldx     #$00
+L88D9:  ldx     #0
         stx     $C4
         beq     L88EB
 L88DF:  cmp     #$2C
@@ -1051,7 +1047,7 @@ L88DF:  cmp     #$2C
         beq     L88FD
 L88E6:  jsr     L85BF
         inc     $C4
-L88EB:  jsr     _lda_7a_indx
+L88EB:  jsr     _lda_TXTPTR_indx
         beq     L8903
         cmp     #$22
         bne     L88DF
@@ -1086,7 +1082,7 @@ L892E:  jsr     L85E2
         beq     L8912
 L8933:  lda     $C1
         sta     $9F
-L8937:  ldy     #$00
+L8937:  ldy     #0
         jsr     L85BF
         beq     L8912
         cmp     #$22
@@ -1098,7 +1094,7 @@ L8946:  lda     $9F
         ldx     $C3
 L894C:  jsr     _lda_5a_indy
         sta     $02
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
         cmp     $02
         bne     L8937
         iny
@@ -1120,7 +1116,7 @@ L896F:  bit     $C2
 ; "OLD" Command - recover a deleted program
 ; ----------------------------------------------------------------
 OLD:    bne     L89BC
-        lda     #$08
+        lda     #8
         sta     $0802
 L897D:  jsr     L8986
 L8980:  ldx     #$FC
@@ -1129,10 +1125,10 @@ L8980:  ldx     #$FC
 
 L8986:  jsr     _relink
         clc
-        lda     #$02
+        lda     #2
         adc     $22
         sta     $2D
-        lda     #$00
+        lda     #0
         adc     $23
         sta     $2E
         rts
@@ -1175,7 +1171,7 @@ MON:    bne     L89BC
 ; "BAR" Command - enable/disable pull-down menu
 ; ----------------------------------------------------------------
 BAR:    tax
-        lda     #$00 ; bar off
+        lda     #0 ; bar off
         cpx     #$CC
         beq     L89CB ; OFF
         lda     #$80 ; bar on
@@ -1222,13 +1218,13 @@ a_ready: ; XXX this is only used by desktop_helper.s, it should be defined there
 ; "DLOAD" Command - load a program from disk
 ; ----------------------------------------------------------------
 DLOAD:  
-        lda     #$00 ; load flag
+        lda     #0 ; load flag
         .byte   $2C
 ; ----------------------------------------------------------------
 ; "DVERIFY" Command - verify a program on disk
 ; ----------------------------------------------------------------
 DVERIFY:
-        lda     #$01 ; verify flag
+        lda     #1 ; verify flag
         sta     $0A
         jsr     set_filename_or_colon_asterisk
         jmp     WE16F
@@ -1251,8 +1247,8 @@ DAPPEND:
 ; ----------------------------------------------------------------
 APPEND: jsr     WE1D4
 L8A35:  jsr     L8986
-        lda     #$00
-        sta     $B9
+        lda     #0
+        sta     SECADDR
         ldx     $22
         ldy     $23
         jmp     WE175
@@ -1269,7 +1265,7 @@ L8A47:  jsr     listen_6F_or_error
 L8A53:  rts
 
 L8A54:  and     #$0F
-        sta     $BA
+        sta     DEV
         bne     L8A5D
         jmp     L852C
 
@@ -1287,8 +1283,8 @@ L8A69:  cmp     #'8'
 
 .global send_drive_command
 send_drive_command:
-        ldy     #$00
-        jsr     _lda_7a_indy
+        ldy     #0
+        jsr     _lda_TXTPTR_indy
         cmp     #'D' ; drive command "D": change disk name
         beq     change_disk_name
         cmp     #'F' ; drive command "F": fast format
@@ -1299,7 +1295,7 @@ L8A84:  jmp     L8BE3
 ; drive command "D": change disk name
 change_disk_name:
         iny
-        lda     ($7A),y
+        lda     (TXTPTR),y
         cmp     #$3A
         bne     L8A84
         jsr     UNLSTN
@@ -1309,7 +1305,7 @@ change_disk_name:
 
 L8A97:  lda     #$62
         jsr     listen_second
-        ldy     #$02
+        ldy     #2
 L8A9E:  jsr     L8BDB
         beq     L8AB2
         cmp     #$2C
@@ -1337,7 +1333,7 @@ L8AC1:  pla
         jsr     IECOUT
         jsr     IECOUT
         iny
-        ldx     #$04
+        ldx     #4
 L8AD3:  jsr     L8BDB
         beq     L8ADF
         jsr     IECOUT
@@ -1368,28 +1364,28 @@ get_secaddr_and_send_listen:
 :       lda     #$FF
 .global send_printer_listen
 send_printer_listen:
-        sta     $B9 ; secondary address
+        sta     SECADDR
         jsr     something_with_printer
         bcc     L8B35
-        lda     $B9 ; secondary address
+        lda     SECADDR
         bpl     L8B13
         lda     #$00
 L8B13:  and     #$0F
         ora     #$60
-        sta     $B9
+        sta     SECADDR
 L8B19:  jsr     UNLSTN
-        lda     #$00
+        lda     #0
         sta     $90
         lda     #4
         jsr     LISTEN
-        lda     $B9
+        lda     SECADDR
         bpl     L8B2E
         jsr     $EDBE ; set ATN
         bne     L8B31
 L8B2E:  jsr     SECOND
 L8B31:  lda     $90
         cmp     #$80
-L8B35:  lda     #$04
+L8B35:  lda     #4
         sta     $9A
         rts
 
@@ -1422,7 +1418,7 @@ L8B66:  sta     $0300
         stx     $0301 ; $0300 IERROR basic warm start
         rts
 
-L8B6D:  lda     #$03
+L8B6D:  lda     #3
         sta     $9A
         jmp     device_not_present
 
@@ -1435,7 +1431,7 @@ L8B79:  jsr     UNLSTN
         lda     #$F0
         jsr     listen_or_error
         lda     $9A
-        cmp     #$04
+        cmp     #4
         bne     :+
         lda     #$24
         jsr     IECOUT
@@ -1457,14 +1453,14 @@ set_filename_or_colon_asterisk:
         lda     #<(_a_colon_asterisk_end - _a_colon_asterisk); ":*" (XXX "<" required to make ca65 happy)
         .byte   $2C
 set_filename_or_empty:
-        lda     #$00 ; empty filename
+        lda     #0 ; empty filename
         jsr     set_filename
         rts ; XXX omit jsr and rts
 
 set_filename:
         jsr     set_colon_asterisk
         tax
-        ldy     #$01
+        ldy     #1
         jsr     SETLFS
         jsr     $E206 ; RTS if end of line
         jsr     _get_filename
@@ -1476,24 +1472,24 @@ set_colon_asterisk:
         jsr     SETNAM
 .global set_drive
 set_drive:
-        lda     #$00
+        lda     #0
         sta     $90
-        lda     #$08
-        cmp     $BA
+        lda     #8
+        cmp     DEV
         bcc     L8BD1 ; device number 9 or above
-L8BCE:  sta     $BA
+L8BCE:  sta     DEV
 L8BD0:  rts
-L8BD1:  lda     #$09
-        cmp     $BA
+L8BD1:  lda     #9
+        cmp     DEV
         bcs     L8BD0 ; RTS
-        lda     #$08 ; set drive 8
+        lda     #8 ; set drive 8
         bne     L8BCE
-L8BDB:  jsr     _lda_7a_indy
+L8BDB:  jsr     _lda_TXTPTR_indy
         beq     L8BE2
         cmp     #'"'
 L8BE2:  rts
 
-L8BE3:  ldy     #$00
+L8BE3:  ldy     #0
 L8BE5:  jsr     L8BDB
         beq     L8BF0
         jsr     IECOUT
@@ -1504,10 +1500,10 @@ L8BF0:  cmp     #'"'
         iny
 L8BF5:  tya
         clc
-        adc     $7A
-        sta     $7A
+        adc     TXTPTR
+        sta     TXTPTR
         bcc     L8BFF
-        inc     $7B
+        inc     TXTPTR + 1
 L8BFF:  jmp     UNLSTN
 
 ; ----------------------------------------------------------------
@@ -1518,7 +1514,7 @@ L8BFF:  jmp     UNLSTN
 new_detokenize:
         tax
 L8C03:  lda     $028D
-        and     #$02
+        and     #2
         bne     L8C03 ; wait while CBM key is pressed
         txa
         jsr     do_detokenize
@@ -1545,7 +1541,7 @@ L8C2B:  ldx     #<basic_keywords
 L8C31:  stx     $23
         tax
         sty     $49
-        ldy     #$00
+        ldy     #0
         asl     a
         beq     L8C4B
 L8C3B:  dex
@@ -1587,7 +1583,7 @@ set_irq_and_kbd_handlers:
 L8C78:  sei
         sta     $028F ; set keyboard decode pointer
         stx     $0290
-        lda     #$00
+        lda     #0
         sta     $02A7
         sta     $02AB
         cli
@@ -1618,7 +1614,7 @@ L8CA5:  sta     $5F
         bne     L8CAF
         cmp     $2F
 L8CAF:  bcs     L8D06
-        adc     #$02
+        adc     #2
         bcc     L8CB6
         iny
 L8CB6:  sta     $22
@@ -1642,11 +1638,11 @@ L8CDA:  jsr     L83BA
         lda     $5F
         ldy     $60
         clc
-        adc     #$07
+        adc     #7
         bcc     L8CA5
         iny
         bcs     L8CA5
-L8CE9:  ldy     #$00
+L8CE9:  ldy     #0
         jsr     _lda_5f_indy
         tax
         and     #$7F
@@ -1670,7 +1666,7 @@ L8D0A:  lda     #$24
 L8D0D:  lda     #$22 ; '"'
         jmp     _basic_bsout
 
-L8D12:  ldy     #$00
+L8D12:  ldy     #0
         jsr     _lda_22_indy
         tax
         iny
@@ -1680,7 +1676,7 @@ L8D12:  ldy     #$00
         jmp     _ay_to_float
 
 L8D21:  jsr     L8D0D
-        ldy     #$02
+        ldy     #2
         jsr     _lda_22_indy
         sta     $25
         dey
@@ -1713,8 +1709,8 @@ L8D54:  sta     $5F
         bne     L8D5E
         cmp     $31
 L8D5E:  bcs     L8D06
-        ldy     #$04
-        adc     #$05
+        ldy     #4
+        adc     #5
         bcc     L8D67
         inx
 L8D67:  sta     $5A
@@ -1730,7 +1726,7 @@ L8D78:  sta     $C1
         stx     $C2
         dey
         sty     $C3
-        lda     #$00
+        lda     #0
 L8D81:  sta     $0205,y
         dey
         bpl     L8D81
@@ -1754,7 +1750,7 @@ L8D98:  jsr     _lda_5a_indy
         lda     $0205,y
         cmp     $02
 L8DAF:  bcc     L8DC5
-        lda     #$00
+        lda     #0
         ldy     $C4
         sta     $0205,y
         sta     $0206,y
@@ -1766,7 +1762,7 @@ L8DAF:  bcc     L8DC5
 
 L8DC5:  jsr     L8CE9
         ldy     $C3
-        lda     #$28 ; '('
+        lda     #'('
 L8DCC:  jsr     _basic_bsout
         lda     $0204,y
         ldx     $0205,y
@@ -1777,28 +1773,28 @@ L8DCC:  jsr     _basic_bsout
         dey
         dey
         bpl     L8DCC
-        lda     #$29 ; ')'
+        lda     #')'
         jsr     _basic_bsout
-        lda     #$3D ; '='
+        lda     #'='
         jsr     _basic_bsout
         lda     $C1
         ldx     $C2
         sta     $22
         stx     $23
-        ldy     #$00
+        ldy     #0
         jsr     _lda_5f_indy
         bpl     L8E02
         jsr     L8D12
-        lda     #$02
+        lda     #2
         bne     L8E14
 L8E02:  iny
         jsr     _lda_5f_indy
         bmi     L8E0F
         jsr     _int_to_fac
-        lda     #$05
+        lda     #5
         bne     L8E14
 L8E0F:  jsr     L8D21
-        lda     #$03
+        lda     #3
 L8E14:  clc
         adc     $C1
         sta     $C1
@@ -1848,11 +1844,11 @@ print_string_and_int:
         lda     $2C,y
         sbc     $2C,x
         ldx     $C1
-        ldy     #$0A
-        sty     $D3
+        ldy     #10 ; column of next character
+        sty     CSR_COLUMN
         jsr     _print_ax_int ; print number of bytes
-        ldy     #$10 ; column of next character
-        sty     $D3
+        ldy     #16 ; column of next character
+        sty     CSR_COLUMN
         ldy     #s_bytes - s_basic ; print "BYTES"
 print_mem_string:
         lda     s_basic,y
@@ -1883,7 +1879,7 @@ TRACE:  tax
         lda     trace_flag
         cpx     #$CC
         beq     L8EC6 ; OFF
-        ora     #$01
+        ora     #1
         .byte   $2C
 L8EC6:  and     #$FE
         sta     trace_flag
@@ -1895,14 +1891,14 @@ L8ECE:  jmp     L852C
 ; "REPLACE" Command - replace a string in a BASIC program
 ; ----------------------------------------------------------------
 REPLACE:
-        ldy     #$00
+        ldy     #0
         eor     #$22
         bne     L8EDC
         jsr     L85BF
         ldy     #$22
 L8EDC:  sty     $C1
         jsr     save_chrget_ptr
-        ldx     #$00
+        ldx     #0
         stx     $C3
         beq     L8EF3
 L8EE7:  cmp     #$2C
@@ -1911,7 +1907,7 @@ L8EE7:  cmp     #$2C
         beq     L8F03
 L8EEE:  jsr     L85BF
         inc     $C3
-L8EF3:  jsr     _lda_7a_indx
+L8EF3:  jsr     _lda_TXTPTR_indx
         beq     L8ECE
         cmp     #$22
         bne     L8EE7
@@ -1924,22 +1920,22 @@ L8F03:  tya
         cmp     #$22
         bne     L8ECE
 L8F0D:  jsr     _CHRGET
-        lda     $7A
+        lda     TXTPTR
         sta     $8B
-        lda     $7B
+        lda     TXTPTR + 1
         sta     $8C
         lda     #$80
         sta     $C2
         jmp     L88D9
 
 L8F1F:  lda     $C3
-        ldy     #$01
+        ldy     #1
         sec
         sbc     $C4
         beq     L8F41
         bcs     L8F31
         eor     #$FF
-        adc     #$01
+        adc     #1
         clc
         ldy     #$FF
 L8F31:  sty     $60
@@ -1949,38 +1945,38 @@ L8F35:  ldy     $60
         dec     $61
         bne     L8F35
         jsr     _relink
-L8F41:  ldy     #$00
+L8F41:  ldy     #0
         ldx     $C4
         beq     L8F5C
 L8F47:  jsr     _lda_8b_indy
-        sta     ($7A),y
+        sta     (TXTPTR),y
         iny
         dex
         bne     L8F47
         dey
         tya
         clc
-        adc     $7A
-        sta     $7A
+        adc     TXTPTR
+        sta     TXTPTR
         bcc     L8F5B
-        inc     $7B
+        inc     TXTPTR + 1
 L8F5B:  rts
 
-L8F5C:  lda     $7A
+L8F5C:  lda     TXTPTR
         bne     L8F62
-        dec     $7B
-L8F62:  dec     $7A
+        dec     TXTPTR + 1
+L8F62:  dec     TXTPTR
 L8F64:  rts
 
-L8F65:  lda     #$03
+L8F65:  lda     #3
         sta     $15
-        jsr     _lda_7a_indy
+        jsr     _lda_TXTPTR_indy
         bne     L8F77
         cpy     #$FF
         beq     L8F75
         inc     $15
         .byte   $2C
-L8F75:  lda     #$01
+L8F75:  lda     #1
 L8F77:  jmp     L888D
 
 ; ----------------------------------------------------------------
@@ -1989,7 +1985,7 @@ L8F77:  jmp     L888D
 ORDER:  bne     L8F64
 L8F7C:  jsr     _relink
         jsr     _set_txtptr_to_start
-        lda     #$00
+        lda     #0
         lda     $8B
         sta     $8C
 L8F88:  jsr     L85BB
@@ -2008,19 +2004,19 @@ L8F88:  jsr     L85BB
         lda     $60
         sta     $8E
         sec
-        lda     $7A
-        sbc     #$03
+        lda     TXTPTR
+        sbc     #3
         sta     $5A
-        lda     $7B
-        sbc     #$00
+        lda     TXTPTR + 1
+        sbc     #0
         sta     $5B
-        ldy     #$00
+        ldy     #0
 L8FB6:  jsr     _lda_5a_indy
         sta     $033C,y
         iny
-        cpy     #$05
+        cpy     #5
         bcc     L8FB6
-        cmp     #$00
+        cmp     #0
         bne     L8FB6
         sty     $8F
         tya
@@ -2028,17 +2024,17 @@ L8FB6:  jsr     _lda_5a_indy
         adc     $5A
         sta     $58
         lda     $5B
-        adc     #$00
+        adc     #0
         sta     $59
         jsr     WA3BF
-        ldy     #$00
+        ldy     #0
 L8FD8:  lda     $033C,y
         sta     ($8D),y
         iny
         cpy     $8F
         bne     L8FD8
         jsr     _relink
-        ldx     #$00
+        ldx     #0
         stx     $033C
         beq     L8FF0
 L8FEC:  sta     $8C
@@ -2105,7 +2101,7 @@ PACK:   bne     L900B
         bcs     L9035
         ldx     #$FE
         txs
-        lda     #$00
+        lda     #0
         tay
 L9050:  sta     $FE00,y
         sta     $FF00,y
@@ -2117,7 +2113,7 @@ L9050:  sta     $FE00,y
         lda     $2C
         sta     $AF
         ldy     $2B
-        ldx     #$00
+        ldx     #0
 L9067:  lda     __pack_code_LOAD__,x
         sta     __pack_code_RUN__,x
         inx
@@ -2126,7 +2122,7 @@ L9067:  lda     __pack_code_LOAD__,x
         sei
         lda     #$34
         jsr     pack_code
-        ldy     #$00
+        ldy     #0
 L907A:  lda     __unpack_header_LOAD__,y
         sta     __unpack_header_RUN__,y
         iny
@@ -2150,7 +2146,7 @@ L907A:  lda     __unpack_header_LOAD__,y
         adc     #1
         sta     $2D
         lda     $AF
-        adc     #$00
+        adc     #0
         sta     $2E
         sec
         lda     #<pack_data
@@ -2178,8 +2174,8 @@ L90D8:  cpy     $2D
         lda     $AF
         sbc     $2E
         bcc     L90C8
-        ldx     #$00
-        ldy     #$01
+        ldx     #0
+        ldy     #1
 L90E4:  lda     $FF00,x
         cmp     $FF00,y
         bcc     L90F8
@@ -2219,14 +2215,14 @@ L9113:  dec     $AE
 L912E:  sta     ($AE),y
         cmp     $FF
         beq     L9169
-L9134:  cpx     #$00
+L9134:  cpx     #0
         beq     L9179
         jsr     L01B8
-        cpx     #$00
+        cpx     #0
         beq     L9143
         cmp     ($AE),y
         beq     L9153
-L9143:  cpy     #$04
+L9143:  cpy     #4
         bcs     L9159
 L9147:  inc     $AE
         bne     L914D
@@ -2241,28 +2237,28 @@ L9153:  iny
         dey
 L9159:  pha
         tya
-        ldy     #$01
+        ldy     #1
         sta     ($AE),y
         dey
         lda     $FF
         sta     ($AE),y
         pla
-        ldy     #$02
+        ldy     #2
         bne     L9147
 L9169:  iny
-        lda     #$00
+        lda     #0
         sta     ($AE),y
-        cpx     #$00
+        cpx     #0
         beq     L9175
         jsr     L01B8
-L9175:  ldy     #$01
+L9175:  ldy     #1
         bne     L9147
 L9179:  lda     #$37
         sta     $01
         rts
 
 L01B8:
-        ldx     #$00
+        ldx     #0
         lda     ($AC,x)
         inc     $AC
         bne     L9188
@@ -2290,20 +2286,20 @@ unpack_entry:
         sei
         lda     #$34
         sta     $01
-        lda     #$00
+        lda     #0
         sta     $AE
-        lda     #$00
+        lda     #0
         sta     $AF
 L91A4:  dec     $2E
         dec     pack_selfmod + 2
-        ldy     #$00
+        ldy     #0
 L91AB:  lda     ($2D),y
 pack_selfmod:
         sta     $0000,y
         dey
         bne     L91AB
         lda     $2E
-        cmp     #$07
+        cmp     #7
         bne     L91A4
         ldx     #stack_code_end - stack_code - 1
         txs
@@ -2321,12 +2317,12 @@ L91BC:  lda     stack_code,x; copy to $0100
 ; cl65 can't deal with the double copying, so we need to
 ; adjust addresses manually
 stack_code:
-        ldx     #$00
+        ldx     #0
 L91C9:  lda     ($AE),y
 L91CB:  inc     $AE
         bne     L91D1
         inc     $AF
-L91D1:  cmp     #$00
+L91D1:  cmp     #0
         beq     L91FB
 stack_selfmod1:
         sta     $1000,x
@@ -2336,10 +2332,10 @@ stack_selfmod1:
 L91DE:  lda     $AE
         ora     $AF
         bne     L91C9
-        lda     #$00
+        lda     #0
         sta     $2D
         sta     $AE
-        lda     #$00
+        lda     #0
         sta     $2E
         sta     $AF
         lda     #$37
@@ -2353,9 +2349,9 @@ L91FB:  lda     ($AE),y
         inc     $AE
         bne     L9203
         inc     $AF
-L9203:  cmp     #$00
+L9203:  cmp     #0
         bne     L920B
-        lda     #$00
+        lda     #0
         bne     stack_selfmod1
 L920B:  sta     $FF
         lda     ($AE),y
