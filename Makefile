@@ -12,7 +12,7 @@ OBJECTS=$(SOURCES:.s=.o)
 all: fc3.bin
 
 clean:
-	rm -f core/*.o *.bin *.prg *.hexdump
+	rm -f core/*.o projects/monitor/*.o *.bin *.prg *.hexdump
 
 test: fc3.bin
 	@dd if=bin/Final_Cartridge_3_1988-12.bin bs=16384 count=1 2> /dev/null | hexdump -C > fc3-orig.bin.hexdump

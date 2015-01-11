@@ -1,8 +1,8 @@
 .global _basic_warm_start
 _basic_warm_start := $E37B
 
-.segment "loadaddr"
-    .word $8000
+.segment        "LOADADDR"
+.addr   *+2
 
 .segment "monitor_support"
 .global _disable_rom
