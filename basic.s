@@ -472,7 +472,7 @@ L845E:  jsr     talk_60
         jsr     IECIN
         tax
         jsr     IECIN
-        ldy     $90
+        ldy     ST
         bne     L84C0
         jsr     L84DC
         jsr     print_dec
@@ -486,7 +486,7 @@ L8485:  cmp     #CR
         cmp     #CR + $80
         bne     L848F
 L848D:  lda     #$1F
-L848F:  ldy     $90
+L848F:  ldy     ST
         bne     L84C0
         jsr     L84DC
         jsr     _basic_bsout
@@ -1375,7 +1375,7 @@ L8B13:  and     #$0F
         sta     SECADDR
 L8B19:  jsr     UNLSTN
         lda     #0
-        sta     $90
+        sta     ST
         lda     #4
         jsr     LISTEN
         lda     SECADDR
@@ -1383,7 +1383,7 @@ L8B19:  jsr     UNLSTN
         jsr     $EDBE ; set ATN
         bne     L8B31
 L8B2E:  jsr     SECOND
-L8B31:  lda     $90
+L8B31:  lda     ST
         cmp     #$80
 L8B35:  lda     #4
         sta     $9A
@@ -1473,7 +1473,7 @@ set_colon_asterisk:
 .global set_drive
 set_drive:
         lda     #0
-        sta     $90
+        sta     ST
         lda     #8
         cmp     DEV
         bcc     L8BD1 ; device number 9 or above

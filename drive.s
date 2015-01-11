@@ -42,7 +42,7 @@ listen_second:
         jsr     LISTEN
         pla
         jsr     SECOND
-        lda     $90
+        lda     ST
         rts
 
 .global command_channel_talk

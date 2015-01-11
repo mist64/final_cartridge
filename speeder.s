@@ -178,7 +178,7 @@ new_load2:
         jsr     $EDC7 ; SECTLK
         jsr     $EE13 ; IECIN
         sta     $AE
-        lda     $90
+        lda     ST
         lsr     a
         lsr     a
         bcs     L99C6
@@ -216,7 +216,7 @@ L9A50:  lda     #$0C
         lda     ($C3),y
         cmp     $BD
         beq     :+
-        stx     $90
+        stx     ST
 :       eor     $D7
         sta     $D7
         lda     #$0F
@@ -247,7 +247,7 @@ new_save2:
         jsr     LA77E
         jsr     LA648
         bne     L9A67
-        stx     $90
+        stx     ST
         stx     $A4
         jsr     $FB8E ; copy I/O start address to buffer address
         sec
@@ -332,7 +332,7 @@ L9AF0:  jsr     UNTALK
         sec
         lda     $AE
         sbc     #2
-        sta     $90
+        sta     ST
         lda     $AF
         sbc     #0
         sta     $A3
@@ -354,7 +354,7 @@ L9B3D:  bit     $DD00
         lda     #0
         sta     $A3
         sta     $94
-        sta     $90
+        sta     ST
         lda     #$60
         sta     SECADDR
         lda     #$E0
@@ -367,7 +367,7 @@ L9B3D:  bit     $DD00
         rts
 
 L9B78:  lda     #$40
-        sta     $90
+        sta     ST
         jsr     LA694
         jmp     $F5A9 ; LOAD done
 
@@ -388,7 +388,7 @@ L9B89:  bit     $DD00
         asl     $C3
         php
         sec
-        lda     $90
+        lda     ST
         sbc     $C3
         sta     $93
         bcs     L9BAD
@@ -1009,13 +1009,13 @@ LA707:  pha
 
 LA71B:
         ldy     #0
-        sty     $90
+        sty     ST
         lda     DEV
         jsr     $ED0C ; LISTEN
         lda     SECADDR
         ora     #$F0
         jsr     $EDB9 ; SECLST
-        lda     $90
+        lda     ST
         bpl     LA734
         pla
         pla
@@ -1206,7 +1206,7 @@ LA880:  dey
         bne     LA851
         tya
         bne     LA880
-LA88C:  sty     $90
+LA88C:  sty     ST
         jsr     print_loading
         lda     $C3
         sta     $AC
@@ -1227,12 +1227,12 @@ LA88C:  sty     $90
         jsr     LA8E5
         lda     $BD
         eor     $D7
-        ora     $90
+        ora     ST
         clc
         beq     LA8C2
         sec
         lda     #$FF
-        sta     $90
+        sta     ST
 LA8C2:  ldx     $AE
         ldy     $AF
         jmp     _disable_rom

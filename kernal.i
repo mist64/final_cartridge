@@ -57,6 +57,7 @@ KEY_F7          := $88
 
 ; C64 Memory Map
 TXTPTR          := $7A
+ST              := $90
 LFN             := $B8 ; logical file number
 SECADDR         := $B9 ; secondary address
 DEV             := $BA ; device number

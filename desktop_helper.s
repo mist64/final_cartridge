@@ -132,7 +132,7 @@ read_cmd_channel:
         bmi     jmp_bank_from_stack
         jsr     UNLSTN
         jsr     command_channel_talk
-        lda     $90
+        lda     ST
         bmi     jmp_bank_from_stack
         ldx     #0
 L95B6:  jsr     IECIN
@@ -198,7 +198,7 @@ L9629:  jsr     iecin_or_ret
 
 iecin_or_ret:
         jsr     IECIN
-        ldy     $90
+        ldy     ST
         bne     L963A
         rts
 

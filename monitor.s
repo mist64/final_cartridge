@@ -21,6 +21,9 @@
 .import set_io_vectors_with_hidden_rom
 
 ; variables
+zp1             := $C1
+zp2             := $C3
+
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
 reg_p           := ram_code_end + 7
@@ -73,7 +76,7 @@ ram_code:
         sta     $DFFF ; set cartridge config
         pla
         sta     $01 ; set ROM config
-        lda     ($C1),y ; read
+        lda     (zp1),y ; read
 enable_all_roms:
         pha
         lda     #$37
@@ -447,15 +450,15 @@ cmd_colon:
 ; ----------------------------------------------------------------
 cmd_semicolon:
         jsr     get_hex_word
-        lda     $C4
+        lda     zp2 + 1
         sta     reg_pc_hi
-        lda     $C3
+        lda     zp2
         sta     reg_pc_lo
         jsr     basin_if_more
         jsr     get_hex_word3
-        lda     $C3
+        lda     zp2
         sta     irq_lo
-        lda     $C4
+        lda     zp2 + 1
         sta     irq_hi
         jsr     basin_if_more ; skip upper nybble of bank
         jsr     basin_if_more
@@ -594,9 +597,9 @@ LAF06:  lda     bank
         jsr     set_io_vectors_with_hidden_rom
         ldx     reg_s
         txs
-        lda     $C4
+        lda     zp2 + 1
         pha
-        lda     $C3
+        lda     zp2
         pha
         lda     reg_p
         pha
@@ -606,9 +609,9 @@ LAF06:  lda     bank
         jmp     disable_rom_rti
 LAF2B:  lda     #'E' ; send M-E to drive
         jsr     send_m_dash2
-        lda     $C3
+        lda     zp2
         jsr     IECOUT
-        lda     $C4
+        lda     zp2 + 1
         jsr     IECOUT
         jsr     UNLSTN
         jmp     print_cr_then_input_loop
@@ -735,18 +738,18 @@ LB013:  tya
         jmp     print_hex_byte2
 
 LB01B:  sec
-LB01C:  ldy     $C2
+LB01C:  ldy     zp1 + 1
         tax
         bpl     LB022
         dey
-LB022:  adc     $C1
+LB022:  adc     zp1
         bcc     LB027
         iny
 LB027:  rts
 
 LB028:  jsr     LB01B
-        sta     $C1
-        sty     $C2
+        sta     zp1
+        sty     zp1 + 1
         rts
 
 LB030:  ldx     #0
@@ -783,9 +786,9 @@ LB05E:  jsr     BASIN
         jsr     is_hex_character
         bcs     LB081
         jsr     get_hex_byte3
-        ldy     $C1
-        sty     $C2
-        sta     $C1
+        ldy     zp1
+        sty     zp1 + 1
+        sta     zp1
         lda     #$30
         sta     $0210,x
         inx
@@ -860,7 +863,7 @@ LB112:  dex
         txa
         ldy     $0205
         bne     LB11D
-LB11A:  lda     $C2,y
+LB11A:  lda     zp1 + 1,y
 LB11D:  jsr     store_byte
         dey
         bne     LB11A
@@ -904,45 +907,45 @@ cmd_dollar:
 ; ----------------------------------------------------------------
 cmd_hash:
         ldy     #0
-        sty     $C1
-        sty     $C2
+        sty     zp1
+        sty     zp1 + 1
         jsr     basin_skip_spaces_if_more
 LB16F:  and     #$0F
         clc
-        adc     $C1
-        sta     $C1
+        adc     zp1
+        sta     zp1
         bcc     LB17A
-        inc     $C2
+        inc     zp1 + 1
 LB17A:  jsr     BASIN
         cmp     #$30
         bcc     LB19B
         pha
-        lda     $C1
-        ldy     $C2
+        lda     zp1
+        ldy     zp1 + 1
         asl     a
-        rol     $C2
+        rol     zp1 + 1
         asl     a
-        rol     $C2
-        adc     $C1
-        sta     $C1
+        rol     zp1 + 1
+        adc     zp1
+        sta     zp1
         tya
-        adc     $C2
-        asl     $C1
+        adc     zp1 + 1
+        asl     zp1
         rol     a
-        sta     $C2
+        sta     zp1 + 1
         pla
         bcc     LB16F
 LB19B:  jsr     print_up_dot
         jsr     print_hash
-        lda     $C1
+        lda     zp1
         pha
-        lda     $C2
+        lda     zp1 + 1
         pha
         jsr     LBC50
         pla
-        sta     $C2
+        sta     zp1 + 1
         pla
-        sta     $C1
+        sta     zp1
         jsr     LB48E
         jsr     print_dollar_hex_16
         jmp     input_loop
@@ -959,10 +962,10 @@ cmd_x:
         txs
         jmp     _basic_warm_start
 
-LB1CB:  lda     $C3
-        cmp     $C1
-        lda     $C4
-        sbc     $C2
+LB1CB:  lda     zp2
+        cmp     zp1
+        lda     zp2 + 1
+        sbc     zp1 + 1
         bcs     LB1FC
         ldy     #0
         ldx     #0
@@ -978,8 +981,8 @@ LB1D9:  jsr     load_byte
         beq     LB1FB
 LB1F1:  iny
         bne     LB1D9
-        inc     $C2
-        inc     $C4
+        inc     zp1 + 1
+        inc     zp2 + 1
         inx
         bne     LB1D9
 LB1FB:  rts
@@ -987,12 +990,12 @@ LB1FB:  rts
 LB1FC:  clc
         ldx     $020A
         txa
-        adc     $C2
-        sta     $C2
+        adc     zp1 + 1
+        sta     zp1 + 1
         clc
         txa
-        adc     $C4
-        sta     $C4
+        adc     zp2 + 1
+        sta     zp2 + 1
         ldy     $0209
 LB20E:  jsr     load_byte
         pha
@@ -1004,8 +1007,8 @@ LB20E:  jsr     load_byte
         bne     LB229
         cpx     #0
         beq     LB22D
-        dec     $C2
-        dec     $C4
+        dec     zp1 + 1
+        dec     zp2 + 1
         dex
 LB229:  dey
         jmp     LB20E
@@ -1014,11 +1017,11 @@ LB22D:  rts
 
 LB22E:  ldy     #0
 LB230:  jsr     store_byte
-        ldx     $C1
-        cpx     $C3
+        ldx     zp1
+        cpx     zp2
         bne     LB23F
-        ldx     $C2
-        cpx     $C4
+        ldx     zp1 + 1
+        cpx     zp2 + 1
         beq     LB244
 LB23F:  jsr     inc_c1_c2
         bne     LB230
@@ -1026,10 +1029,10 @@ LB244:  rts
 
 LB245:  jsr     print_cr
         clc
-        lda     $C1
+        lda     zp1
         adc     $0209
         sta     $0209
-        lda     $C2
+        lda     zp1 + 1
         adc     $020A
         sta     $020A
         ldy     #0
@@ -1045,15 +1048,15 @@ LB25B:  jsr     load_byte
         jsr     print_space_hex_16
 LB274:  jsr     STOP
         beq     LB292
-        lda     $C2
+        lda     zp1 + 1
         cmp     $020A
         bne     LB287
-        lda     $C1
+        lda     zp1
         cmp     $0209
         beq     LB292
-LB287:  inc     $C3
+LB287:  inc     zp2
         bne     LB28D
-        inc     $C4
+        inc     zp2 + 1
 LB28D:  jsr     inc_c1_c2
         bne     LB25B
 LB292:  rts
@@ -1077,7 +1080,7 @@ LB2B3:  rts
 ; memory load/store
 ; ----------------------------------------------------------------
 
-; loads a byte at ($C1),y from drive RAM
+; loads a byte at (zp1),y from drive RAM
 LB2B4:  lda     #'R' ; send M-R to drive
         jsr     send_m_dash2
         jsr     iec_send_c1_c2_plus_y
@@ -1089,7 +1092,7 @@ LB2B4:  lda     #'R' ; send M-R to drive
         pla
         rts
 
-; stores a byte at ($C1),y in drive RAM
+; stores a byte at (zp1),y in drive RAM
 LB2CB:  lda     #'W' ; send M-W to drive
         jsr     send_m_dash2
         jsr     iec_send_c1_c2_plus_y
@@ -1103,15 +1106,15 @@ LB2CB:  lda     #'W' ; send M-W to drive
         rts
 
 ; ??? unreferenced?
-        lda     ($C1),y
+        lda     (zp1),y
         rts
 
 ; ??? unreferenced?
         pla
-        sta     ($C1),y
+        sta     (zp1),y
         rts
 
-; loads a byte at ($C1),y from RAM with the correct ROM config
+; loads a byte at (zp1),y from RAM with the correct ROM config
 load_byte:
         sei
         lda     bank
@@ -1119,9 +1122,9 @@ load_byte:
         clc
         pha
         lda     cartridge_bank
-        jmp     ram_code ; "lda ($C1),y" with ROM and cartridge config
+        jmp     ram_code ; "lda (zp1),y" with ROM and cartridge config
 
-; stores a byte at ($C1),y in RAM with the correct ROM config
+; stores a byte at (zp1),y in RAM with the correct ROM config
 store_byte:
         sei
         pha
@@ -1132,7 +1135,7 @@ store_byte:
         lda     #$33 ; ROM at $A000, $D000 and $E000
         sta     $01 ; ??? why?
 LB306:  pla
-        sta     ($C1),y ; store
+        sta     (zp1),y ; store
         pha
         lda     #$37
         sta     $01 ; restore ROM config
@@ -1187,7 +1190,7 @@ LB34A:  lda     #$80 ; drive
 listen_command_channel:
         lda     #$6F
         jsr     init_and_listen
-        lda     $90
+        lda     ST
         bmi     LB3A6
         rts
 
@@ -1222,8 +1225,8 @@ LB388:  lda     command_index
         bne     syn_err4
 LB38F:  jsr     LB35C
         jsr     set_irq_vector
-        ldx     $C1
-        ldy     $C2
+        ldx     zp1
+        ldy     zp1 + 1
         jsr     LB42D
         php
         jsr     set_io_vectors
@@ -1282,8 +1285,8 @@ LB40A:  bne     LB3F0
         jsr     get_hex_word3
         jsr     basin_skip_spaces_cmp_cr
         bne     LB40A
-        ldx     $C3
-        ldy     $C4
+        ldx     zp2
+        ldy     zp2 + 1
         lda     command_index
         cmp     #command_index_s
         bne     LB40A
@@ -1304,7 +1307,7 @@ LB438:  lda     #>(_enable_rom - 1)
         pha
         lda     #<(_enable_rom - 1)
         pha
-        lda     #$C1
+        lda     #zp1 ; pointer to ZP location with address
         jmp     SAVE
 
 ; ----------------------------------------------------------------
@@ -1425,7 +1428,7 @@ LB4EB:  pla
         bne     LB4E2
         rts
 
-; get a 16 bit ASCII hex number from the user, return it in $C3/$C4
+; get a 16 bit ASCII hex number from the user, return it in zp2
 get_hex_word:
         jsr     basin_if_more
 get_hex_word2:
@@ -1435,9 +1438,9 @@ get_hex_word2:
         bcs     LB500 ; ??? always
 get_hex_word3:
         jsr     get_hex_byte
-LB500:  sta     $C4
+LB500:  sta     zp2 + 1
         jsr     get_hex_byte
-        sta     $C3
+        sta     zp2
         rts
 
 ; get a 8 bit ASCII hex number from the user, return it in A
@@ -1495,9 +1498,9 @@ print_space_hex_16:
         lda     #' '
         jsr     BSOUT
 print_hex_16:
-        lda     $C2
+        lda     zp1 + 1
         jsr     print_hex_byte2
-        lda     $C1
+        lda     zp1
 
 print_hex_byte2:
         sty     tmp1
@@ -1520,9 +1523,9 @@ LB565:  rol     a
 
 inc_c1_c2:
         clc
-        inc     $C1
+        inc     zp1
         bne     :+
-        inc     $C2
+        inc     zp1 + 1
         sec
 :       rts
 
@@ -1628,34 +1631,34 @@ is_hex_character:
         rts
 
 swap_c1_c2_and_c3_c4:
-        lda     $C4
+        lda     zp2 + 1
         pha
-        lda     $C2
-        sta     $C4
+        lda     zp1 + 1
+        sta     zp2 + 1
         pla
-        sta     $C2
-        lda     $C3
+        sta     zp1 + 1
+        lda     zp2
         pha
-        lda     $C1
-        sta     $C3
+        lda     zp1
+        sta     zp2
         pla
-        sta     $C1
+        sta     zp1
         rts
 
 copy_pc_to_c3_c4_and_c1_c2:
         lda     reg_pc_hi
-        sta     $C4
+        sta     zp2 + 1
         lda     reg_pc_lo
-        sta     $C3
+        sta     zp2
 
 copy_c3_c4_to_c1_c2:
-        lda     $C3
-        sta     $C1
-        lda     $C4
-        sta     $C2
+        lda     zp2
+        sta     zp1
+        lda     zp2 + 1
+        sta     zp1 + 1
         rts
 
-LB64D:  lda     $C2
+LB64D:  lda     zp1 + 1
         bne     LB655
         bcc     LB655
         clc
@@ -1663,14 +1666,14 @@ LB64D:  lda     $C2
 
 LB655:  jsr     STOP
         beq     :+
-        lda     $C3
-        ldy     $C4
+        lda     zp2
+        ldy     zp2 + 1
         sec
-        sbc     $C1
-        sta     $0209 ; $C3 - $C1
+        sbc     zp1
+        sta     $0209 ; zp2 - zp1
         tya
-        sbc     $C2 
-        tay ; $C4 - $C2
+        sbc     zp1 + 1
+        tay ; (zp2 + 1) - (zp1 + 1)
         ora     $0209
         rts
 :       clc
@@ -1694,11 +1697,11 @@ fill_kbd_buffer_rightbracket:
 fill_kbd_buffer_singlequote:
         lda     #$27 ; "'"
         sta     KBD_BUFFER
-        lda     $C2
+        lda     zp1 + 1
         jsr     byte_to_hex_ascii
         sta     KBD_BUFFER + 1
         sty     KBD_BUFFER + 2
-        lda     $C1
+        lda     zp1
         jsr     byte_to_hex_ascii
         sta     KBD_BUFFER + 3
         sty     KBD_BUFFER + 4
@@ -1914,8 +1917,8 @@ LB82D:  lda     #$20
 
 LB838:  lda     $D1
         ldx     $D2
-        sta     $C3
-        stx     $C4
+        sta     zp2
+        stx     zp2 + 1
         lda     #$19
         sta     $020D
 LB845:  ldy     #1
@@ -1936,18 +1939,18 @@ LB845:  ldy     #1
         cmp     #CSR_DOWN
         bne     LB877
         sec
-        lda     $C3
+        lda     zp2
         sbc     #40
-        sta     $C3
+        sta     zp2
         bcs     LB845
-        dec     $C4
+        dec     zp2 + 1
         bne     LB845
 LB877:  clc
-        lda     $C3
+        lda     zp2
         adc     #$28
-        sta     $C3
+        sta     zp2
         bcc     LB845
-        inc     $C4
+        inc     zp2 + 1
         bne     LB845
 LB884:  sec
         sta     $020C
@@ -1956,7 +1959,7 @@ LB884:  sec
 LB889:  clc
         rts
 
-LB88B:  lda     ($C3),y
+LB88B:  lda     (zp2),y
         iny
         and     #$7F
         cmp     #$20
@@ -1974,9 +1977,9 @@ LB89D:  jsr     LB88B
         beq     LB897
         dey
         jsr     LB8B1
-        sta     $C2
+        sta     zp1 + 1
         jsr     LB8B1
-        sta     $C1
+        sta     zp1
         clc
         rts
 
@@ -1995,10 +1998,10 @@ LB8B1:  jsr     LB88B
 LB8C8:  lda     #8
 add_a_to_c1_c2:
         clc
-        adc     $C1
-        sta     $C1
+        adc     zp1
+        sta     zp1
         bcc     LB8D3
-        inc     $C2
+        inc     zp1 + 1
 LB8D3:  rts
 
 LB8D4:  lda     #$FF
@@ -2017,11 +2020,11 @@ LB8EB:  rts
 LB8EC:  lda     #8
 LB8EE:  sta     $020E
         sec
-        lda     $C1
+        lda     zp1
         sbc     $020E
-        sta     $C1
+        sta     zp1
         bcs     LB8FD
-        dec     $C2
+        dec     zp1 + 1
 LB8FD:  rts
 
 LB8FE:  ldx     #0
@@ -2035,12 +2038,12 @@ LB8FE:  ldx     #0
 LB90E:  lda     #$10
         sta     $020D
 LB913:  sec
-        lda     $C3
+        lda     zp2
         sbc     $020D
-        sta     $C1
-        lda     $C4
+        sta     zp1
+        lda     zp2 + 1
         sbc     #0
-        sta     $C2
+        sta     zp1 + 1
 LB921:  jsr     LAF62
         lda     $0205
         jsr     LB028
@@ -2192,28 +2195,28 @@ cmd_asterisk:
         beq     LBAA0
         cmp     #'R'
         bne     syn_err7
-LBAA0:  sta     $C3 ; save 'R'/'W' mode
+LBAA0:  sta     zp2 ; save 'R'/'W' mode
         jsr     basin_skip_spaces_if_more
         jsr     get_hex_byte2
         bcc     syn_err7
-        sta     $C1
+        sta     zp1
         jsr     basin_if_more
         jsr     get_hex_byte
         bcc     syn_err7
-        sta     $C2
+        sta     zp1 + 1
         jsr     basin_cmp_cr
         bne     LBAC1
-        lda     #$CF
-        sta     $C4
+        lda     #>$CF00 ; default address
+        sta     zp2 + 1
         bne     LBACD
 LBAC1:  jsr     get_hex_byte
         bcc     syn_err7
-        sta     $C4
+        sta     zp2 + 1
         jsr     basin_cmp_cr
         bne     syn_err7
 LBACD:  jsr     LBB48
         jsr     swap_c1_c2_and_c3_c4
-        lda     $C1
+        lda     zp1
         cmp     #'W'
         beq     LBB25
         lda     #'1' ; U1: read
@@ -2241,7 +2244,7 @@ LBB00:  jsr     IECIN
         ldx     #2
         jsr     CHKIN
         ldy     #0
-        sty     $C1
+        sty     zp1
 LBB16:  jsr     IECIN
         jsr     store_byte ; receive block
         iny
@@ -2253,7 +2256,7 @@ LBB25:  jsr     send_bp
         ldx     #2
         jsr     CKOUT
         ldy     #0
-        sty     $C1
+        sty     zp1
 LBB31:  jsr     load_byte
         jsr     IECOUT ; send block
         iny
@@ -2298,13 +2301,13 @@ LBB71:  lda     s_u1,x
         bne     LBB71
         pla
         sta     $0200 + 1
-        lda     $C3 ; track
+        lda     zp2 ; track
         jsr     to_dec
         stx     $0200 + s_u1_end - s_u1 + 0
         sta     $0200 + s_u1_end - s_u1 + 1
         lda     #' '
         sta     $0200 + s_u1_end - s_u1 + 2
-        lda     $C4 ; sector
+        lda     zp2 + 1 ; sector
         jsr     to_dec
         stx     $0200 + s_u1_end - s_u1 + 3
         sta     $0200 + s_u1_end - s_u1 + 4
@@ -2351,11 +2354,11 @@ send_m_dash2:
 iec_send_c1_c2_plus_y:
         tya
         clc
-        adc     $C1
+        adc     zp1
         php
         jsr     IECOUT
         plp
-        lda     $C2
+        lda     zp1 + 1
         adc     #0
         jmp     IECOUT
 
@@ -2405,31 +2408,31 @@ LBC39:  lda     LFN
         sta     KBD_BUFFER_COUNT
         jmp     input_loop
 
-LBC4C:  stx     $C1
-        sta     $C2
+LBC4C:  stx     zp1
+        sta     zp1 + 1
 LBC50:  lda     #$31
-        sta     $C3
+        sta     zp2
         ldx     #4
-LBC56:  dec     $C3
+LBC56:  dec     zp2
 LBC58:  lda     #$2F
-        sta     $C4
+        sta     zp2 + 1
         sec
-        ldy     $C1
+        ldy     zp1
         .byte   $2C
-LBC60:  sta     $C2
-        sty     $C1
-        inc     $C4
+LBC60:  sta     zp1 + 1
+        sty     zp1
+        inc     zp2 + 1
         tya
         sbc     pow10lo2,x
         tay
-        lda     $C2
+        lda     zp1 + 1
         sbc     pow10hi2,x
         bcs     LBC60
-        lda     $C4
-        cmp     $C3
+        lda     zp2 + 1
+        cmp     zp2
         beq     LBC7D
         jsr     $E716 ; KERNAL: output character to screen
-        dec     $C3
+        dec     zp2
 LBC7D:  dex
         beq     LBC56
         bpl     LBC58
@@ -2498,14 +2501,14 @@ LBCDF:  jsr     IECIN
         jsr     IECIN
         tax
         jsr     IECIN ; line number (=blocks)
-        ldy     $90
+        ldy     ST
         bne     LBD2F ; error
         jsr     LBC4C ; print A/X decimal
         lda     #' '
         jsr     $E716 ; KERNAL: output character to screen
         ldx     #$18
 LBCFA:  jsr     IECIN
-LBCFD:  ldy     $90
+LBCFD:  ldy     ST
         bne     LBD2F ; error
         cmp     #CR
         beq     LBD09 ; convert $0D to $1F
@@ -2532,7 +2535,7 @@ LBD2F:  jmp     $F646 ; CLOSE
 
 init_drive:
         lda     #0
-        sta     $90 ; clear status
+        sta     ST ; clear status
         lda     #8
         cmp     DEV ; drive 8 and above ok
         bcc     LBD3F
@@ -2546,7 +2549,7 @@ LBD3F:  lda     #9
 LBD47:
         bne     LBD3C
         lda     $FF
-LBD4B:  ldy     $90
+LBD4B:  ldy     ST
         bne     LBD7D
         cmp     #CR
         beq     LBD57
@@ -2572,7 +2575,7 @@ LBD6E:  dex
 LBD7D:  jmp     $F646 ; CLOSE
 
         lda     #0
-        sta     $90
+        sta     ST
         lda     #8
         cmp     DEV
         bcc     LBD8D
