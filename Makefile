@@ -9,15 +9,18 @@ OBJECTS=$(SOURCES:.s=.o)
 all: fc3.bin
 
 clean:
-	rm -f $(OBJECTS) fc3.bin fc3-orig.bin.txt fc3.bin.txt
+	rm -f *.o *.bin fc3-orig.bin.txt fc3.bin.txt
 
 test: fc3.bin
 	@dd if=bin/Final_Cartridge_3_1988-12.bin bs=16384 count=1 2> /dev/null | hexdump -C > fc3-orig.bin.txt
 	@hexdump -C fc3.bin > fc3.bin.txt
 	@diff -u fc3-orig.bin.txt fc3.bin.txt
 
-fc3.bin: $(OBJECTS)
+fc3.bin: $(OBJECTS) fc3.cfg
 	$(LD) -C fc3.cfg $(OBJECTS) -o $@
+
+monitor.prg: monitor.o monitor_support.o monitor.cfg
+	$(LD) -C monitor.cfg monitor.o monitor_support.o -o $@
 
 %.o: %.s $(DEPS)
 	$(CC) $(CFLAGS) $< -o $@
