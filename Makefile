@@ -1,27 +1,30 @@
-CC=ca65
+AS=ca65
 LD=ld65
 
-SOURCES=vectors.s init.s basic.s drive.s desktop_helper.s speeder.s monitor.s wrappers.s editor.s printer.s format.s freezer.s persistent.s
-DEPS=kernal.i persistent.i
+ASFLAGS=--include-dir core
+
+SOURCES=core/vectors.s core/init.s core/basic.s core/drive.s core/desktop_helper.s core/speeder.s core/monitor.s core/wrappers.s core/editor.s core/printer.s core/format.s core/freezer.s core/persistent.s
+
+DEPS=core/kernal.i core/persistent.i
 
 OBJECTS=$(SOURCES:.s=.o)
 
 all: fc3.bin
 
 clean:
-	rm -f *.o *.bin fc3-orig.bin.txt fc3.bin.txt
+	rm -f core/*.o *.bin *.prg *.hexdump
 
 test: fc3.bin
-	@dd if=bin/Final_Cartridge_3_1988-12.bin bs=16384 count=1 2> /dev/null | hexdump -C > fc3-orig.bin.txt
-	@hexdump -C fc3.bin > fc3.bin.txt
-	@diff -u fc3-orig.bin.txt fc3.bin.txt
+	@dd if=bin/Final_Cartridge_3_1988-12.bin bs=16384 count=1 2> /dev/null | hexdump -C > fc3-orig.bin.hexdump
+	@hexdump -C fc3.bin > fc3.bin.hexdump
+	@diff -u fc3-orig.bin.hexdump fc3.bin.hexdump
 
-fc3.bin: $(OBJECTS) fc3.cfg
-	$(LD) -C fc3.cfg $(OBJECTS) -o $@
+fc3.bin: $(OBJECTS) core/fc3.cfg
+	$(LD) -C core/fc3.cfg $(OBJECTS) -o $@
 
-monitor.prg: monitor.o monitor_support.o monitor.cfg
-	$(LD) -C monitor.cfg monitor.o monitor_support.o -o $@
+monitor.prg: core/monitor.o projects/monitor/monitor_support.o projects/monitor/monitor.cfg
+	$(LD) -C projects/monitor/monitor.cfg core/monitor.o projects/monitor/monitor_support.o -o $@
 
 %.o: %.s $(DEPS)
-	$(CC) $(CFLAGS) $< -o $@
+	$(AS) $(ASFLAGS) $< -o $@
 
