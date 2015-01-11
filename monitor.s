@@ -1208,16 +1208,16 @@ LB35C:  lda     #$16
 ; "L"/"S" - load/save file
 ; ----------------------------------------------------------------
 cmd_ls:
-        ldy     #2
-        sty     $BC
+        ldy     #>$0210
+        sty     FILENAME + 1
         dey
-        sty     SECADDR
+        sty     SECADDR  ; = 1
         dey
-        sty     $B7
+        sty     $B7  ; = 1
         lda     #8
         sta     DEV
-        lda     #$10
-        sta     $BB
+        lda     #<$0210
+        sta     FILENAME
         jsr     basin_skip_spaces_cmp_cr
         bne     LB3B6
 LB388:  lda     command_index
@@ -1241,13 +1241,13 @@ LB3A8:  lda     $F0BD,x ; "I/O ERROR"
         bne     LB3A8
 LB3B3:  jmp     input_loop
 
-LB3B6:  cmp     #$22
+LB3B6:  cmp     #'"'
         bne     syn_err4
 LB3BA:  jsr     basin_cmp_cr
         beq     LB388
-        cmp     #$22
+        cmp     #'"'
         beq     LB3CF
-        sta     ($BB),y
+        sta     (FILENAME),y
         inc     $B7
         iny
         cpy     #$10

@@ -61,21 +61,21 @@ load_and_run_program:
         sty     $3A ; direct mode
         iny
         sty     $0A
-        sty     $BB ; file name pointer low
+        sty     FILENAME
         sty     $02A8
         lda     #1 ; secondary address
         sta     SECADDR
         lda     #>$0200
-        sta     $BC ; read filename from $0200
+        sta     FILENAME + 1 ; read filename from $0200
         sta     TXTPTR + 1
-L9533:  lda     ($BB),y
+L9533:  lda     (FILENAME),y
         sta     $C000,y
         beq     L953D
         iny
         bne     L9533
 L953D:  sty     $B7
         lda     #$C0
-        sta     $BC ; file name pointer high (fn at $C000)
+        sta     FILENAME + 1 ; file name pointer high (fn at $C000)
         lda     #'R'
         sta     KBD_BUFFER
         lda     #'U'

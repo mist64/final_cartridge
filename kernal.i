@@ -61,6 +61,7 @@ ST              := $90
 LFN             := $B8 ; logical file number
 SECADDR         := $B9 ; secondary address
 DEV             := $BA ; device number
+FILENAME        := $BB
 CSR_COLUMN      := $D3
 CSR_ROW         := $D6
 KBD_BUFFER_COUNT := $C6

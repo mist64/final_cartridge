@@ -134,7 +134,7 @@ WE175:  lda     #>($E175 - 1)
         bne     L98B9
         lda     $B7
         beq     L98B9
-        jsr     _load_bb_indy
+        jsr     _load_FILENAME_indy
         cmp     #$24
         beq     L98B9
         ldx     SECADDR

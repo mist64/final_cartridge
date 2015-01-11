@@ -162,7 +162,7 @@ new_load2:
         tay
         lda     $B7
         beq     L99C9
-        jsr     _load_bb_indy
+        jsr     _load_FILENAME_indy
         cmp     #$24
         beq     L99C9
         ldx     SECADDR
@@ -1021,7 +1021,7 @@ LA71B:
         pla
         jmp     $F707 ; DEVICE NOT PRESENT ERROR
 
-LA734:  jsr     _load_bb_indy
+LA734:  jsr     _load_FILENAME_indy
         jsr     $EDDD ; KERNAL IECOUT
         iny
         cpy     $B7
@@ -1079,7 +1079,7 @@ print_searching:
 LA796:  ldy     $B7
         beq     LA7A7
         ldy     #0
-LA79C:  jsr     _load_bb_indy
+LA79C:  jsr     _load_FILENAME_indy
         jsr     $E716 ; KERNAL: output character to screen
         iny
         cpy     $B7
@@ -1142,7 +1142,7 @@ LA7C4:  clc
         bne     :-
         ldy     #0
         ldx     #2
-LA808:  jsr     _load_bb_indy
+LA808:  jsr     _load_FILENAME_indy
         cpy     $B7
         bcc     :+
         lda     #$20
@@ -1201,7 +1201,7 @@ LA86C:  jsr     print_found
         ldy     $B7
         beq     LA88C
 LA880:  dey
-        jsr     _load_bb_indy
+        jsr     _load_FILENAME_indy
         cmp     $0341,y
         bne     LA851
         tya
