@@ -75,7 +75,7 @@ enable_all_roms:
 .global _new_load
 _new_load: ; $DE20
         tay
-        tay
+        tay ; XXX
         lda     $01
         pha
         jsr     enable_all_roms

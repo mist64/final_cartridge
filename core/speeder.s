@@ -17,21 +17,22 @@ new_load:
 new_save:
 	jmp new_save2
 
-L9906:  pha
-L9907:  bit     $DD00
-        bpl     L9907
+send_byte:
+        pha
+ :      bit     $DD00
+        bpl     :-
         lsr     a
         lsr     a
         lsr     a
         lsr     a
         tax
-L9911:  lda     $D012
+:       lda     $D012
         cmp     #$31
-        bcc     L991E
+        bcc     :+
         and     #$06
         cmp     #$02
-        beq     L9911
-L991E:  lda     #$07
+        beq     :-
+:       lda     #$07
         sta     $DD00
         lda     iec_tab,x
         nop
@@ -55,12 +56,15 @@ L991E:  lda     #$07
         nop
         sta     $DD00
         rts
+.assert >* = >send_byte, error, "Page boundary!"
 
 iec_tab:
         .byte   $07,$87,$27,$A7,$47,$C7,$67,$E7
         .byte   $17,$97,$37,$B7,$57,$D7,$77,$F7
+.assert >* = >iec_tab, error, "Page boundary!"
 
-L995B:  lda     $0330
+receive_4_bytes:
+       lda     $0330
         cmp     #<_new_load
         beq     L998B
 :       bit     $DD00
@@ -87,6 +91,7 @@ L995B:  lda     $0330
         sta     $C1,y
         dey
         bpl     :-
+.assert >* = >:-, error, "Page boundary!"
         rts
 
 L998B:  bit     $DD00
@@ -115,6 +120,7 @@ L9995:  lda     $DD00
         dey
         bpl     L9995
         rts
+.assert >* = >L998B, error, "Page boundary!"
 
 ; *** tape
 L99B5:  tax
@@ -274,7 +280,7 @@ L9AC4:  cli
         clc
         rts
 
-L9AC7:  jsr     L9906
+L9AC7:  jsr     send_byte
         jsr     $FCDB ; inc $AC/$AD
         dec     $93
         rts
@@ -296,7 +302,7 @@ L9AD0:  sec
 L9AE8:  lda     #$FE
         sta     $93
         tya
-L9AED:  jmp     L9906
+L9AED:  jmp     send_byte
 
 L9AF0:  jsr     UNTALK
         jsr     LA691
@@ -374,11 +380,11 @@ L9B78:  lda     #$40
 L9B82:  bvs     L9B3D
         lda     #$20
         sta     $DD00
-L9B89:  bit     $DD00
-        bvc     L9B89
+:       bit     $DD00
+        bvc     :-
         lda     #0
         sta     $DD00
-        jsr     L995B
+        jsr     receive_4_bytes
         lda     #$FE
         sta     $A5
         lda     $C3
@@ -412,7 +418,7 @@ L9BB1:  stx     $94
 L9BC8:  ldy     #0
         lda     $C3
         bne     L9BD7
-        jsr     L995B
+        jsr     receive_4_bytes
         ldy     #2
         ldx     #2
         bne     L9BE5
@@ -421,7 +427,7 @@ L9BD7:  lda     $C1
         iny
 L9BDC:  tya
         pha
-        jsr     L995B
+        jsr     receive_4_bytes
         pla
         tay
         ldx     #3
