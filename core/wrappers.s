@@ -1,6 +1,8 @@
 ; ----------------------------------------------------------------
 ; wrappers for BASIC/KERNAL calls with cartridge ROM disabled
 ; ----------------------------------------------------------------
+; This has no imports, and the only consumer is the BASIC
+; extension.
 
 .include "kernal.i"
 .include "persistent.i"
@@ -116,31 +118,3 @@ WE175:  lda     #>($E175 - 1)
         pha
         lda     #0
         jmp     _disable_rom
-
-; ----------------------------------------------------------------
-; junk - this is a copy of "new_load2"
-
-        .byte   $DE
-        sty     $93
-        tya
-        ldy     DEV
-        cpy     #7
-        beq     L98B3
-        cpy     #8
-        bcc     L98B9
-        cpy     #10
-        bcs     L98B9
-        tay
-        bne     L98B9
-        lda     $B7
-        beq     L98B9
-        jsr     _load_FILENAME_indy
-        cmp     #$24
-        beq     L98B9
-        ldx     SECADDR
-        cpx     #2
-        beq     L98B9
-        jsr     $A762 ; ???
-        lda     #$60
-        sta     SECADDR
-        .byte $20
