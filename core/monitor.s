@@ -1,6 +1,33 @@
 ; ----------------------------------------------------------------
 ; Monitor
 ; ----------------------------------------------------------------
+;
+; Data input and dumping:
+;
+; | out | in  | description
+; +-----+-----+---------------
+; |  M  |  :  | 8 hex bytes
+; |  I  |  '  | 32 PETSCII characters
+; |  EC |  [  | 1 binary byte (character data)
+; |  ES |  ]  | 3 binary bytes (sprite data)
+; |  D  |  ,  | disassemble
+; |  R  |  ;  | registers
+;
+; Other commands:
+;
+; "F"/"H"/"C"/"T" - find, hunt, compare, transfer
+; "A" - assemble
+; "G" - run code
+; "$" - convert hex to decimal
+; "#" - convert decimal to hex
+; "X" - exit monitor
+; "B" - set cartridge bank (0-3) to be visible at $8000-$BFFF
+; "O" - set bank
+; "L"/"S" - load/save file
+; "@" - send drive command
+; "*R"/"*W" - read/write sector
+; "P" - set output to printer
+;
 ; Unique features of this monitor include:
 ; * "I" command to dump 32 PETSCII characters, which even renders
 ;   control characters correctly.
@@ -10,7 +37,6 @@
 ; * "B" command to introspect cartridge ROM
 
 .include "kernal.i"
-
 .include "persistent.i"
 
 ; from vectors

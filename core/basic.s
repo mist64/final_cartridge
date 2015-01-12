@@ -1,6 +1,35 @@
 ; ----------------------------------------------------------------
 ; BASIC Extension
 ; ----------------------------------------------------------------
+; "AUTO" Command    - automatically number a BASIC program
+; "HELP" Command    - list BASIC line of last error
+; "MREAD" Command   - read 192 bytes from RAM into buffer
+; "MWRITE" Command  - write 192 bytes from buffer into RAM
+; "DEL" Command     - delete BASIC lines
+; "RENUM" Command   - renumber BASIC lines
+; "FIND" Command    - find a string in a BASIC program
+; "OLD" Command     - recover a deleted program
+; "OFF" Command     - disable BASIC extensions
+; "KILL" Command    - disable all cartridge functionality
+; "MON" Command     - enter machine code monitor
+; "BAR" Command     - enable/disable pull-down menu
+; "DESKTOP" Command - start Desktop
+; "DLOAD" Command   - load a program from disk
+; "DVERIFY" Command - verify a program on disk
+; "DSAVE" Command   - save a program to disk
+; "DAPPEND" Command - append a program from disk to program in RAM
+; "APPEND" Command  - append a program to program in RAM
+; "DOS" Command     - send command to drive
+; "PLIST" Command   - send BASIC listing to printer
+; "PDIR" Command    - send disk directoy to printer
+; "DUMP" Command    - show list of all BASIC variables
+; "ARRAY" Command   - show list of all BASIC arrays
+; "MEM" Command     - display memory usage
+; "TRACE" Command   - enable/disable printing each BASIC line executed
+; "REPLACE" Command - replace a string in a BASIC program
+; "ORDER" Command   - reorder BASIC lines after APPEND
+; "UNPACK" Command  - decompress a program
+; "PACK" Command    - compress a program
 
 .include "kernal.i"
 .include "persistent.i"

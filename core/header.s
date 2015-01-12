@@ -12,5 +12,5 @@
 
         .addr   jentry ; cartridge hard reset entry point: cartridge init
         .addr   $FE5E  ; cartridge soft reset entry point: default value
-        .byte   $C3,$C2,$CD,"80" ; 'cbm80'
+        .byte   $C3, $C2, $CD, "80" ; "cbm80"
 
