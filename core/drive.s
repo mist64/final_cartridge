@@ -1,6 +1,7 @@
 ; ----------------------------------------------------------------
-; Some common drive code
+; Common drive code
 ; ----------------------------------------------------------------
+; The BASIC extension and fast format call into this.
 
 .include "kernal.i"
 

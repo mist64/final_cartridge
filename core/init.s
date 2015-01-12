@@ -1,5 +1,5 @@
 ; ----------------------------------------------------------------
-; Startup and vectors
+; BASIC Extension and Speeder Initialization
 ; ----------------------------------------------------------------
 
 .include "kernal.i"

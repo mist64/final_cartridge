@@ -1413,6 +1413,6 @@ LA9F6:  dex
         sei
         rts
 
-; ??? unreferenced?
+; XXX junk
         sei
         rts

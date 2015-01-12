@@ -1,6 +1,8 @@
 ; ----------------------------------------------------------------
-; $8000 Vectors
+; Vectors
 ; ----------------------------------------------------------------
+; This is put right after the cartridge's "cbm80" header and
+; contains jump table, which is mostly used from other banks.
 
 .include "kernal.i"
 .include "persistent.i"
@@ -20,25 +22,24 @@
 .import print_screen
 
 ; from desktop_helper
-.import perform_desktop_disk_operation
+.import perform_operation_for_desktop
 
-.segment "vectors_8000"
+.segment "vectors"
 
-        .addr   jentry ; cartridge hard reset entry point: cartridge init
-        .addr   $FE5E  ; cartridge soft reset entry point: default value
-        .byte   $C3,$C2,$CD,"80" ; 'cbm80'
+.assert * = $8009, error, "vectors must be at $8009!"
 
+.global jentry
 jentry:
         jmp     entry
 
 ; this vector is called from other banks
-        jmp     perform_desktop_disk_operation
+        jmp     perform_operation_for_desktop
 
 .global jfast_format
 jfast_format: ; monitor calls this
         jmp     fast_format
 
-; this vector is called from other banks
+; these vectors are called from other banks
         jmp     init_read_disk_name
         jmp     init_write_bam
         jmp     init_vectors_jmp_bank_2

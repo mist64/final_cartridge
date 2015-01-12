@@ -2,7 +2,7 @@
 ; Helper code called from Desktop
 ; ----------------------------------------------------------------
 ; Desktop doesn't know about drives or printers, so it calls into
-; this library code with cross-bank calls. It also calls thsi to
+; this library code using cross-bank calls. It also calls this to
 ; start a program in BASIC mode.
 
 .include "kernal.i"
@@ -88,9 +88,8 @@ L953D:  sty     $B7
         sta     KBD_BUFFER_COUNT
         jmp     $E16F ; LOAD
 
-; performs a (fast) disk operation for Desktop
-.global perform_desktop_disk_operation
-perform_desktop_disk_operation:
+.global perform_operation_for_desktop
+perform_operation_for_desktop:
         tya
         pha ; bank to return to
         cpx     #1
