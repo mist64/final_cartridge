@@ -6,14 +6,15 @@
 .include "kernal.i"
 .include "persistent.i"
 
+.global new_load
+.global new_save
+
 L0110           := $0110
 
 .segment "speeder_a"
 
-.global new_load
 new_load:
 	jmp new_load2
-.global new_save
 new_save:
 	jmp new_save2
 
@@ -458,7 +459,7 @@ L9C01:  bvc     L9C01
         iny
         cpy     #7
         bne     L9C01
-        jsr     $F556 ; drive ROM
+        jsr     $F556
 L9C12:  bvc     L9C12
         clv
         lda     $1C01
@@ -466,7 +467,7 @@ L9C12:  bvc     L9C12
         iny
         cpy     #5
         bne     L9C12
-        jsr     $F497 ; drive ROM
+        jsr     $F497
         ldx     #5
         lda     #0
 L9C26:  eor     $15,x
@@ -474,7 +475,7 @@ L9C26:  eor     $15,x
         bne     L9C26
         tay
         beq     L9C31
-L9C2E:  jmp     $F40B ; drive ROM
+L9C2E:  jmp     $F40B
 
 L9C31:  inx
 L9C32:  lda     $12,x
@@ -482,7 +483,7 @@ L9C32:  lda     $12,x
         bne     L9C2E
         dex
         bpl     L9C32
-        jsr     $F7E8 ; drive ROM
+        jsr     $F7E8
         ldx     $19
         cpx     $43
         bcs     L9C2E
@@ -523,7 +524,7 @@ L9C84:  bvc     L9C84
         cpy     #4
         bne     L9C84
         ldy     #0
-        jsr     $F7E8 ; drive ROM
+        jsr     $F7E8
         ldx     $54
         cpx     $43
         bcs     L9C2E
@@ -531,7 +532,7 @@ L9C84:  bvc     L9C84
         cmp     #$FF
         beq     L9C80
         stx     $C0
-        jsr     $F556 ; drive ROM
+        jsr     $F556
 L9CA8:  bvc     L9CA8
         clv
         lda     $1C01
@@ -545,7 +546,7 @@ L9CB5:  bvc     L9CB5
         sta     $0100,y
         iny
         bne     L9CB5
-        jsr     $F7E8 ; drive ROM
+        jsr     $F7E8
         lda     $53
         beq     L9CCC
         lda     #0
@@ -557,7 +558,7 @@ L9CCC:  sta     $34
         sta     $53
         lda     #$FF
         sta     L0624,x
-        jsr     $F6D0 ; drive ROM
+        jsr     $F6D0
         lda     #$42
         sta     $36
         ldy     #$08
@@ -572,7 +573,7 @@ L04F6:
         bne     L9CFE
         dec     $C3
         bne     L9C80
-        jmp     $F418 ; drive ROM
+        jmp     $F418
 
 L9CFE:  ldy     $C1
         lda     ($30),y
@@ -657,9 +658,9 @@ L0582:
         stx     $31
 L9D80:  inx
         bne     L9D86
-        jmp     $F40B ; drive ROM
+        jmp     $F40B
 
-L9D86:  jsr     $F556 ; drive ROM
+L9D86:  jsr     $F556
 L9D89:  bvc     L9D89
         clv
         lda     $1C01
@@ -685,12 +686,12 @@ L9DA7:  lda     $01
         bne     L9DA3
         lda     #$02
         sta     $1800
-        jmp     $C194 ; drive ROM
+        jmp     $C194
 
 L9DBB:  inx
         ldy     #$0A
         sty     $1800
-        jmp     $E60A ; drive ROM
+        jmp     $E60A
 
 L05CA:
         .byte   0, 10, 10, 2
@@ -823,7 +824,7 @@ LA5B1:  lda     $F575 - 1,x; copy "write data block to disk" to RAM
         inx
         stx     $82
         stx     $83
-        jsr     $DF95 ; drive ROM
+        jsr     $DF95
         inx
         stx     $1800
 LA5CB:  inx

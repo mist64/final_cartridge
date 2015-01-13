@@ -7,17 +7,22 @@
 .include "kernal.i"
 .include "persistent.i"
 
+.global set_io_vectors_with_hidden_rom
+.global set_io_vectors
+.global something_with_printer
+.global new_ckout
+.global new_bsout
+.global new_clall
+.global new_clrch
+
 .segment "printer"
 
-.global set_io_vectors_with_hidden_rom
 set_io_vectors_with_hidden_rom:
         jmp     set_io_vectors_with_hidden_rom2
 
-.global set_io_vectors
-set_io_vectors:  
+set_io_vectors:
         jmp     set_io_vectors2
 
-.global something_with_printer
 something_with_printer:
         jmp     LA183
 
@@ -188,7 +193,6 @@ set_io_vectors2:
         rts
 
 ; ----------------------------------------------------------------
-.global new_ckout
 new_ckout:
         txa
         pha
@@ -224,7 +228,6 @@ LA183:  jsr     LA09F
         clc
 LA19B:  rts
 
-.global new_bsout
 new_bsout:
         jsr     new_bsout2
         jmp     _disable_rom
@@ -251,12 +254,10 @@ LA1C0:  lda     $95
         clc
         rts
 
-.global new_clall
 new_clall:
         jsr     new_clall2
         jmp     _disable_rom
 
-.global new_clrch
 new_clrch:
         jsr     new_clrch2
         jmp     _disable_rom

@@ -11,9 +11,19 @@
 ; from basic
 .import set_drive
 
+.global print_line_from_drive
+.global check_iec_error
+.global cmd_channel_listen
+.global listen_second
+.global command_channel_talk
+.global talk_second
+.global m_w_and_m_e
+.global listen_6F_or_error
+.global listen_or_error
+.global device_not_present
+
 .segment "drive"
 
-.global print_line_from_drive
 print_line_from_drive:
         jsr     IECIN
         jsr     $E716 ; output character to the screen
@@ -21,7 +31,6 @@ print_line_from_drive:
         bne     print_line_from_drive
         jmp     UNTALK
 
-.global check_iec_error
 check_iec_error:
         jsr     command_channel_talk
         jsr     IECIN
@@ -33,10 +42,8 @@ L8124:  jsr     IECIN
         cpy     #'0'
         rts
 
-.global cmd_channel_listen
 cmd_channel_listen:
         lda     #$6F
-.global listen_second
 listen_second:
         pha
         jsr     set_drive
@@ -46,10 +53,8 @@ listen_second:
         lda     ST
         rts
 
-.global command_channel_talk
 command_channel_talk:
         lda     #$6F
-.global talk_second
 talk_second:
         pha
         jsr     set_drive
@@ -57,7 +62,6 @@ talk_second:
         pla
         jmp     TKSA
 
-.global m_w_and_m_e
 m_w_and_m_e:
         sta     $C3
         sty     $C4
@@ -94,16 +98,13 @@ send_m_dash:
         pla
         jmp     IECOUT
 
-.global listen_6F_or_error
 listen_6F_or_error:
         lda     #$6F
-.global listen_or_error
 listen_or_error:
         jsr     listen_second
         bmi     device_not_present
         rts
 
-.global device_not_present
 device_not_present:
         ldx     #5 ; "DEVICE NOT PRESENT"
         jmp     disable_rom_jmp_error

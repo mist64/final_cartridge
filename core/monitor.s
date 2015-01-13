@@ -46,6 +46,8 @@
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
+.global monitor
+
 ; variables
 zp1             := $C1
 zp2             := $C3
@@ -76,7 +78,6 @@ cartridge_bank  := ram_code_end + 20
 .import __monitor_ram_code_LOAD__
 .import __monitor_ram_code_RUN__
 
-.global monitor
 monitor:
         lda     #<brk_entry
         sta     $0316

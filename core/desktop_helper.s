@@ -34,6 +34,9 @@
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
+.global load_and_run_program
+.global perform_operation_for_desktop
+
 .segment "desktop_helper"
 
 reset_load_and_run:
@@ -49,7 +52,6 @@ reset_load_and_run:
         jmp     _print_banner_load_and_run
 
 ; file name at $0200
-.global load_and_run_program
 load_and_run_program:
         ldx     #<(a_ready - messages) ; ("<" necessary as a compiler hint)
         jsr     print_msg ; print "READY."
@@ -88,7 +90,6 @@ L953D:  sty     $B7
         sta     KBD_BUFFER_COUNT
         jmp     $E16F ; LOAD
 
-.global perform_operation_for_desktop
 perform_operation_for_desktop:
         tya
         pha ; bank to return to

@@ -22,9 +22,11 @@
 .import set_io_vectors
 .import set_io_vectors_with_hidden_rom
 
+.global kbd_handler
+.global print_screen
+
 .segment "screen_editor"
 
-.global kbd_handler
 kbd_handler:
         lda     $CC
         bne     L927C ; do not flash cursor
@@ -322,7 +324,6 @@ L946E:  lda     #3
         sta     $9A
         rts
 
-.global print_screen
 print_screen:
         lda     #7 ; secondary address
         jsr     send_printer_listen

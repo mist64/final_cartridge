@@ -14,6 +14,11 @@
 .global entry
 .global init_load_and_basic_vectors
 .global init_vectors_jmp_bank_2
+.global init_basic_vectors
+.global go_desktop
+.global go_basic
+.global cond_init_load_save_vectors
+.global init_load_save_vectors
 
 ; Bank 2 (Desktop, Freezer/Print) Symbols
 desktop_entry   := $8000
@@ -28,7 +33,6 @@ LBFFA           := $BFFA
 
 init_load_and_basic_vectors:
         jsr     init_load_save_vectors
-.global init_basic_vectors
 init_basic_vectors:
         ldx     #basic_vectors_end - basic_vectors - 1
 L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
@@ -99,7 +103,6 @@ mg87_signature:
         .byte   "MG87"
 mg87_signature_end:
 
-.global go_desktop
 go_desktop:
         lda     #$80 ; bar on
         sta     bar_flag
@@ -115,7 +118,6 @@ L80C4:  ldx     #'M'
         cpx     $CFFC
         bne     go_basic
         dec     $CFFC ; destroy signature
-.global go_basic
 go_basic:
         ldx     #<$A000
         ldy     #>$A000
@@ -140,7 +142,6 @@ basic_vectors_end:
 
 ; update the load and save vectors only if all hardware vectors are
 ; the KERNAL defaults
-.global cond_init_load_save_vectors
 cond_init_load_save_vectors:
         ldy     #$1F
 L80EE:  lda     $0314,y
@@ -149,7 +150,6 @@ L80EE:  lda     $0314,y
         dey
         bpl     L80EE
 
-.global init_load_save_vectors
 init_load_save_vectors:
         jsr     set_io_vectors_with_hidden_rom
         ldy     #load_save_vectors_end - load_save_vectors - 1

@@ -10,12 +10,16 @@
 .import listen_second
 .import m_w_and_m_e
 
+.global fast_format
+.global init_read_disk_name
+.global init_write_bam
+.global unlisten_e2
+
 .segment "fast_format"
 
 .import __fast_format_drive_LOAD__
 .import __fast_format_drive_RUN__
 
-.global fast_format
 fast_format:
         lda     #5
         sta     $93 ; times $20 bytes
@@ -28,7 +32,6 @@ fast_format:
         lda     #>fast_format_drive_code_entry
         jmp     IECOUT
 
-.global init_read_disk_name
 init_read_disk_name:
         lda     #$F2
         jsr     listen_second
@@ -44,11 +47,9 @@ init_read_disk_name:
         lda     #0
         rts
 
-.global init_write_bam
 init_write_bam:
         ldy     #drive_cmd_u2 - drive_cmds
         jsr     send_drive_cmd ; send "U2:2 0 18 0", block write of BAM
-.global unlisten_e2
 unlisten_e2:
         lda     #$E2
         jsr     listen_second
@@ -84,18 +85,18 @@ fast_format_drive_code:
         jmp     L0463
 
 fast_format_drive_code_entry:
-        jsr     $C1E5 ; drive ROM
+        jsr     $C1E5
         bne     L9768
-        jmp     $C1F3 ; drive ROM
+        jmp     $C1F3
 
 L9768:  sty     $027A
         lda     #$A0
-        jsr     $C268 ; drive ROM
-        jsr     $C100 ; drive ROM
+        jsr     $C268
+        jsr     $C100
         ldy     $027B
         cpy     $0274
         bne     L977E
-        jmp     $EE46 ; drive ROM
+        jmp     $EE46
 
 L977E:  lda     $0200,y
         sta     $12
@@ -111,7 +112,7 @@ L978A:  lda     $FC36 - 1,x
         lda     #1
         sta     $80
         sta     $51
-        jsr     $D6D3 ; drive ROM
+        jsr     $D6D3
         lda     $22
         bne     L97AA
         lda     #$C0
@@ -120,9 +121,9 @@ L97AA:  lda     #$E0
         jsr     L045C
         cmp     #2
         bcc     L97B6
-        jmp     $C8E8 ; drive ROM
+        jmp     $C8E8
 
-L97B6:  jmp     $EE40 ; drive ROM
+L97B6:  jmp     $EE40
 
 L045C:
         sta     $01
@@ -135,7 +136,7 @@ L0463:
         cmp     ($32),y
         beq     L97CB
         sta     ($32),y
-        jmp     $F99C ; drive ROM
+        jmp     $F99C
 
 L97CB:  ldx     #4
 L97CD:  cmp     $FED7,x
@@ -143,7 +144,7 @@ L97CD:  cmp     $FED7,x
         dex
         bcs     L97CD
         bcc     L9838
-L97D7:  jsr     $FE0E ; drive ROM
+L97D7:  jsr     $FE0E
         lda     #$FF
         sta     $1C01
 L97DF:  bvc     L97DF
@@ -151,7 +152,7 @@ L97DF:  bvc     L97DF
         inx
         cpx     #5
         bcc     L97DF
-        jsr     $FE00 ; drive ROM
+        jsr     $FE00
 L97EA:  lda     $1C00
         bpl     L97FD
         bvc     L97EA
@@ -161,7 +162,7 @@ L97EA:  lda     $1C00
         iny
         bpl     L97EA
 L97F8:  lda     #3
-        jmp     $FDD3 ; drive ROM
+        jmp     $FDD3
 
 L97FD:  sty     $C0
         stx     $C1
@@ -210,4 +211,4 @@ L9838:  jsr     ram_code
 L984D:  bvc     L984D
         inx
         bne     L984D
-        jmp     $FCB1 ; drive ROM
+        jmp     $FCB1

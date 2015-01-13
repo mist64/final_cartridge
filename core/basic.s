@@ -77,14 +77,31 @@
 .import init_read_disk_name
 .import init_write_bam
 
+.global bar_flag
+.global new_expression
+.global new_mainloop
+.global new_tokenize
+.global new_execute
+.global list_line
+.global store_d1_spaces
+.global print_dec
+.global pow10lo
+.global pow10hi
+.global print_msg
+.global messages
+.global a_ready
+.global send_drive_command
+.global send_printer_listen
+.global reset_warmstart
+.global set_drive
+.global new_detokenize
+
 ; variables
 trace_flag      := $02AA
-.global bar_flag
 bar_flag        := $02A8
 
 .segment "basic_commands"
 
-.global new_expression
 new_expression:
         lda     #0      ; same first three
         sta     $0D     ; instructions as
@@ -146,7 +163,6 @@ L81FB:  sta     $02A9
 auto_current_line_number   := $0334
 auto_line_number_increment := $0336
 
-.global new_mainloop
 new_mainloop:
         jsr     set_irq_and_kbd_handlers
         jsr     cond_init_load_save_vectors
@@ -187,7 +203,6 @@ L824D:  nop
         jmp     WA49F
 
 ; this is 99% identical with the code in BASIC ROM at $A57C
-.global new_tokenize
 new_tokenize:
 ; **** this is the same code as BASIC ROM $A579-$A5AD (start) ****
         ldx     TXTPTR
@@ -300,7 +315,6 @@ L830B:  sta     $01FD,y
         rts
 ; **** this is the same code as BASIC ROM $A604-$A612 (end) ****
 
-.global new_execute
 new_execute:
         beq     L8342
         ldx     $3A
@@ -403,7 +417,6 @@ L83BA:  lda     #CR
         lda     #$0A ; LF
         jmp     _basic_bsout
 
-.global list_line
 list_line:
         ldy     #3
         sty     $49
@@ -437,7 +450,6 @@ L83F9:  jsr     _lda_5f_indy
         jsr     do_detokenize
         jmp     L83D2 ; loop
 
-.global store_d1_spaces
 store_d1_spaces:
         lda     #' '
         ldy     CSR_COLUMN
@@ -448,7 +460,6 @@ L8408:  sta     ($D1),y
         bne     L8408
 L8411:  rts
 
-.global print_dec
 print_dec:
         stx     $C1
         sta     $C2
@@ -480,10 +491,8 @@ L8443:  dex
         bpl     L841E
         rts
 
-.global pow10lo
 pow10lo:
         .byte   <1,<10,<100,<1000,<10000
-.global pow10hi
 pow10hi:
         .byte   >1,>10,>100,>1000,>10000
 
@@ -1226,7 +1235,6 @@ L89D8:  lda     $DC00
 
 L89EC:  jmp     go_desktop
 
-.global print_msg
 print_msg:
         lda     a_are_you_sure,x
         beq     L89FA
@@ -1235,11 +1243,9 @@ print_msg:
         bne     print_msg
 L89FA:  rts
 
-.global messages
 messages:
 a_are_you_sure:
         .byte   "ARE YOU SURE (Y/N)?", CR, 0
-.global a_ready
 a_ready: ; XXX this is only used by desktop_helper.s, it should be defined there
         .byte   CR,"READY.", CR, 0
 
@@ -1310,7 +1316,6 @@ L8A69:  cmp     #'8'
         beq     L8A54
         jsr     listen_6F_or_error
 
-.global send_drive_command
 send_drive_command:
         ldy     #0
         jsr     _lda_TXTPTR_indy
@@ -1391,7 +1396,6 @@ get_secaddr_and_send_listen:
         lda     $14
         bpl     send_printer_listen ; 0-128 ok, everything else $FF
 :       lda     #$FF
-.global send_printer_listen
 send_printer_listen:
         sta     SECADDR
         jsr     something_with_printer
@@ -1434,7 +1438,6 @@ PLIST:  jsr     get_secaddr_and_send_listen
         jsr     L8B66 ; set $0300 vector, catch direct mode at "reset_warmstart"
         jmp     WA6C3
 
-.global reset_warmstart
 reset_warmstart:
         jsr     set_io_vectors
         lda     #CR
@@ -1499,7 +1502,6 @@ set_colon_asterisk:
         ldx     #<_a_colon_asterisk
         ldy     #>_a_colon_asterisk
         jsr     SETNAM
-.global set_drive
 set_drive:
         lda     #0
         sta     ST
@@ -1538,8 +1540,6 @@ L8BFF:  jmp     UNLSTN
 ; ----------------------------------------------------------------
 ; Detokenize: Decode a BASIC token to a keyword
 ; ----------------------------------------------------------------
-
-.global new_detokenize
 new_detokenize:
         tax
 L8C03:  lda     $028D
