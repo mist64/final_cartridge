@@ -52,6 +52,8 @@
 zp1             := $C1
 zp2             := $C3
 
+num_asm_bytes   := $0205
+
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
 reg_p           := ram_code_end + 7
@@ -80,6 +82,9 @@ cartridge_bank  := ram_code_end + 20
 
 .import __mnemos1_RUN__
 .import __mnemos2_RUN__
+
+.import __asmchars1_RUN__
+.import __asmchars2_RUN__
 
 monitor:
         lda     #<brk_entry
@@ -403,15 +408,15 @@ dump_assembly_line:
 LAD4B:  jsr     print_dot_x
         jsr     disassemble_line; XXX why not inline?
         jsr     print_8_spaces
-        lda     $0205
+        lda     num_asm_bytes
         jmp     LB028
 
 disassemble_line:
         jsr     print_hex_16
         jsr     print_space
         jsr     LAF62
-        jsr     LAF40
-        jsr     LAFAF
+        jsr     print_asm_bytes
+        jsr     print_mnemo
         jmp     LAFD7
 
 ; ----------------------------------------------------------------
@@ -649,9 +654,11 @@ LAF2B:  lda     #'E' ; send M-E to drive
 ; ----------------------------------------------------------------
 ; assembler/disassembler
 ; ----------------------------------------------------------------
-LAF40:  pha
+; prints the hex bytes consumed by an asm instruction
+print_asm_bytes:
+        pha
         ldy     #0
-LAF43:  cpy     $0205
+LAF43:  cpy     num_asm_bytes
         beq     LAF52
         bcc     LAF52
         jsr     print_space
@@ -666,34 +673,35 @@ LAF58:  jsr     print_space
         pla
         rts
 
+; returns mnemo index in A
 LAF62:  ldy     #0
-        jsr     load_byte
+        jsr     load_byte; opcode
 LAF67:  tay
         lsr     a
-        bcc     LAF76
+        bcc     LAF76 ; skip if bit 0 is clear
         lsr     a
-        bcs     LAF85
+        bcs     LAF85 ; skip more if bit 1 is set
         cmp     #$22
-        beq     LAF85
-        and     #$07
-        ora     #$80
+        beq     LAF85 ; code $89?
+        and     #$07 ; opcode bits 4,3,2
+        ora     #$80 ; use special bytes past first 64
 LAF76:  lsr     a
         tax
         lda     asmtab1,x
-        bcs     LAF81
+        bcs     LAF81 ; a few have bit 7 set
         lsr     a
         lsr     a
         lsr     a
-        lsr     a
+        lsr     a ; otherwise get hi nybble
 LAF81:  and     #$0F
-        bne     LAF89
+        bne     LAF89 ; if nybble is 0, Y = $80
 LAF85:  ldy     #$80
         lda     #0
 LAF89:  tax
         lda     asmtab2,x
         sta     $0207
         and     #$03
-        sta     $0205
+        sta     num_asm_bytes
         tya
         and     #$8F
         tax
@@ -713,7 +721,9 @@ LAFAB:  dey
         bne     LAFA0
         rts
 
-LAFAF:  tay
+; prints name of mnemo in A
+print_mnemo:
+        tay
         lda     __mnemos1_RUN__,y
         sta     $020A
         lda     __mnemos2_RUN__,y
@@ -735,8 +745,8 @@ LAFC2:  asl     $0208
 LAFD7:  ldx     #6
 LAFD9:  cpx     #3
         bne     LAFF4
-        ldy     $0205
-        beq     LAFF4
+        ldy     num_asm_bytes
+        beq     LAFF4 ; no operands
 LAFE2:  lda     $0207
         cmp     #$E8
         php
@@ -748,9 +758,9 @@ LAFE2:  lda     $0207
         bne     LAFE2
 LAFF4:  asl     $0207
         bcc     LB007
-        lda     asmtab3,x
+        lda     __asmchars1_RUN__,x
         jsr     BSOUT
-        lda     asmtab4,x
+        lda     __asmchars2_RUN__,x
         beq     LB007
         jsr     BSOUT
 LB007:  dex
@@ -844,7 +854,7 @@ LB08D:  ldx     #0
 LB0AB:  ldx     #6
 LB0AD:  cpx     #3
         bne     LB0C5
-        ldy     $0205
+        ldy     num_asm_bytes
         beq     LB0C5
 LB0B6:  lda     $0207
         cmp     #$E8
@@ -855,9 +865,9 @@ LB0B6:  lda     $0207
         bne     LB0B6
 LB0C5:  asl     $0207
         bcc     LB0D8
-        lda     asmtab3,x
+        lda     __asmchars1_RUN__,x
         jsr     LB130
-        lda     asmtab4,x
+        lda     __asmchars2_RUN__,x
         beq     LB0D8
         jsr     LB130
 LB0D8:  dex
@@ -872,7 +882,7 @@ LB0E3:  lda     $020A
 
 LB0EE:  rts
 
-LB0EF:  ldy     $0205
+LB0EF:  ldy     num_asm_bytes
         beq     LB123
         lda     $0208
         cmp     #$9D
@@ -891,7 +901,7 @@ LB10A:  iny
 LB112:  dex
         dex
         txa
-        ldy     $0205
+        ldy     num_asm_bytes
         bne     LB11D
 LB11A:  lda     zp1 + 1,y
 LB11D:  jsr     store_byte
@@ -1874,7 +1884,7 @@ LB75E:  jsr     LB838
         jmp     LB7C7
 
 LB790:  jsr     LAF62
-        lda     $0205
+        lda     num_asm_bytes
         jsr     LB028
         jsr     print_cr
         jsr     dump_assembly_line
@@ -1923,8 +1933,8 @@ LB7E1:  jsr     LB8FE
 
 LB800:  jsr     swap_c1_c2_and_c3_c4
         jsr     LB90E
-        inc     $0205
-        lda     $0205
+        inc     num_asm_bytes
+        lda     num_asm_bytes
         eor     #$FF
         jsr     LB028
         jsr     dump_assembly_line
@@ -2075,7 +2085,7 @@ LB913:  sec
         sbc     #0
         sta     zp1 + 1
 LB921:  jsr     LAF62
-        lda     $0205
+        lda     num_asm_bytes
         jsr     LB028
         jsr     LB655
         beq     LB936
@@ -2096,17 +2106,39 @@ asmtab1:
         .byte   $11,$22,$44,$33,$D0,$8C,$44,$9A
         .byte   $10,$22,$44,$33,$D0,$08,$40,$09
         .byte   $10,$22,$44,$33,$D0,$08,$40,$09
+
         .byte   $62,$13,$78,$A9
 asmtab2:
-        .byte   $00,$21,$81,$82,$00,$00,$59,$4D
-        .byte   $91,$92,$86,$4A,$85
+        .byte   $00
+        .byte   $20 | 1
+        .byte   $80 | 1
+        .byte   $80 | 2
+        .byte   $00
+        .byte   $00
+        .byte   $58 | 1
+        .byte   $4C | 1
+        .byte   $90 | 1
+        .byte   $90 | 2
+        .byte   $84 | 2
+        .byte   $48 | 2
+        .byte   $84 | 1
 
-asmtab3:
-        .byte   $9D ; CSR LEFT
-        .byte   ',', ')', ',', '#', '('
+.macro asmchars c1, c2
+.segment "asmchars1"
+        .byte c1
+.segment "asmchars2"
+        .byte c2
+.endmacro
 
-asmtab4:
-        .byte   '$', 'Y', 0, 'X', '$', '$', 0
+        asmchars $9D, '$' ; prefix
+        asmchars ',', 'Y' ; suffix
+        asmchars ')', 0   ; suffix
+        asmchars ',', 'X' ; suffix
+        asmchars '#', '$' ; prefix
+        asmchars '(', '$' ; prefix
+
+.segment "asmchars2"
+        .byte   0
 
 ; encoded mnemos:
 ; every combination of a byte of mnemos1 and mnemos2
