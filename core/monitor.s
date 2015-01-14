@@ -417,7 +417,7 @@ disassemble_line:
         jsr     LAF62
         jsr     print_asm_bytes
         jsr     print_mnemo
-        jmp     LAFD7
+        jmp     print_operand
 
 ; ----------------------------------------------------------------
 ; "[" - input character data
@@ -687,7 +687,7 @@ LAF67:  tay
         ora     #$80 ; use special bytes past first 64
 LAF76:  lsr     a
         tax
-        lda     asmtab1,x
+        lda     addmode_table,x
         bcs     LAF81 ; a few have bit 7 set
         lsr     a
         lsr     a
@@ -698,7 +698,7 @@ LAF81:  and     #$0F
 LAF85:  ldy     #$80
         lda     #0
 LAF89:  tax
-        lda     asmtab2,x
+        lda     addmode_detail_table,x
         sta     $0207
         and     #$03
         sta     num_asm_bytes
@@ -742,43 +742,47 @@ LAFC2:  asl     $0208
         bne     LAFBE
         jmp     print_space
 
-LAFD7:  ldx     #6
+print_operand:
+        ldx     #6
 LAFD9:  cpx     #3
         bne     LAFF4
         ldy     num_asm_bytes
         beq     LAFF4 ; no operands
-LAFE2:  lda     $0207
+:       lda     $0207
         cmp     #$E8
         php
         jsr     load_byte
         plp
-        bcs     LB00B
+        bcs     print_brach_target ; >= $E8
         jsr     print_hex_byte2
         dey
-        bne     LAFE2
+        bne     :-
 LAFF4:  asl     $0207
-        bcc     LB007
-        lda     __asmchars1_RUN__,x
+        bcc     :+ ; nothing to print
+        lda     __asmchars1_RUN__ - 1,x
         jsr     BSOUT
-        lda     __asmchars2_RUN__,x
-        beq     LB007
+        lda     __asmchars2_RUN__ - 1,x
+        beq     :+ ; no second character
         jsr     BSOUT
-LB007:  dex
+:       dex
         bne     LAFD9
         rts
 
-LB00B:  jsr     LB01C
+print_brach_target:
+        jsr     decode_relative2
         tax
         inx
-        bne     LB013
+        bne     :+
         iny
-LB013:  tya
+:       tya
         jsr     print_hex_byte2
         txa
         jmp     print_hex_byte2
 
-LB01B:  sec
-LB01C:  ldy     zp1 + 1
+decode_relative:
+        sec
+decode_relative2:
+        ldy     zp1 + 1
         tax
         bpl     LB022
         dey
@@ -787,7 +791,7 @@ LB022:  adc     zp1
         iny
 LB027:  rts
 
-LB028:  jsr     LB01B
+LB028:  jsr     decode_relative
         sta     zp1
         sty     zp1 + 1
         rts
@@ -865,9 +869,9 @@ LB0B6:  lda     $0207
         bne     LB0B6
 LB0C5:  asl     $0207
         bcc     LB0D8
-        lda     __asmchars1_RUN__,x
+        lda     __asmchars1_RUN__ - 1,x
         jsr     LB130
-        lda     __asmchars2_RUN__,x
+        lda     __asmchars2_RUN__ - 1,x
         beq     LB0D8
         jsr     LB130
 LB0D8:  dex
@@ -2097,7 +2101,7 @@ LB936:  rts
 ; ----------------------------------------------------------------
 ; assembler tables
 ; ----------------------------------------------------------------
-asmtab1:
+addmode_table:
         .byte   $40,$02,$45,$03,$D0,$08,$40,$09
         .byte   $30,$22,$45,$33,$D0,$08,$40,$09
         .byte   $40,$02,$45,$33,$D0,$08,$40,$09
@@ -2108,7 +2112,8 @@ asmtab1:
         .byte   $10,$22,$44,$33,$D0,$08,$40,$09
 
         .byte   $62,$13,$78,$A9
-asmtab2:
+
+addmode_detail_table:
         .byte   $00
         .byte   $20 | 1
         .byte   $80 | 1
@@ -2123,6 +2128,9 @@ asmtab2:
         .byte   $48 | 2
         .byte   $84 | 1
 
+; ???
+        .byte   $9D
+
 .macro asmchars c1, c2
 .segment "asmchars1"
         .byte c1
@@ -2130,15 +2138,12 @@ asmtab2:
         .byte c2
 .endmacro
 
-        asmchars $9D, '$' ; prefix
         asmchars ',', 'Y' ; suffix
         asmchars ')', 0   ; suffix
         asmchars ',', 'X' ; suffix
         asmchars '#', '$' ; prefix
         asmchars '(', '$' ; prefix
-
-.segment "asmchars2"
-        .byte   0
+        asmchars '$', 0 ; prefix
 
 ; encoded mnemos:
 ; every combination of a byte of mnemos1 and mnemos2
