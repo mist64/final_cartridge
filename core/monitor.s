@@ -53,6 +53,7 @@ zp1             := $C1
 zp2             := $C3
 
 num_asm_bytes   := $0205
+prefix_suffix_bitfield := $0207
 
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
@@ -699,7 +700,7 @@ LAF85:  ldy     #$80
         lda     #0
 LAF89:  tax
         lda     addmode_detail_table,x
-        sta     $0207
+        sta     prefix_suffix_bitfield
         and     #$03
         sta     num_asm_bytes
         tya
@@ -742,22 +743,27 @@ LAFC2:  asl     $0208
         bne     LAFBE
         jmp     print_space
 
+; Go through the list of prefixes (3) and suffixes (3),
+; and if the corresponding one of six bits is set in
+; prefix_suffix_bitfield, print it.
+; Between the prefixes and the suffixes, print the one
+; or two byte operand
 print_operand:
-        ldx     #6
+        ldx     #6 ; start with last prefix
 LAFD9:  cpx     #3
-        bne     LAFF4
+        bne     LAFF4 ; between prefixes and suffixes?, print operand
         ldy     num_asm_bytes
         beq     LAFF4 ; no operands
-:       lda     $0207
-        cmp     #$E8
+:       lda     prefix_suffix_bitfield
+        cmp     #$E8 ; "($FF,X),Y" addressing mode? relative!
         php
         jsr     load_byte
         plp
-        bcs     print_brach_target ; >= $E8
+        bcs     print_brach_target
         jsr     print_hex_byte2
         dey
         bne     :-
-LAFF4:  asl     $0207
+LAFF4:  asl     prefix_suffix_bitfield
         bcc     :+ ; nothing to print
         lda     __asmchars1_RUN__ - 1,x
         jsr     BSOUT
@@ -847,7 +853,7 @@ LB08D:  ldx     #0
         stx     $0204
         lda     $0206
         jsr     LAF67
-        ldx     $0207
+        ldx     prefix_suffix_bitfield
         stx     $0208
         tax
         lda     __mnemos2_RUN__,x
@@ -860,14 +866,14 @@ LB0AD:  cpx     #3
         bne     LB0C5
         ldy     num_asm_bytes
         beq     LB0C5
-LB0B6:  lda     $0207
+LB0B6:  lda     prefix_suffix_bitfield
         cmp     #$E8
         lda     #$30
         bcs     LB0DD
         jsr     LB12D
         dey
         bne     LB0B6
-LB0C5:  asl     $0207
+LB0C5:  asl     prefix_suffix_bitfield
         bcc     LB0D8
         lda     __asmchars1_RUN__ - 1,x
         jsr     LB130
@@ -2115,21 +2121,19 @@ addmode_table:
 
 addmode_detail_table:
         .byte   $00
-        .byte   $20 | 1
-        .byte   $80 | 1
-        .byte   $80 | 2
-        .byte   $00
-        .byte   $00
-        .byte   $58 | 1
-        .byte   $4C | 1
-        .byte   $90 | 1
-        .byte   $90 | 2
-        .byte   $84 | 2
-        .byte   $48 | 2
-        .byte   $84 | 1
-
-; ???
-        .byte   $9D
+        .byte   %001000 << 2 | 1 ; immediate
+        .byte   %100000 << 2 | 1 ; zero page
+        .byte   %100000 << 2 | 2 ; absolute
+        .byte   %000000 << 2 | 0 ; implied
+        .byte   %000000 << 2 | 0 ; implied
+        .byte   %010110 << 2 | 1 ; X indexed indirect
+        .byte   %010011 << 2 | 1 ; indirect Y indexed
+        .byte   %100100 << 2 | 1 ; zero page X indexed
+        .byte   %100100 << 2 | 2 ; absolute X indexed
+        .byte   %100001 << 2 | 2 ; absolute Y indexed
+        .byte   %010010 << 2 | 2 ; absolute indirect
+        .byte   %100001 << 2 | 1 ; zero page Y indexed
+        .byte   %100111 << 2 | 1 ; special case: relative
 
 .macro asmchars c1, c2
 .segment "asmchars1"
@@ -2138,12 +2142,14 @@ addmode_detail_table:
         .byte c2
 .endmacro
 
-        asmchars ',', 'Y' ; suffix
-        asmchars ')', 0   ; suffix
-        asmchars ',', 'X' ; suffix
-        asmchars '#', '$' ; prefix
-        asmchars '(', '$' ; prefix
-        asmchars '$', 0 ; prefix
+        ; suffixes
+        asmchars ',', 'Y' ; 1
+        asmchars ')', 0   ; 2
+        asmchars ',', 'X' ; 3
+        ; prefixes
+        asmchars '#', '$' ; 4
+        asmchars '(', '$' ; 5
+        asmchars '$', 0   ; 6
 
 ; encoded mnemos:
 ; every combination of a byte of mnemos1 and mnemos2
