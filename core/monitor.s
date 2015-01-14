@@ -78,6 +78,9 @@ cartridge_bank  := ram_code_end + 20
 .import __monitor_ram_code_LOAD__
 .import __monitor_ram_code_RUN__
 
+.import __mnemos1_RUN__
+.import __mnemos2_RUN__
+
 monitor:
         lda     #<brk_entry
         sta     $0316
@@ -711,9 +714,9 @@ LAFAB:  dey
         rts
 
 LAFAF:  tay
-        lda     nmemos1,y
+        lda     __mnemos1_RUN__,y
         sta     $020A
-        lda     nmemos2,y
+        lda     __mnemos2_RUN__,y
         sta     $0208
         ldx     #3
 LAFBE:  lda     #0
@@ -833,9 +836,9 @@ LB08D:  ldx     #0
         ldx     $0207
         stx     $0208
         tax
-        lda     nmemos2,x
+        lda     __mnemos2_RUN__,x
         jsr     LB130
-        lda     nmemos1,x
+        lda     __mnemos1_RUN__,x
         jmp     LB130
 
 LB0AB:  ldx     #6
@@ -2106,26 +2109,82 @@ asmtab4:
         .byte   '$', 'Y', 0, 'X', '$', '$', 0
 
 ; encoded mnemos:
-; every combination of a byte of nmemos1 and nmemos2
+; every combination of a byte of mnemos1 and mnemos2
 ; encodes 3 ascii characters
-nmemos1:
-        .byte   $1C,$8A,$1C,$23,$5D,$8B,$1B,$A1
-        .byte   $9D,$8A,$1D,$23,$9D,$8B,$1D,$A1
-        .byte   $00,$29,$19,$AE,$69,$A8,$19,$23
-        .byte   $24,$53,$1B,$23,$24,$53,$19,$A1
-        .byte   $00,$1A,$5B,$5B,$A5,$69,$24,$24
-        .byte   $AE,$AE,$A8,$AD,$29,$00,$7C,$00
-        .byte   $15,$9C,$6D,$9C,$A5,$69,$29,$53
-        .byte   $84,$13,$34,$11,$A5,$69,$23,$A0
-nmemos2:
-        .byte   $D8,$62,$5A,$48,$26,$62,$94,$88
-        .byte   $54,$44,$C8,$54,$68,$44,$E8,$94
-        .byte   $00,$B4,$08,$84,$74,$B4,$28,$6E
-        .byte   $74,$F4,$CC,$4A,$72,$F2,$A4,$8A
-        .byte   $00,$AA,$A2,$A2,$74,$74,$74,$72
-        .byte   $44,$68,$B2,$32,$B2,$00,$22,$00
-        .byte   $1A,$1A,$26,$26,$72,$72,$88,$C8
-        .byte   $C4,$CA,$26,$48,$44,$44,$A2,$C8
+
+.macro mnemo c1, c2, c3
+.segment "mnemos1"
+        .byte (c1 - $3F) << 3 | (c2 - $3F) >> 2
+.segment "mnemos2"
+        .byte <((c2 - $3F) << 6 | (c3 - $3F) << 1)
+.endmacro
+
+        mnemo 'B','R','K'
+        mnemo 'P','H','P'
+        mnemo 'B','P','L'
+        mnemo 'C','L','C'
+        mnemo 'J','S','R'
+        mnemo 'P','L','P'
+        mnemo 'B','M','I'
+        mnemo 'S','E','C'
+        mnemo 'R','T','I'
+        mnemo 'P','H','A'
+        mnemo 'B','V','C'
+        mnemo 'C','L','I'
+        mnemo 'R','T','S'
+        mnemo 'P','L','A'
+        mnemo 'B','V','S'
+        mnemo 'S','E','I'
+        mnemo '?','?','?'
+        mnemo 'D','E','Y'
+        mnemo 'B','C','C'
+        mnemo 'T','Y','A'
+        mnemo 'L','D','Y'
+        mnemo 'T','A','Y'
+        mnemo 'B','C','S'
+        mnemo 'C','L','V'
+        mnemo 'C','P','Y'
+        mnemo 'I','N','Y'
+        mnemo 'B','N','E'
+        mnemo 'C','L','D'
+        mnemo 'C','P','X'
+        mnemo 'I','N','X'
+        mnemo 'B','E','Q'
+        mnemo 'S','E','D'
+        mnemo '?','?','?'
+        mnemo 'B','I','T'
+        mnemo 'J','M','P'
+        mnemo 'J','M','P'
+        mnemo 'S','T','Y'
+        mnemo 'L','D','Y'
+        mnemo 'C','P','Y'
+        mnemo 'C','P','X'
+        mnemo 'T','X','A'
+        mnemo 'T','X','S'
+        mnemo 'T','A','X'
+        mnemo 'T','S','X'
+        mnemo 'D','E','X'
+        mnemo '?','?','?'
+        mnemo 'N','O','P'
+        mnemo '?','?','?'
+        mnemo 'A','S','L'
+        mnemo 'R','O','L'
+        mnemo 'L','S','R'
+        mnemo 'R','O','R'
+        mnemo 'S','T','X'
+        mnemo 'L','D','X'
+        mnemo 'D','E','C'
+        mnemo 'I','N','C'
+        mnemo 'O','R','A'
+        mnemo 'A','N','D'
+        mnemo 'E','O','R'
+        mnemo 'A','D','C'
+        mnemo 'S','T','A'
+        mnemo 'L','D','A'
+        mnemo 'C','M','P'
+        mnemo 'S','B','C'
+
+.segment "monitor_c"
 
 ; ----------------------------------------------------------------
 
