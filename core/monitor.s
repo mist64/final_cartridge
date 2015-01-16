@@ -689,7 +689,7 @@ LAF67:  tay
 LAF76:  lsr     a
         tax
         lda     addmode_table,x
-        bcs     LAF81 ; a few have bit 7 set
+        bcs     LAF81 ; bit 7 set; then use low nybble
         lsr     a
         lsr     a
         lsr     a
@@ -699,7 +699,7 @@ LAF81:  and     #$0F
 LAF85:  ldy     #$80
         lda     #0
 LAF89:  tax
-        lda     addmode_detail_table,x
+        lda     addmode_detail_table,x ; X = 0..13
         sta     prefix_suffix_bitfield
         and     #$03
         sta     num_asm_bytes
@@ -2120,7 +2120,7 @@ addmode_table:
         .byte   $62,$13,$78,$A9
 
 addmode_detail_table:
-        .byte   $00
+        .byte   %000000 << 2 | 0 ; implied
         .byte   %001000 << 2 | 1 ; immediate
         .byte   %100000 << 2 | 1 ; zero page
         .byte   %100000 << 2 | 2 ; absolute
