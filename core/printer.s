@@ -196,7 +196,7 @@ set_io_vectors2:
 new_ckout:
         txa
         pha
-        jsr     $F30F ; find LFN
+        jsr     $F30F ; find LA
         beq     LA173
 LA168:  pla
         tax
@@ -207,7 +207,7 @@ LA16D:  pla
         jmp     $F279 ; set output to IEC bus
 
 LA173:  jsr     $F31F ; set file par from table
-        lda     DEV
+        lda     FA
         cmp     #4 ; printer
         bne     LA168
         jsr     LA183
@@ -285,7 +285,7 @@ LA1F5:  stx     $9A
         sta     $99
         rts
 
-LA1FC:  lda     SECADDR
+LA1FC:  lda     SA
         cmp     #$FF
         beq     LA219
         and     #$0F

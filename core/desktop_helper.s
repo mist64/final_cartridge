@@ -63,31 +63,31 @@ load_and_run_program:
         sty     $3A ; direct mode
         iny
         sty     $0A
-        sty     FILENAME
+        sty     FNADR
         sty     $02A8
         lda     #1 ; secondary address
-        sta     SECADDR
+        sta     SA
         lda     #>$0200
-        sta     FILENAME + 1 ; read filename from $0200
+        sta     FNADR + 1 ; read filename from $0200
         sta     TXTPTR + 1
-L9533:  lda     (FILENAME),y
+L9533:  lda     (FNADR),y
         sta     $C000,y
         beq     L953D
         iny
         bne     L9533
 L953D:  sty     $B7
         lda     #$C0
-        sta     FILENAME + 1 ; file name pointer high (fn at $C000)
+        sta     FNADR + 1 ; file name pointer high (fn at $C000)
         lda     #'R'
-        sta     KBD_BUFFER
+        sta     KEYD
         lda     #'U'
-        sta     KBD_BUFFER + 1
+        sta     KEYD + 1
         lda     #'N'
-        sta     KBD_BUFFER + 2
+        sta     KEYD + 2
         lda     #$0D ; CR
-        sta     KBD_BUFFER + 3
+        sta     KEYD + 3
         lda     #4 ; number of characters in kbd buffer
-        sta     KBD_BUFFER_COUNT
+        sta     NDX
         jmp     $E16F ; LOAD
 
 perform_operation_for_desktop:
@@ -168,7 +168,7 @@ read_directory:
         jsr     IECOUT
         jsr     UNLSTN
         lda     #$60
-        sta     SECADDR
+        sta     SA
         jsr     talk_second
         ldx     #6
 L95FA:  jsr     iecin_or_ret
@@ -279,7 +279,7 @@ reset_printer_output:
 
 set_printer_output:
         jsr     set_io_vectors
-        lda     #1 ; LFN
+        lda     #1 ; LA
         ldy     #7 ; secondary address
         ldx     #4 ; printer
         jsr     SETLFS

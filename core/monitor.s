@@ -199,9 +199,9 @@ brk_entry2:
         lda     reg_pc_hi
         adc     #$FF
         sta     reg_pc_hi ; decrement PC
-        lda     DEV
+        lda     FA
         and     #$FB
-        sta     DEV
+        sta     FA
         lda     #'B'
         sta     entry_type
         lda     #$80
@@ -307,11 +307,11 @@ fill_kbd_buffer_with_csr_right:
         jsr     print_a_x
         lda     #CSR_RIGHT
         ldx     #0
-:       sta     KBD_BUFFER,x ; fill kbd buffer with 7 CSR RIGHT characters
+:       sta     KEYD,x ; fill kbd buffer with 7 CSR RIGHT characters
         inx
         cpx     #7
         bne     :-
-        stx     KBD_BUFFER_COUNT ; 7
+        stx     NDX ; 7
         jmp     input_loop2
 
 cmd_mid2:
@@ -1292,15 +1292,15 @@ restore_bsout_chrch: ; set_io_vectors in printer.s changes these; change them ba
 ; ----------------------------------------------------------------
 cmd_ls:
         ldy     #>tmp16
-        sty     FILENAME + 1
+        sty     FNADR + 1
         dey
-        sty     SECADDR  ; = 1
+        sty     SA  ; = 1
         dey
         sty     FNLEN  ; = 1
         lda     #8
-        sta     DEV
+        sta     FA
         lda     #<tmp16
-        sta     FILENAME
+        sta     FNADR
         jsr     basin_skip_spaces_cmp_cr
         bne     LB3B6
 LB388:  lda     command_index
@@ -1330,7 +1330,7 @@ LB3BA:  jsr     basin_cmp_cr
         beq     LB388
         cmp     #'"'
         beq     LB3CF
-        sta     (FILENAME),y
+        sta     (FNADR),y
         inc     FNLEN
         iny
         cpy     #$10
@@ -1349,7 +1349,7 @@ LB3D6:  bne     syn_err4
         beq     LB3E7
         cmp     #4
         bcc     syn_err4 ; illegal device number
-LB3E7:  sta     DEV
+LB3E7:  sta     FA
         jsr     basin_cmp_cr
         beq     LB388
         cmp     #','
@@ -1361,7 +1361,7 @@ LB3F0:  bne     LB3D6
         lda     command_index
         cmp     #command_index_l
         bne     LB3F0
-        dec     SECADDR
+        dec     SA
         beq     LB38F
 LB408:  cmp     #','
 LB40A:  bne     LB3F0
@@ -1373,7 +1373,7 @@ LB40A:  bne     LB3F0
         lda     command_index
         cmp     #command_index_s
         bne     LB40A
-        dec     SECADDR
+        dec     SA
         jsr     restore_bsout_chrch
         jsr     LB438
         jsr     set_io_vectors
@@ -1655,7 +1655,7 @@ read_ascii:
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_if_more
 LB5C8:  sty     tmp9
-        ldy     CSR_COLUMN
+        ldy     PNTR
         lda     (PNT),y
         php
         jsr     basin_if_more
@@ -1780,19 +1780,19 @@ fill_kbd_buffer_rightbracket:
         .byte   $2C
 fill_kbd_buffer_singlequote:
         lda     #$27 ; "'"
-        sta     KBD_BUFFER
+        sta     KEYD
         lda     zp1 + 1
         jsr     byte_to_hex_ascii
-        sta     KBD_BUFFER + 1
-        sty     KBD_BUFFER + 2
+        sta     KEYD + 1
+        sty     KEYD + 2
         lda     zp1
         jsr     byte_to_hex_ascii
-        sta     KBD_BUFFER + 3
-        sty     KBD_BUFFER + 4
+        sta     KEYD + 3
+        sty     KEYD + 4
         lda     #' '
-        sta     KBD_BUFFER + 5
+        sta     KEYD + 5
         lda     #6 ; number of characters
-        sta     KBD_BUFFER_COUNT
+        sta     NDX
         rts
 
 ; print 7x cursor right
@@ -1852,7 +1852,7 @@ irq_handler:
 after_irq:
         lda     disable_f_keys
         bne     LB6FA
-        lda     KBD_BUFFER_COUNT
+        lda     NDX
         bne     LB700
 LB6FA:  pla ; XXX JMP $EA81
         tay
@@ -1861,26 +1861,26 @@ LB6FA:  pla ; XXX JMP $EA81
         pla
         rti
 
-LB700:  lda     KBD_BUFFER
+LB700:  lda     KEYD
         cmp     #KEY_F7
         bne     LB71C
         lda     #'@'
-        sta     KBD_BUFFER
+        sta     KEYD
         lda     #'$'
-        sta     KBD_BUFFER + 1
+        sta     KEYD + 1
         lda     #CR
-        sta     KBD_BUFFER + 2 ; store "@$' + CR into keyboard buffer
+        sta     KEYD + 2 ; store "@$' + CR into keyboard buffer
         lda     #3
-        sta     KBD_BUFFER_COUNT
+        sta     NDX
         bne     LB6FA ; always
 
 LB71C:  cmp     #KEY_F5
         bne     LB733
         ldx     #24
-        cpx     CSR_ROW
+        cpx     TBLX
         beq     LB72E ; already on last line
         jsr     LB8D9
-        ldy     CSR_COLUMN
+        ldy     PNTR
 .if 0
         clc
         jsr     $FFF0 ; KERNAL set cursor position
@@ -1888,14 +1888,14 @@ LB71C:  cmp     #KEY_F5
         jsr     LE50C ; KERNAL set cursor position
 .endif
 LB72E:  lda     #CSR_DOWN
-        sta     KBD_BUFFER
+        sta     KEYD
 LB733:  cmp     #KEY_F3
         bne     LB74A
         ldx     #0
-        cpx     CSR_ROW
+        cpx     TBLX
         beq     LB745
         jsr     LB8D9
-        ldy     CSR_COLUMN
+        ldy     PNTR
 .if 0
         clc
         jsr     $FFF0 ; KERNAL set cursor position
@@ -1903,15 +1903,15 @@ LB733:  cmp     #KEY_F3
         jsr     LE50C ; KERNAL set cursor position
 .endif
 LB745:  lda     #CSR_UP
-        sta     KBD_BUFFER
+        sta     KEYD
 LB74A:  cmp     #CSR_DOWN
         beq     LB758
         cmp     #CSR_UP
         bne     LB6FA
-        lda     CSR_ROW
+        lda     TBLX
         beq     LB75E ; top of screen
         bne     LB6FA
-LB758:  lda     CSR_ROW
+LB758:  lda     TBLX
         cmp     #24
         bne     LB6FA
 LB75E:  jsr     LB838
@@ -1921,7 +1921,7 @@ LB75E:  jsr     LB838
         jsr     LB8D4
         plp
         bcs     LB6FA
-        lda     CSR_ROW
+        lda     TBLX
         beq     LB7E1
         lda     tmp12
         cmp     #','
@@ -1965,7 +1965,7 @@ LB7C7:  lda     #CSR_UP
 LB7CD:  lda     #CR
         ldx     #CSR_HOME
 LB7D1:  ldy     #0
-        sty     KBD_BUFFER_COUNT
+        sty     NDX
         sty     disable_f_keys
         jsr     print_a_x
         jsr     print_7_csr_right
@@ -2029,7 +2029,7 @@ LB845:  ldy     #1
         beq     LB884
         dec     tmp13
         beq     LB889
-        lda     KBD_BUFFER
+        lda     KEYD
         cmp     #CSR_DOWN
         bne     LB877
         sec
@@ -2105,7 +2105,7 @@ LB8D9:  lda     #$FF
         lda     BLNON
         beq     LB8EB ; rts
         lda     GDBLN
-        ldy     CSR_COLUMN
+        ldy     PNTR
         sta     (PNT),y
         lda     #0
         sta     BLNON
@@ -2443,7 +2443,7 @@ LBB42:  jsr     close_2
 
 LBB48:  lda     #2
         tay
-        ldx     DEV
+        ldx     FA
         jsr     SETLFS
         lda     #1
         ldx     #<s_hash
@@ -2546,7 +2546,7 @@ cmd_p:
         lda     bank
         bmi     syn_err8 ; drive?
         ldx     #$FF
-        lda     DEV
+        lda     FA
         cmp     #4
         beq     LBC11 ; printer
         jsr     basin_cmp_cr
@@ -2557,29 +2557,29 @@ cmd_p:
         tax
 LBC11:  jsr     basin_cmp_cr
         bne     syn_err8
-LBC16:  sta     KBD_BUFFER
-        inc     KBD_BUFFER_COUNT
+LBC16:  sta     KEYD
+        inc     NDX
         lda     #4
-        cmp     DEV
+        cmp     FA
         beq     LBC39 ; printer
-        stx     SECADDR
-        sta     DEV ; set device 4
-        sta     LFN
+        stx     SA
+        sta     FA ; set device 4
+        sta     LA
         ldx     #0
         stx     FNLEN
         jsr     CLOSE
         jsr     OPEN
-        ldx     LFN
+        ldx     LA
         jsr     CKOUT
         jmp     input_loop2
 
-LBC39:  lda     LFN
+LBC39:  lda     LA
         jsr     CLOSE
         jsr     CLRCH
         lda     #8
-        sta     DEV
+        sta     FA
         lda     #0
-        sta     KBD_BUFFER_COUNT
+        sta     NDX
         jmp     input_loop
 
 LBC4C:  stx     zp1
@@ -2666,7 +2666,7 @@ LBCCF:  adc     #$3A
 
 directory:
         lda     #$60
-        sta     SECADDR
+        sta     SA
         jsr     init_and_talk
         jsr     IECIN
         jsr     IECIN ; skip load address
@@ -2711,13 +2711,13 @@ init_drive:
         lda     #0
         sta     ST ; clear status
         lda     #8
-        cmp     DEV ; drive 8 and above ok
+        cmp     FA ; drive 8 and above ok
         bcc     LBD3F
-LBD3C:  sta     DEV ; otherwise set drive 8
+LBD3C:  sta     FA ; otherwise set drive 8
 LBD3E:  rts
 
 LBD3F:  lda     #9
-        cmp     DEV
+        cmp     FA
         bcs     LBD3E
         lda     #8
 LBD47:
@@ -2751,13 +2751,13 @@ LBD7D:  jmp     LF646 ; CLOSE
         lda     #0
         sta     ST
         lda     #8
-        cmp     DEV
+        cmp     FA
         bcc     LBD8D
-LBD8A:  sta     DEV
+LBD8A:  sta     FA
 LBD8C:  rts
 
 LBD8D:  lda     #9
-        cmp     DEV
+        cmp     FA
         bcs     LBD8C
         lda     #8
         bne     LBD8A ; always

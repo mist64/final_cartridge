@@ -159,7 +159,7 @@ L99D6:  pla
 new_load2:
         sty     $93
         tya
-        ldy     DEV
+        ldy     FA
         cpy     #7
         beq     L99B5 ; tape turbo
         cpy     #8
@@ -169,19 +169,19 @@ new_load2:
         tay
         lda     $B7
         beq     L99C9
-        jsr     _load_FILENAME_indy
+        jsr     _load_FNADR_indy
         cmp     #$24
         beq     L99C9
-        ldx     SECADDR
+        ldx     SA
         cpx     #2
         beq     L99C9
         jsr     print_searching
         lda     #$60
-        sta     SECADDR
+        sta     SA
         jsr     LA71B
-        lda     DEV
+        lda     FA
         jsr     $ED09 ; TALK
-        lda     SECADDR
+        lda     SA
         jsr     $EDC7 ; SECTLK
         jsr     $EE13 ; IECIN
         sta     $AE
@@ -239,7 +239,7 @@ L9A6A:  jmp     $F5ED ; default SAVE vector
 L9A6D:  jmp     $A7C6 ; interpreter loop
 
 new_save2:
-        lda     DEV
+        lda     FA
         cmp     #7
         beq     L9A6D ; tape turbo
         cmp     #8
@@ -249,7 +249,7 @@ new_save2:
         ldy     $B7
         beq     L9A6A
         lda     #$61
-        sta     SECADDR
+        sta     SA
         jsr     LA71B
         jsr     LA77E
         jsr     LA648
@@ -335,7 +335,7 @@ L9AF0:  jsr     UNTALK
         lda     $C1
         sta     $A4
         lda     $C2
-        sta     SECADDR
+        sta     SA
         sec
         lda     $AE
         sbc     #2
@@ -356,14 +356,14 @@ L9B3D:  bit     $DD00
         sta     $D011
         lda     $A4
         sta     $C1
-        lda     SECADDR
+        lda     SA
         sta     $C2
         lda     #0
         sta     $A3
         sta     $94
         sta     ST
         lda     #$60
-        sta     SECADDR
+        sta     SA
         lda     #$E0
         jsr     LA612
         jsr     UNLSTN
@@ -875,14 +875,14 @@ L0612:
 .segment "speeder_c"
 
 LA612:  pha
-        lda     DEV
+        lda     FA
         jsr     LISTEN
         pla
         jmp     SECOND
 
 LA61C:  lda     #$6F
         pha
-        lda     DEV
+        lda     FA
         jsr     TALK
         pla
         jmp     TKSA
@@ -1017,9 +1017,9 @@ LA707:  pha
 LA71B:
         ldy     #0
         sty     ST
-        lda     DEV
+        lda     FA
         jsr     $ED0C ; LISTEN
-        lda     SECADDR
+        lda     SA
         ora     #$F0
         jsr     $EDB9 ; SECLST
         lda     ST
@@ -1028,7 +1028,7 @@ LA71B:
         pla
         jmp     $F707 ; DEVICE NOT PRESENT ERROR
 
-LA734:  jsr     _load_FILENAME_indy
+LA734:  jsr     _load_FNADR_indy
         jsr     $EDDD ; KERNAL IECOUT
         iny
         cpy     $B7
@@ -1086,7 +1086,7 @@ print_searching:
 LA796:  ldy     $B7
         beq     LA7A7
         ldy     #0
-LA79C:  jsr     _load_FILENAME_indy
+LA79C:  jsr     _load_FNADR_indy
         jsr     $E716 ; KERNAL: output character to screen
         iny
         cpy     $B7
@@ -1134,7 +1134,7 @@ LA7C4:  clc
 :       jsr     LA77E
         jsr     turn_screen_off
         jsr     LA999
-        lda     SECADDR
+        lda     SA
         clc
         adc     #1
         dex
@@ -1149,7 +1149,7 @@ LA7C4:  clc
         bne     :-
         ldy     #0
         ldx     #2
-LA808:  jsr     _load_FILENAME_indy
+LA808:  jsr     _load_FNADR_indy
         cpy     $B7
         bcc     :+
         lda     #$20
@@ -1191,7 +1191,7 @@ LA851:  jsr     LA8C9
         beq     LA862
         cmp     #1
         bne     LA851
-        lda     SECADDR
+        lda     SA
         beq     LA86C ; "LOAD"[...]",n,0" -> skip load address
 LA862:  lda     $033C
         sta     $C3
@@ -1208,7 +1208,7 @@ LA86C:  jsr     print_found
         ldy     $B7
         beq     LA88C
 LA880:  dey
-        jsr     _load_FILENAME_indy
+        jsr     _load_FNADR_indy
         cmp     $0341,y
         bne     LA851
         tya

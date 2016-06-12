@@ -47,7 +47,7 @@ L9247:  cmp     #$13 ; CTRL + HOME: put cursor at bottom left
         bne     L925D
         jsr     L93B4
         ldy     #0
-        sty     CSR_COLUMN
+        sty     PNTR
         ldy     #24
         jsr     $E56A ; set cursor line
         jsr     L9460
@@ -102,12 +102,12 @@ L92B3:  inx
         dey
         bne     L92AB
 L92B7:  lda     fkey_strings,x
-        sta     KBD_BUFFER,y
+        sta     KEYD,y
         beq     L92C3
         inx
         iny
         bne     L92B7
-L92C3:  sty     KBD_BUFFER_COUNT
+L92C3:  sty     NDX
 L92C5:  lda     #$7F
         sta     $DC00
         bne     L927F ; always
@@ -126,7 +126,7 @@ L92DD:  inc     $02A7
         txa
         and     #1
         bne     L9342
-        lda     CSR_ROW
+        lda     TBLX
         cmp     #24
         bne     L92D5
         jsr     L93B4
@@ -159,17 +159,17 @@ L9322:  lda     #$8D
         jsr     L9448
         lda     #$80
         sta     $02AB
-        ldy     CSR_COLUMN
+        ldy     PNTR
         beq     L933A
 L9333:  cpy     #40
         beq     L933A
         dey
         bne     L9333
-L933A:  sty     CSR_COLUMN
+L933A:  sty     PNTR
         lda     #24
-        sta     CSR_ROW
+        sta     TBLX
         bne     L92CC
-L9342:  lda     CSR_ROW
+L9342:  lda     TBLX
         bne     L92D5
         jsr     L93B4
         bit     $02AB

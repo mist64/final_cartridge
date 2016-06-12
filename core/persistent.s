@@ -128,10 +128,10 @@ _load_ac_indy: ; $DE63
         inc     $01
         rts
 
-.global _load_FILENAME_indy
-_load_FILENAME_indy: ; $DE6C
+.global _load_FNADR_indy
+_load_FNADR_indy: ; $DE6C
         dec     $01
-        lda     (FILENAME),y
+        lda     (FNADR),y
         inc     $01
         rts
 

@@ -343,11 +343,11 @@ L832F:  cmp     #$E9 ; last new token + 1
 L8342:  jmp     _disable_rom
 
 trace_command:
-        lda     CSR_COLUMN ; save cursor state
+        lda     PNTR ; save cursor state
         pha
         lda     $D5
         pha
-        lda     CSR_ROW
+        lda     TBLX
         pha
         lda     $D4
         pha
@@ -370,7 +370,7 @@ L8369:  jsr     $E566 ; cursor home
         ldx     $B1
         jsr     $E88C ; set cursor row
         ldy     $B0
-        sty     CSR_COLUMN
+        sty     PNTR
         lda     ($D1),y
         eor     #$80
         sta     ($D1),y
@@ -382,7 +382,7 @@ L8369:  jsr     $E566 ; cursor home
         pla
         sta     $D5
         pla
-        sta     CSR_COLUMN
+        sta     PNTR
 L838C:  rts
 
 ; ----------------------------------------------------------------
@@ -405,9 +405,9 @@ L839D:  ldx     $3A ; line number hi
         stx     $14
         jsr     _print_ax_int
         jsr     _search_for_line
-        lda     CSR_COLUMN
+        lda     PNTR
         sta     $B0
-        lda     CSR_ROW
+        lda     TBLX
         sta     $B1
         jsr     list_line
 L83BA:  lda     #CR
@@ -441,9 +441,9 @@ L83D2:  jsr     _basic_bsout
         bne     L83F9
         cpx     TXTPTR + 1 ; chrget hi
         bne     L83F9
-        lda     CSR_COLUMN
+        lda     PNTR
         sta     $B0
-        lda     CSR_ROW
+        lda     TBLX
         sta     $B1
 L83F9:  jsr     _lda_5f_indy
         beq     store_d1_spaces
@@ -452,7 +452,7 @@ L83F9:  jsr     _lda_5f_indy
 
 store_d1_spaces:
         lda     #' '
-        ldy     CSR_COLUMN
+        ldy     PNTR
 L8408:  sta     ($D1),y
         cpy     $D5
         bcs     L8411
@@ -581,10 +581,10 @@ L84ED:  lda     auto_current_line_number
         lda     $FF,y
         php
         ora     #$20
-        sta     KBD_BUFFER - 1,y
+        sta     KEYD - 1,y
         plp
         bne     :-
-        sty     KBD_BUFFER_COUNT
+        sty     NDX
         rts
 
 L8508:  sta     $63
@@ -1283,7 +1283,7 @@ DAPPEND:
 APPEND: jsr     WE1D4
 L8A35:  jsr     L8986
         lda     #0
-        sta     SECADDR
+        sta     SA
         ldx     $22
         ldy     $23
         jmp     WE175
@@ -1300,7 +1300,7 @@ L8A47:  jsr     listen_6F_or_error
 L8A53:  rts
 
 L8A54:  and     #$0F
-        sta     DEV
+        sta     FA
         bne     L8A5D
         jmp     L852C
 
@@ -1397,21 +1397,21 @@ get_secaddr_and_send_listen:
         bpl     send_printer_listen ; 0-128 ok, everything else $FF
 :       lda     #$FF
 send_printer_listen:
-        sta     SECADDR
+        sta     SA
         jsr     something_with_printer
         bcc     L8B35
-        lda     SECADDR
+        lda     SA
         bpl     L8B13
         lda     #$00
 L8B13:  and     #$0F
         ora     #$60
-        sta     SECADDR
+        sta     SA
 L8B19:  jsr     UNLSTN
         lda     #0
         sta     ST
         lda     #4
         jsr     LISTEN
-        lda     SECADDR
+        lda     SA
         bpl     L8B2E
         jsr     $EDBE ; set ATN
         bne     L8B31
@@ -1506,12 +1506,12 @@ set_drive:
         lda     #0
         sta     ST
         lda     #8
-        cmp     DEV
+        cmp     FA
         bcc     L8BD1 ; device number 9 or above
-L8BCE:  sta     DEV
+L8BCE:  sta     FA
 L8BD0:  rts
 L8BD1:  lda     #9
-        cmp     DEV
+        cmp     FA
         bcs     L8BD0 ; RTS
         lda     #8 ; set drive 8
         bne     L8BCE
@@ -1874,10 +1874,10 @@ print_string_and_int:
         sbc     $2C,x
         ldx     $C1
         ldy     #10 ; column of next character
-        sty     CSR_COLUMN
+        sty     PNTR
         jsr     _print_ax_int ; print number of bytes
         ldy     #16 ; column of next character
-        sty     CSR_COLUMN
+        sty     PNTR
         ldy     #s_bytes - s_basic ; print "BYTES"
 print_mem_string:
         lda     s_basic,y
