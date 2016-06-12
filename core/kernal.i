@@ -56,6 +56,21 @@ KEY_F5          := $87
 KEY_F7          := $88
 
 ; C64 Memory Map
+; http://www.c64.ch/programming/memorymap.php
+R6510  := $01   ; 6510 I/O register
+FNLEN  := $B7   ; length of current file name
+RVS    := $C7   ; print reverse characters flag
+BLNSW  := $CC   ; cursor blink enable
+GDBLN  := $CE   ; character under cursor
+BLNON  := $CF   ; cursor blink phase
+PNT    := $D1   ; current screen line address
+QTSW   := $D4   ; quote mode flag
+INSRT  := $D8   ; insert mode counter
+LDTB1  := $D9   ; screen line link table
+
+BUF    := $0200 ; system input buffer
+RPTFLG := $028A ; key repeat flag
+
 TXTPTR          := $7A
 ST              := $90
 LFN             := $B8 ; logical file number

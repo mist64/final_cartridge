@@ -57,20 +57,6 @@ LF0BD := $F0BD ; string "I/O ERROR"
 LF333 := $F333 ; default contents of CLRCHN vector
 LF646 := $F646 ; IEC close
 
-R6510  := $01   ; 6510 I/O register
-FNLEN  := $B7   ; length of current file name
-RVS    := $C7   ; print reverse characters flag
-BLNSW  := $CC   ; cursor blink enable
-GDBLN  := $CE   ; character under cursor
-BLNON  := $CF   ; cursor blink phase
-PNT    := $D1   ; current screen line address
-QTSW   := $D4   ; quote mode flag
-INSRT  := $D8   ; insert mode counter
-LDTB1  := $D9   ; screen line link table
-
-BUF    := $0200 ; system input buffer
-RPTFLG := $028A ; key repeat flag
-
 CINV   := $0314 ; IRQ vector
 CBINV  := $0316 ; BRK vector
 ICLRCH := $0322 ; CLRCHN vector
