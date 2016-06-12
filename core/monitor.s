@@ -32,7 +32,8 @@
 ; * "I" command to dump 32 PETSCII characters, which even renders
 ;   control characters correctly.
 ; * F3/F5 scroll more lines in (disassembly, dump, ...) on either
-;   the top or the bottom of the screen
+;   the top or the bottom of the screen. This includes backwards
+;   disassembly.
 ; * "OD" switches all memory dumps/input to the drive's memory.
 ; * "B" command to introspect cartridge ROM
 
@@ -51,8 +52,8 @@
 LE50C := $E50C ; set cursor position
 LE716 := $E716 ; screen CHROUT
 LE96C := $E96C ; insert line at top of screen
-LEA31 := $EA31 ; VIC-20: $EABF
-LF0BD := $F0BD ; "I/O ERROR"
+LEA31 := $EA31 ; default contents of CINV vector (VIC-20: $EABF)
+LF0BD := $F0BD ; string "I/O ERROR"
 LF333 := $F333 ; default contents of CLRCHN vector
 LF646 := $F646 ; IEC close
 
@@ -61,17 +62,19 @@ FNLEN  := $B7   ; length of current file name
 RVS    := $C7   ; print reverse characters flag
 BLNSW  := $CC   ; cursor blink enable
 GDBLN  := $CE   ; character under cursor
-BLNON  := $CF   ; last cursor blink
+BLNON  := $CF   ; cursor blink phase
 PNT    := $D1   ; current screen line address
 QTSW   := $D4   ; quote mode flag
-INSRT  := $D8   ; insert mode
+INSRT  := $D8   ; insert mode counter
 LDTB1  := $D9   ; screen line link table
+
 BUF    := $0200 ; system input buffer
+RPTFLG := $028A ; key repeat flag
+
 CINV   := $0314 ; IRQ vector
 CBINV  := $0316 ; BRK vector
 ICLRCH := $0322 ; CLRCHN vector
 IBSOUT := $0326 ; CHROUT vector
-RPTFLG := $028A ; key repeat flag
 
 FC3CFG := $DFFF ; Final Cartridge III banking config register
 
@@ -450,12 +453,12 @@ LAD4B:  jsr     print_dot_x
         jsr     disassemble_line; XXX why not inline?
         jsr     print_8_spaces
         lda     num_asm_bytes
-        jmp     LB028
+        jmp     add_a_to_zp1
 
 disassemble_line:
         jsr     print_hex_16
         jsr     print_space
-        jsr     LAF62
+        jsr     decode_mnemo
         jsr     print_asm_bytes
         jsr     print_mnemo
         jmp     print_operand
@@ -605,7 +608,7 @@ LAE7C:  pha
         jsr     LAD4B
         jmp     print_cr_dot
 
-LAE88:  jsr     LB655
+LAE88:  jsr     check_end
         bcs     LAE90
         jmp     syntax_error
 
@@ -715,7 +718,8 @@ LAF58:  jsr     print_space
         rts
 
 ; returns mnemo index in A
-LAF62:  ldy     #0
+decode_mnemo:
+        ldy     #0
         jsr     load_byte; opcode
 LAF67:  tay
         lsr     a
@@ -815,7 +819,7 @@ LAFF4:  asl     prefix_suffix_bitfield
         rts
 
 print_brach_target:
-        jsr     decode_relative2
+        jsr     zp1_plus_a_2
         tax
         inx
         bne     :+
@@ -825,19 +829,21 @@ print_brach_target:
         txa
         jmp     print_hex_byte2
 
-decode_relative:
+; adds signed A to 16 bit zp1
+zp1_plus_a:
         sec
-decode_relative2:
+zp1_plus_a_2:
         ldy     zp1 + 1
         tax
-        bpl     LB022
+        bpl     :+
         dey
-LB022:  adc     zp1
-        bcc     LB027
+:       adc     zp1
+        bcc     :+
         iny
-LB027:  rts
+:       rts
 
-LB028:  jsr     decode_relative
+add_a_to_zp1:
+        jsr     zp1_plus_a
         sta     zp1
         sty     zp1 + 1
         rts
@@ -937,7 +943,7 @@ LB0EF:  ldy     num_asm_bytes
         lda     tmp8
         cmp     #$9D
         bne     LB11A
-        jsr     LB655
+        jsr     check_end
         bcc     LB10A
         tya
         bne     LB12A
@@ -1152,7 +1158,7 @@ LB28D:  jsr     inc_c1_c2
 LB292:  rts
 
 LB293:  jsr     print_cr
-LB296:  jsr     LB655
+LB296:  jsr     check_end
         bcc     LB2B3
         ldy     #0
 LB29D:  jsr     load_byte
@@ -1284,7 +1290,8 @@ listen_command_channel:
         bmi     LB3A6
         rts
 
-LB35C:  lda     #<LE716
+restore_bsout_chrch: ; set_io_vectors in printer.s changes these; change them back
+        lda     #<LE716
         sta     IBSOUT
         lda     #>LE716
         sta     IBSOUT + 1
@@ -1313,7 +1320,7 @@ cmd_ls:
 LB388:  lda     command_index
         cmp     #command_index_l
         bne     syn_err4
-LB38F:  jsr     LB35C
+LB38F:  jsr     restore_bsout_chrch
         jsr     set_irq_vector
         ldx     zp1
         ldy     zp1 + 1
@@ -1381,7 +1388,7 @@ LB40A:  bne     LB3F0
         cmp     #command_index_s
         bne     LB40A
         dec     SECADDR
-        jsr     LB35C
+        jsr     restore_bsout_chrch
         jsr     LB438
         jsr     set_io_vectors
         jmp     LB3A4
@@ -1749,12 +1756,13 @@ copy_c3_c4_to_c1_c2:
         rts
 
 LB64D:  lda     zp1 + 1
-        bne     LB655
-        bcc     LB655
+        bne     check_end
+        bcc     check_end
         clc
         rts
 
-LB655:  jsr     STOP
+check_end:
+        jsr     STOP
         beq     :+
         lda     zp2
         ldy     zp2 + 1
@@ -1943,9 +1951,9 @@ LB75E:  jsr     LB838
         jsr     dump_hex_line
         jmp     LB7C7
 
-LB790:  jsr     LAF62
+LB790:  jsr     decode_mnemo
         lda     num_asm_bytes
-        jsr     LB028
+        jsr     add_a_to_zp1
         jsr     print_cr
         jsr     dump_assembly_line
         jmp     LB7C7
@@ -1977,7 +1985,7 @@ LB7D1:  ldy     #0
         jsr     print_7_csr_right
         jmp     LB6FA
 
-LB7E1:  jsr     LB8FE
+LB7E1:  jsr     scroll_down
         lda     tmp12
         cmp     #','
         beq     LB800
@@ -1996,7 +2004,7 @@ LB800:  jsr     swap_c1_c2_and_c3_c4
         inc     num_asm_bytes
         lda     num_asm_bytes
         eor     #$FF
-        jsr     LB028
+        jsr     add_a_to_zp1
         jsr     dump_assembly_line
         clc
         bcc     LB7CD
@@ -2127,7 +2135,8 @@ LB8EE:  sta     tmp14
         dec     zp1 + 1
 LB8FD:  rts
 
-LB8FE:  ldx     #0
+scroll_down:
+        ldx     #0
         jsr     LE96C ; insert line at top of screen
         lda     #$94
         sta     LDTB1
@@ -2135,7 +2144,7 @@ LB8FE:  ldx     #0
         lda     #CSR_HOME
         jmp     BSOUT
 
-LB90E:  lda     #$10
+LB90E:  lda     #16 ; number of bytes to scan backwards
         sta     tmp13
 LB913:  sec
         lda     zp2
@@ -2143,16 +2152,16 @@ LB913:  sec
         sta     zp1
         lda     zp2 + 1
         sbc     #0
-        sta     zp1 + 1
-LB921:  jsr     LAF62
+        sta     zp1 + 1 ; look this many bytes back
+:       jsr     decode_mnemo
         lda     num_asm_bytes
-        jsr     LB028
-        jsr     LB655
-        beq     LB936
-        bcs     LB921
+        jsr     add_a_to_zp1
+        jsr     check_end
+        beq     :+
+        bcs     :-
         dec     tmp13
         bne     LB913
-LB936:  rts
+:       rts
 
 ; ----------------------------------------------------------------
 ; assembler tables
