@@ -48,12 +48,22 @@
 
 .global monitor
 
+LE96C := $E96C
+LE716 := $E716 ; VIC-20: BSOUT
+LEA31 := $EA31 ; VIC-20: $EABF
+LF646 := $F646
+
+BUF    := $0200
+CBINV  := $0316
+RPTFLG := $028A
+
 ; variables
 zp1             := $C1
 zp2             := $C3
 
-num_asm_bytes   := $0205
-prefix_suffix_bitfield := $0207
+num_asm_bytes   := BUF + 5
+BUF6            := BUF + 6
+prefix_suffix_bitfield := BUF + 7
 
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
@@ -89,9 +99,9 @@ cartridge_bank  := ram_code_end + 20
 
 monitor:
         lda     #<brk_entry
-        sta     $0316
+        sta     CBINV
         lda     #>brk_entry
-        sta     $0317 ; BRK vector
+        sta     CBINV + 1 ; BRK vector
         lda     #'C'
         sta     entry_type
         lda     #$37
@@ -176,7 +186,7 @@ brk_entry2:
         lda     #'B'
         sta     entry_type
         lda     #$80
-        sta     $028A ; enable key repeat for all keys
+        sta     RPTFLG ; enable key repeat for all keys
         bne     dump_registers ; always
 
 ; ----------------------------------------------------------------
@@ -546,7 +556,7 @@ cmd_a:
         jsr     LB030
         jsr     LB05C
         ldx     #0
-        stx     $0206
+        stx     BUF6
 LAE61:  ldx     reg_s
         txs
         jsr     LB08D
@@ -569,7 +579,7 @@ LAE88:  jsr     LB655
         bcs     LAE90
         jmp     syntax_error
 
-LAE90:  sty     $020A
+LAE90:  sty     BUF + 10
         jsr     basin_if_more
         jsr     get_hex_word3
         lda     command_index
@@ -583,7 +593,7 @@ LAEA6:  jsr     LB245
 
 LAEAC:  jsr     basin_if_more
         ldx     #0
-        stx     $020B
+        stx     BUF + 11
         jsr     basin_if_more
         cmp     #$22
         bne     LAECF
@@ -591,7 +601,7 @@ LAEBB:  jsr     basin_cmp_cr
         beq     LAEE7
         cmp     #$22
         beq     LAEE7
-        sta     $0200,x
+        sta     BUF,x
         inx
         cpx     #$20
         bne     LAEBB
@@ -602,7 +612,7 @@ LAECF:  jsr     get_hex_byte2
 LAED4:  jsr     basin_cmp_cr
         beq     LAEE7
         jsr     get_hex_byte
-LAEDC:  sta     $0200,x
+LAEDC:  sta     BUF,x
         inx
         cpx     #$20
         bne     LAED4
@@ -726,14 +736,14 @@ LAFAB:  dey
 print_mnemo:
         tay
         lda     __mnemos1_RUN__,y
-        sta     $020A
+        sta     BUF + 10
         lda     __mnemos2_RUN__,y
-        sta     $0208
+        sta     BUF + 8
         ldx     #3
 LAFBE:  lda     #0
         ldy     #5
-LAFC2:  asl     $0208
-        rol     $020A
+LAFC2:  asl     BUF + 8
+        rol     BUF + 10
         rol     a
         dey
         bne     LAFC2
@@ -803,23 +813,23 @@ LB028:  jsr     decode_relative
         rts
 
 LB030:  ldx     #0
-        stx     $0211
+        stx     BUF + 17
 LB035:  jsr     basin_if_more
         cmp     #$20
         beq     LB030
-        sta     $0200,x
+        sta     BUF,x
         inx
         cpx     #3
         bne     LB035
 LB044:  dex
         bmi     LB05B
-        lda     $0200,x
+        lda     BUF,x
         sec
         sbc     #$3F
         ldy     #5
 LB04F:  lsr     a
-        ror     $0211
-        ror     $0210
+        ror     BUF + 17
+        ror     BUF + 16
         dey
         bne     LB04F
         beq     LB044
@@ -840,21 +850,21 @@ LB05E:  jsr     BASIN
         sty     zp1 + 1
         sta     zp1
         lda     #$30
-        sta     $0210,x
+        sta     BUF + 16,x
         inx
-LB081:  sta     $0210,x
+LB081:  sta     BUF + 16,x
         inx
         cpx     #$17
         bcc     LB05E
-LB089:  stx     $020A
+LB089:  stx     BUF + 10
         rts
 
 LB08D:  ldx     #0
-        stx     $0204
-        lda     $0206
+        stx     BUF + 4
+        lda     BUF6
         jsr     LAF67
         ldx     prefix_suffix_bitfield
-        stx     $0208
+        stx     BUF + 8
         tax
         lda     __mnemos2_RUN__,x
         jsr     LB130
@@ -885,8 +895,8 @@ LB0D8:  dex
         beq     LB0E3
 LB0DD:  jsr     LB12D
         jsr     LB12D
-LB0E3:  lda     $020A
-        cmp     $0204
+LB0E3:  lda     BUF + 10
+        cmp     BUF + 4
         beq     LB0EE
         jmp     LB13B
 
@@ -894,19 +904,19 @@ LB0EE:  rts
 
 LB0EF:  ldy     num_asm_bytes
         beq     LB123
-        lda     $0208
+        lda     BUF + 8
         cmp     #$9D
         bne     LB11A
         jsr     LB655
         bcc     LB10A
         tya
         bne     LB12A
-        ldx     $0209
+        ldx     BUF + 9
         bmi     LB12A
         bpl     LB112
 LB10A:  iny
         bne     LB12A
-        ldx     $0209
+        ldx     BUF + 9
         bpl     LB12A
 LB112:  dex
         dex
@@ -917,26 +927,26 @@ LB11A:  lda     zp1 + 1,y
 LB11D:  jsr     store_byte
         dey
         bne     LB11A
-LB123:  lda     $0206
+LB123:  lda     BUF6
         jsr     store_byte
         rts
 
 LB12A:  jmp     input_loop
 
 LB12D:  jsr     LB130
-LB130:  stx     $0203
-        ldx     $0204
-        cmp     $0210,x
+LB130:  stx     BUF + 3
+        ldx     BUF + 4
+        cmp     BUF + 16,x
         beq     LB146
-LB13B:  inc     $0206
+LB13B:  inc     BUF6
         beq     LB143
         jmp     LAE61
 
 LB143:  jmp     input_loop
 
 LB146:  inx
-        stx     $0204
-        ldx     $0203
+        stx     BUF + 4
+        ldx     BUF + 3
         rts
 
 ; ----------------------------------------------------------------
@@ -1007,7 +1017,7 @@ cmd_x:
         jsr     set_irq_vector
         jsr     set_io_vectors_with_hidden_rom
         lda     #0
-        sta     $028A
+        sta     RPTFLG
         ldx     reg_s
         txs
         jmp     _basic_warm_start
@@ -1025,9 +1035,9 @@ LB1D9:  jsr     load_byte
         pla
         jsr     store_byte
         jsr     swap_c1_c2_and_c3_c4
-        cpx     $020A
+        cpx     BUF + 10
         bne     LB1F1
-        cpy     $0209
+        cpy     BUF + 9
         beq     LB1FB
 LB1F1:  iny
         bne     LB1D9
@@ -1038,7 +1048,7 @@ LB1F1:  iny
 LB1FB:  rts
 
 LB1FC:  clc
-        ldx     $020A
+        ldx     BUF + 10
         txa
         adc     zp1 + 1
         sta     zp1 + 1
@@ -1046,7 +1056,7 @@ LB1FC:  clc
         txa
         adc     zp2 + 1
         sta     zp2 + 1
-        ldy     $0209
+        ldy     BUF + 9
 LB20E:  jsr     load_byte
         pha
         jsr     swap_c1_c2_and_c3_c4
@@ -1080,11 +1090,11 @@ LB244:  rts
 LB245:  jsr     print_cr
         clc
         lda     zp1
-        adc     $0209
-        sta     $0209
+        adc     BUF + 9
+        sta     BUF + 9
         lda     zp1 + 1
-        adc     $020A
-        sta     $020A
+        adc     BUF + 10
+        sta     BUF + 10
         ldy     #0
 LB25B:  jsr     load_byte
         sta     command_index
@@ -1099,10 +1109,10 @@ LB25B:  jsr     load_byte
 LB274:  jsr     STOP
         beq     LB292
         lda     zp1 + 1
-        cmp     $020A
+        cmp     BUF + 10
         bne     LB287
         lda     zp1
-        cmp     $0209
+        cmp     BUF + 9
         beq     LB292
 LB287:  inc     zp2
         bne     LB28D
@@ -1116,7 +1126,7 @@ LB296:  jsr     LB655
         bcc     LB2B3
         ldy     #0
 LB29D:  jsr     load_byte
-        cmp     $0200,y
+        cmp     BUF,y
         bne     LB2AE
         iny
         cpy     command_index
@@ -1258,7 +1268,7 @@ LB35C:  lda     #$16
 ; "L"/"S" - load/save file
 ; ----------------------------------------------------------------
 cmd_ls:
-        ldy     #>$0210
+        ldy     #>(BUF + 16)
         sty     FILENAME + 1
         dey
         sty     SECADDR  ; = 1
@@ -1266,7 +1276,7 @@ cmd_ls:
         sty     $B7  ; = 1
         lda     #8
         sta     DEV
-        lda     #<$0210
+        lda     #<(BUF + 16)
         sta     FILENAME
         jsr     basin_skip_spaces_cmp_cr
         bne     LB3B6
@@ -1621,12 +1631,12 @@ read_ascii:
         ldy     #0
         jsr     copy_c3_c4_to_c1_c2
         jsr     basin_if_more
-LB5C8:  sty     $0209
+LB5C8:  sty     BUF + 9
         ldy     CSR_COLUMN
         lda     ($D1),y
         php
         jsr     basin_if_more
-        ldy     $0209
+        ldy     BUF + 9
         plp
         bmi     :+
         cmp     #$60
@@ -1720,11 +1730,11 @@ LB655:  jsr     STOP
         ldy     zp2 + 1
         sec
         sbc     zp1
-        sta     $0209 ; zp2 - zp1
+        sta     BUF + 9 ; zp2 - zp1
         tya
         sbc     zp1 + 1
         tay ; (zp2 + 1) - (zp1 + 1)
-        ora     $0209
+        ora     BUF + 9
         rts
 :       clc
         rts
@@ -1813,7 +1823,7 @@ irq_handler:
         pha
         pha
         pha
-        jmp     $EA31 ; run normal IRQ handler, then return to this code
+        jmp     LEA31 ; run normal IRQ handler, then return to this code
 
 after_irq:
         lda     disable_f_keys
@@ -1847,7 +1857,12 @@ LB71C:  cmp     #KEY_F5
         beq     LB72E ; already on last line
         jsr     LB8D9
         ldy     CSR_COLUMN
+.if 0
+        clc
+        jsr     $FFF0 ; KERNAL set cursor position
+.else
         jsr     $E50C ; KERNAL set cursor position
+.endif
 LB72E:  lda     #CSR_DOWN
         sta     KBD_BUFFER
 LB733:  cmp     #KEY_F3
@@ -1857,7 +1872,12 @@ LB733:  cmp     #KEY_F3
         beq     LB745
         jsr     LB8D9
         ldy     CSR_COLUMN
+.if 0
+        clc
+        jsr     $FFF0 ; KERNAL set cursor position
+.else
         jsr     $E50C ; KERNAL set cursor position
+.endif
 LB745:  lda     #CSR_UP
         sta     KBD_BUFFER
 LB74A:  cmp     #CSR_DOWN
@@ -1879,7 +1899,7 @@ LB75E:  jsr     LB838
         bcs     LB6FA
         lda     CSR_ROW
         beq     LB7E1
-        lda     $020C
+        lda     BUF + 12
         cmp     #','
         beq     LB790
         cmp     #'['
@@ -1928,7 +1948,7 @@ LB7D1:  ldy     #0
         jmp     LB6FA
 
 LB7E1:  jsr     LB8FE
-        lda     $020C
+        lda     BUF + 12
         cmp     #','
         beq     LB800
         cmp     #'['
@@ -1970,7 +1990,7 @@ LB838:  lda     $D1
         sta     zp2
         stx     zp2 + 1
         lda     #$19
-        sta     $020D
+        sta     BUF + 13
 LB845:  ldy     #1
         jsr     LB88B
         cmp     #':'
@@ -1983,7 +2003,7 @@ LB845:  ldy     #1
         beq     LB884
         cmp     #$27 ; "'"
         beq     LB884
-        dec     $020D
+        dec     BUF + 13
         beq     LB889
         lda     KBD_BUFFER
         cmp     #CSR_DOWN
@@ -2003,7 +2023,7 @@ LB877:  clc
         inc     zp2 + 1
         bne     LB845
 LB884:  sec
-        sta     $020C
+        sta     BUF + 12
         rts
 
 LB889:  clc
@@ -2039,10 +2059,10 @@ LB8B1:  jsr     LB88B
         asl     a
         asl     a
         asl     a
-        sta     $020B
+        sta     BUF + 11
         jsr     LB88B
         jsr     hex_digit_to_nybble
-        ora     $020B
+        ora     BUF + 11
         rts
 
 LB8C8:  lda     #8
@@ -2068,17 +2088,17 @@ LB8D9:  lda     #$FF
 LB8EB:  rts
 
 LB8EC:  lda     #8
-LB8EE:  sta     $020E
+LB8EE:  sta     BUF + 14
         sec
         lda     zp1
-        sbc     $020E
+        sbc     BUF + 14
         sta     zp1
         bcs     LB8FD
         dec     zp1 + 1
 LB8FD:  rts
 
 LB8FE:  ldx     #0
-        jsr     $E96C ; insert line at top of screen
+        jsr     LE96C ; insert line at top of screen
         lda     #$94
         sta     $D9
         sta     $DA
@@ -2086,10 +2106,10 @@ LB8FE:  ldx     #0
         jmp     BSOUT
 
 LB90E:  lda     #$10
-        sta     $020D
+        sta     BUF + 13
 LB913:  sec
         lda     zp2
-        sbc     $020D
+        sbc     BUF + 13
         sta     zp1
         lda     zp2 + 1
         sbc     #0
@@ -2100,7 +2120,7 @@ LB921:  jsr     LAF62
         jsr     LB655
         beq     LB936
         bcs     LB921
-        dec     $020D
+        dec     BUF + 13
         bne     LB913
 LB936:  rts
 
@@ -2357,7 +2377,7 @@ LBACD:  jsr     LBB48
         pha
         jsr     print_cr
         pla
-LBAED:  jsr     $E716 ; KERNAL: output character to screen
+LBAED:  jsr     LE716 ; KERNAL: output character to screen
         jsr     IECIN
         cmp     #CR ; print drive status until CR (XXX redundant?)
         bne     LBAED
@@ -2424,25 +2444,25 @@ read_write_block:
         pha
         ldx     #0
 LBB71:  lda     s_u1,x
-        sta     $0200,x
+        sta     BUF,x
         inx
         cpx     #s_u1_end - s_u1
         bne     LBB71
         pla
-        sta     $0200 + 1
+        sta     BUF + 1
         lda     zp2 ; track
         jsr     to_dec
-        stx     $0200 + s_u1_end - s_u1 + 0
-        sta     $0200 + s_u1_end - s_u1 + 1
+        stx     BUF + s_u1_end - s_u1 + 0
+        sta     BUF + s_u1_end - s_u1 + 1
         lda     #' '
-        sta     $0200 + s_u1_end - s_u1 + 2
+        sta     BUF + s_u1_end - s_u1 + 2
         lda     zp2 + 1 ; sector
         jsr     to_dec
-        stx     $0200 + s_u1_end - s_u1 + 3
-        sta     $0200 + s_u1_end - s_u1 + 4
+        stx     BUF + s_u1_end - s_u1 + 3
+        sta     BUF + s_u1_end - s_u1 + 4
         jsr     listen_command_channel
         ldx     #0
-LBBA0:  lda     $0200,x
+LBBA0:  lda     BUF,x
         jsr     IECOUT
         inx
         cpx     #s_u1_end - s_u1 + 5
@@ -2560,7 +2580,7 @@ LBC60:  sta     zp1 + 1
         lda     zp2 + 1
         cmp     zp2
         beq     LBC7D
-        jsr     $E716 ; KERNAL: output character to screen
+        jsr     LE716 ; KERNAL: output character to screen
         dec     zp2
 LBC7D:  dex
         beq     LBC56
@@ -2590,7 +2610,7 @@ init_and_talk:
 
 cat_line_iec:
         jsr     IECIN
-        jsr     $E716 ; KERNAL: output character to screen
+        jsr     LE716 ; KERNAL: output character to screen
         cmp     #CR
         bne     cat_line_iec
         jmp     UNTALK
@@ -2634,7 +2654,7 @@ LBCDF:  jsr     IECIN
         bne     LBD2F ; error
         jsr     LBC4C ; print A/X decimal
         lda     #' '
-        jsr     $E716 ; KERNAL: output character to screen
+        jsr     LE716 ; KERNAL: output character to screen
         ldx     #$18
 LBCFA:  jsr     IECIN
 LBCFD:  ldy     ST
@@ -2644,7 +2664,7 @@ LBCFD:  ldy     ST
         cmp     #$8D
         bne     LBD0B ; also convert $8D to $1F
 LBD09:  lda     #$1F ; ???BLUE
-LBD0B:  jsr     $E716 ; KERNAL: output character to screen
+LBD0B:  jsr     LE716 ; KERNAL: output character to screen
         inc     $D8
         jsr     GETIN
         cmp     #KEY_STOP
@@ -2658,9 +2678,9 @@ LBD20:  dex
         jsr     IECIN
         bne     LBCFD
         lda     #CR
-        jsr     $E716 ; KERNAL: output character to screen
+        jsr     LE716 ; KERNAL: output character to screen
 LBD2D:  bne     LBCDF ; next line
-LBD2F:  jmp     $F646 ; CLOSE
+LBD2F:  jmp     LF646 ; CLOSE
 
 init_drive:
         lda     #0
@@ -2685,7 +2705,7 @@ LBD4B:  ldy     ST
         cmp     #$8D
         bne     LBD59
 LBD57:  lda     #$1F
-LBD59:  jsr     $E716 ; KERNAL: output character to screen
+LBD59:  jsr     LE716 ; KERNAL: output character to screen
         inc     $D8
         jsr     GETIN
         cmp     #KEY_STOP
@@ -2699,9 +2719,9 @@ LBD6E:  dex
         jsr     IECIN
         bne     LBD4B
         lda     #CR
-        jsr     $E716 ; KERNAL: output character to screen
+        jsr     LE716 ; KERNAL: output character to screen
         bne     LBD2D
-LBD7D:  jmp     $F646 ; CLOSE
+LBD7D:  jmp     LF646 ; CLOSE
 
         lda     #0
         sta     ST
