@@ -325,7 +325,7 @@ cmd_mid:
         jsr     get_hex_word
         jsr     basin_cmp_cr
         bne     LAC80 ; second argument
-        jsr     copy_c3_c4_to_c1_c2
+        jsr     copy_zp2_to_zp1
         jmp     LAC86
 
 is_h:   jmp     LAEAC
@@ -336,7 +336,7 @@ is_h:   jmp     LAEAC
 cmd_fhct:
         jsr     get_hex_word
         jsr     basin_if_more
-LAC80:  jsr     swap_c1_c2_and_c3_c4
+LAC80:  jsr     swap_zp1_and_zp2
         jsr     get_hex_word3
 LAC86:  lda     command_index
         beq     is_mie ; 'M' (hex dump)
@@ -404,7 +404,7 @@ LACFD:  jsr     load_byte
         bne     LACFD
         jsr     print_8_spaces
         tya ; 3
-        jmp     add_a_to_c1_c2
+        jmp     add_a_to_zp1
 
 dump_char_line:
         ldx     #'['
@@ -415,7 +415,7 @@ dump_char_line:
         jsr     load_byte
         jsr     print_bin
         jsr     print_8_spaces
-        jmp     inc_c1_c2
+        jmp     inc_zp1
 
 dump_hex_line:
         ldx     #':'
@@ -439,7 +439,7 @@ LAD4B:  jsr     print_dot_x
         jsr     disassemble_line; XXX why not inline?
         jsr     print_8_spaces
         lda     num_asm_bytes
-        jmp     add_a_to_zp1
+        jmp     sadd_a_to_zp1
 
 disassemble_line:
         jsr     print_hex_16
@@ -454,7 +454,7 @@ disassemble_line:
 ; ----------------------------------------------------------------
 cmd_leftbracket:
         jsr     get_hex_word
-        jsr     copy_c3_c4_to_c1_c2
+        jsr     copy_zp2_to_zp1
         jsr     basin_skip_spaces_if_more
         jsr     LB4DB
         ldy     #0
@@ -470,7 +470,7 @@ cmd_leftbracket:
 ; ----------------------------------------------------------------
 cmd_rightbracket:
         jsr     get_hex_word
-        jsr     copy_c3_c4_to_c1_c2
+        jsr     copy_zp2_to_zp1
         jsr     basin_skip_spaces_if_more
         jsr     LB4DB
         ldy     #0
@@ -580,7 +580,7 @@ LAE61:  ldx     reg_s
         txs
         jsr     LB08D
         jsr     LB0AB
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         jsr     LB0EF
         lda     #'A'
         jsr     LAE7C
@@ -655,7 +655,7 @@ cmd_g:
         beq     LAF06
         jmp     syntax_error
 
-LAF03:  jsr     copy_pc_to_c3_c4_and_c1_c2
+LAF03:  jsr     copy_pc_to_zp2_and_zp1
 LAF06:  lda     bank
         bmi     LAF2B ; drive
         jsr     set_irq_vector
@@ -828,7 +828,7 @@ zp1_plus_a_2:
         iny
 :       rts
 
-add_a_to_zp1:
+sadd_a_to_zp1:
         jsr     zp1_plus_a
         sta     zp1
         sty     zp1 + 1
@@ -977,7 +977,7 @@ LB146:  inx
 cmd_dollar:
         jsr     get_hex_word
         jsr     print_up_dot
-        jsr     copy_c3_c4_to_c1_c2
+        jsr     copy_zp2_to_zp1
         jsr     print_dollar_hex_16
         jsr     LB48E
         jsr     print_hash
@@ -1053,10 +1053,10 @@ LB1CB:  lda     zp2
         ldx     #0
 LB1D9:  jsr     load_byte
         pha
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         pla
         jsr     store_byte
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         cpx     tmp10
         bne     LB1F1
         cpy     tmp9
@@ -1081,10 +1081,10 @@ LB1FC:  clc
         ldy     tmp9
 LB20E:  jsr     load_byte
         pha
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         pla
         jsr     store_byte
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         cpy     #0
         bne     LB229
         cpx     #0
@@ -1105,7 +1105,7 @@ LB230:  jsr     store_byte
         ldx     zp1 + 1
         cpx     zp2 + 1
         beq     LB244
-LB23F:  jsr     inc_c1_c2
+LB23F:  jsr     inc_zp1
         bne     LB230
 LB244:  rts
 
@@ -1120,10 +1120,10 @@ LB245:  jsr     print_cr
         ldy     #0
 LB25B:  jsr     load_byte
         sta     command_index
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         jsr     load_byte
         pha
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         pla
         cmp     command_index
         beq     LB274
@@ -1139,7 +1139,7 @@ LB274:  jsr     STOP
 LB287:  inc     zp2
         bne     LB28D
         inc     zp2 + 1
-LB28D:  jsr     inc_c1_c2
+LB28D:  jsr     inc_zp1
         bne     LB25B
 LB292:  rts
 
@@ -1154,7 +1154,7 @@ LB29D:  jsr     load_byte
         cpy     command_index
         bne     LB29D
         jsr     print_space_hex_16
-LB2AE:  jsr     inc_c1_c2
+LB2AE:  jsr     inc_zp1
         bne     LB296
 LB2B3:  rts
 
@@ -1165,7 +1165,7 @@ LB2B3:  rts
 ; loads a byte at (zp1),y from drive RAM
 LB2B4:  lda     #'R' ; send M-R to drive
         jsr     send_m_dash2
-        jsr     iec_send_c1_c2_plus_y
+        jsr     iec_send_zp1_plus_y
         jsr     UNLSTN
         jsr     talk_cmd_channel
         jsr     IECIN ; read byte
@@ -1177,7 +1177,7 @@ LB2B4:  lda     #'R' ; send M-R to drive
 ; stores a byte at (zp1),y in drive RAM
 LB2CB:  lda     #'W' ; send M-W to drive
         jsr     send_m_dash2
-        jsr     iec_send_c1_c2_plus_y
+        jsr     iec_send_zp1_plus_y
         lda     #1 ; count
         jsr     IECOUT
         pla
@@ -1355,7 +1355,7 @@ LB3E7:  sta     FA
         cmp     #','
 LB3F0:  bne     LB3D6
         jsr     get_hex_word3
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         jsr     basin_cmp_cr
         bne     LB408
         lda     command_index
@@ -1604,7 +1604,7 @@ LB565:  rol     a
         bne     LB565
         rts
 
-inc_c1_c2:
+inc_zp1:
         clc
         inc     zp1
         bne     :+
@@ -1647,12 +1647,12 @@ LB5AD:  jsr     BSOUT
         dex
         bne     LB594
         tya ; number of bytes consumed
-        jmp     add_a_to_c1_c2
+        jmp     add_a_to_zp1
 
 read_ascii:
         ldx     #$20
         ldy     #0
-        jsr     copy_c3_c4_to_c1_c2
+        jsr     copy_zp2_to_zp1
         jsr     basin_if_more
 LB5C8:  sty     tmp9
         ldy     PNTR
@@ -1674,7 +1674,7 @@ read_8_bytes:
         ldx     #8
 read_x_bytes:
         ldy     #0
-        jsr     copy_c3_c4_to_c1_c2
+        jsr     copy_zp2_to_zp1
         jsr     basin_skip_spaces_if_more
         jsr     get_hex_byte2
         jmp     LB607
@@ -1713,7 +1713,7 @@ is_hex_character:
 :       sec
         rts
 
-swap_c1_c2_and_c3_c4:
+swap_zp1_and_zp2:
         lda     zp2 + 1
         pha
         lda     zp1 + 1
@@ -1728,13 +1728,13 @@ swap_c1_c2_and_c3_c4:
         sta     zp1
         rts
 
-copy_pc_to_c3_c4_and_c1_c2:
+copy_pc_to_zp2_and_zp1:
         lda     reg_pc_hi
         sta     zp2 + 1
         lda     reg_pc_lo
         sta     zp2
 
-copy_c3_c4_to_c1_c2:
+copy_zp2_to_zp1:
         lda     zp2
         sta     zp1
         lda     zp2 + 1
@@ -1939,24 +1939,24 @@ LB75E:  jsr     LB838
 
 LB790:  jsr     decode_mnemo
         lda     num_asm_bytes
-        jsr     add_a_to_zp1
+        jsr     sadd_a_to_zp1
         jsr     print_cr
         jsr     dump_assembly_line
         jmp     LB7C7
 
-LB7A2:  jsr     inc_c1_c2
+LB7A2:  jsr     inc_zp1
         jsr     print_cr
         jsr     dump_char_line
         jmp     LB7C7
 
 LB7AE:  lda     #3
-        jsr     add_a_to_c1_c2
+        jsr     add_a_to_zp1
         jsr     print_cr
         jsr     dump_sprite_line
         jmp     LB7C7
 
 LB7BC:  lda     #$20
-        jsr     add_a_to_c1_c2
+        jsr     add_a_to_zp1
         jsr     print_cr
         jsr     dump_ascii_line
 LB7C7:  lda     #CSR_UP
@@ -1985,12 +1985,12 @@ LB7E1:  jsr     scroll_down
         jsr     dump_hex_line
         jmp     LB7CD
 
-LB800:  jsr     swap_c1_c2_and_c3_c4
+LB800:  jsr     swap_zp1_and_zp2
         jsr     LB90E
         inc     num_asm_bytes
         lda     num_asm_bytes
         eor     #$FF
-        jsr     add_a_to_zp1
+        jsr     sadd_a_to_zp1
         jsr     dump_assembly_line
         clc
         bcc     LB7CD
@@ -2090,7 +2090,7 @@ LB8B1:  jsr     LB88B
         rts
 
 LB8C8:  lda     #8
-add_a_to_c1_c2:
+add_a_to_zp1:
         clc
         adc     zp1
         sta     zp1
@@ -2141,7 +2141,7 @@ LB913:  sec
         sta     zp1 + 1 ; look this many bytes back
 :       jsr     decode_mnemo
         lda     num_asm_bytes
-        jsr     add_a_to_zp1
+        jsr     sadd_a_to_zp1
         jsr     check_end
         beq     :+
         bcs     :-
@@ -2389,7 +2389,7 @@ LBAC1:  jsr     get_hex_byte
         jsr     basin_cmp_cr
         bne     syn_err7
 LBACD:  jsr     LBB48
-        jsr     swap_c1_c2_and_c3_c4
+        jsr     swap_zp1_and_zp2
         lda     zp1
         cmp     #'W'
         beq     LBB25
@@ -2525,7 +2525,7 @@ send_m_dash2:
         pla
         jmp     IECOUT
 
-iec_send_c1_c2_plus_y:
+iec_send_zp1_plus_y:
         tya
         clc
         adc     zp1
