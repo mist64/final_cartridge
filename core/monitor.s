@@ -48,18 +48,37 @@
 
 .global monitor
 
-LE96C := $E96C
-LE716 := $E716 ; VIC-20: BSOUT
+LE50C := $E50C ; set cursor position
+LE716 := $E716 ; screen CHROUT
+LE96C := $E96C ; insert line at top of screen
 LEA31 := $EA31 ; VIC-20: $EABF
-LF646 := $F646
+LF0BD := $F0BD ; "I/O ERROR"
+LF333 := $F333 ; default contents of CLRCHN vector
+LF646 := $F646 ; IEC close
 
-BUF    := $0200
-CBINV  := $0316
-RPTFLG := $028A
+R6510  := $01   ; 6510 I/O register
+FNLEN  := $B7   ; length of current file name
+RVS    := $C7   ; print reverse characters flag
+BLNSW  := $CC   ; cursor blink enable
+GDBLN  := $CE   ; character under cursor
+BLNON  := $CF   ; last cursor blink
+PNT    := $D1   ; current screen line address
+QTSW   := $D4   ; quote mode flag
+INSRT  := $D8   ; insert mode
+LDTB1  := $D9   ; screen line link table
+BUF    := $0200 ; system input buffer
+CINV   := $0314 ; IRQ vector
+CBINV  := $0316 ; BRK vector
+ICLRCH := $0322 ; CLRCHN vector
+IBSOUT := $0326 ; CHROUT vector
+RPTFLG := $028A ; key repeat flag
+
+FC3CFG := $DFFF ; Final Cartridge III banking config register
 
 ; variables
 zp1             := $C1
 zp2             := $C3
+zp3             := $FF
 
 tmp3            := BUF + 3
 tmp4            := BUF + 4
@@ -130,22 +149,22 @@ monitor:
 ; code that will be copied to $0220
 ram_code:
 ; read from memory with a specific ROM and cartridge config
-        sta     $DFFF ; set cartridge config
+        sta     FC3CFG ; set cartridge config
         pla
-        sta     $01 ; set ROM config
+        sta     R6510 ; set ROM config
         lda     (zp1),y ; read
 enable_all_roms:
         pha
         lda     #$37
-        sta     $01 ; restore ROM config
+        sta     R6510 ; restore ROM config
         lda     #$40
-        sta     $DFFF ; resture cartridge config
+        sta     FC3CFG ; resture cartridge config
         pla
         rts
 
 disable_rom_rti:
         jsr     _disable_rom
-        sta     $01
+        sta     R6510
         lda     reg_a
         rti
 
@@ -273,7 +292,7 @@ LAC27:  cmp     command_names,x
         txa
         asl     a
         tax
-        lda     function_table+1,x
+        lda     function_table + 1,x
         pha
         lda     function_table,x
         pha
@@ -1204,12 +1223,12 @@ store_byte:
         cmp     #$35
         bcs     LB306 ; I/O on
         lda     #$33 ; ROM at $A000, $D000 and $E000
-        sta     $01 ; ??? why?
+        sta     R6510 ; ??? why?
 LB306:  pla
         sta     (zp1),y ; store
         pha
         lda     #$37
-        sta     $01 ; restore ROM config
+        sta     R6510 ; restore ROM config
         pla
         rts
 
@@ -1265,14 +1284,14 @@ listen_command_channel:
         bmi     LB3A6
         rts
 
-LB35C:  lda     #$16
-        sta     $0326
-        lda     #$E7
-        sta     $0327
-        lda     #$33
-        sta     $0322
-        lda     #$F3
-        sta     $0323
+LB35C:  lda     #<LE716
+        sta     IBSOUT
+        lda     #>LE716
+        sta     IBSOUT + 1
+        lda     #<LF333
+        sta     ICLRCH
+        lda     #>LF333
+        sta     ICLRCH + 1
         rts
 
 ; ----------------------------------------------------------------
@@ -1284,7 +1303,7 @@ cmd_ls:
         dey
         sty     SECADDR  ; = 1
         dey
-        sty     $B7  ; = 1
+        sty     FNLEN  ; = 1
         lda     #8
         sta     DEV
         lda     #<tmp16
@@ -1305,7 +1324,7 @@ LB38F:  jsr     LB35C
         plp
 LB3A4:  bcc     LB3B3
 LB3A6:  ldx     #0
-LB3A8:  lda     $F0BD,x ; "I/O ERROR"
+LB3A8:  lda     LF0BD,x ; "I/O ERROR"
         jsr     BSOUT
         inx
         cpx     #10
@@ -1319,7 +1338,7 @@ LB3BA:  jsr     basin_cmp_cr
         cmp     #'"'
         beq     LB3CF
         sta     (FILENAME),y
-        inc     $B7
+        inc     FNLEN
         iny
         cpy     #$10
         bne     LB3BA
@@ -1328,7 +1347,7 @@ syn_err4:
 
 LB3CF:  jsr     basin_cmp_cr
         beq     LB388
-        cmp     #$2C
+        cmp     #','
 LB3D6:  bne     syn_err4
         jsr     get_hex_byte
         and     #$0F
@@ -1618,7 +1637,7 @@ dump_ascii_characters:
 LB594:  jsr     load_byte
         cmp     #$20
         bcs     LB59F
-        inc     $C7
+        inc     RVS
         ora     #$40
 LB59F:  cmp     #$80
         bcc     LB5AD
@@ -1626,11 +1645,11 @@ LB59F:  cmp     #$80
         bcs     LB5AD
         and     #$7F
         ora     #$60
-        inc     $C7
+        inc     RVS
 LB5AD:  jsr     BSOUT
         lda     #0
-        sta     $C7
-        sta     $D4
+        sta     RVS
+        sta     QTSW
         iny
         dex
         bne     LB594
@@ -1644,7 +1663,7 @@ read_ascii:
         jsr     basin_if_more
 LB5C8:  sty     tmp9
         ldy     CSR_COLUMN
-        lda     ($D1),y
+        lda     (PNT),y
         php
         jsr     basin_if_more
         ldy     tmp9
@@ -1803,14 +1822,14 @@ LB6AC:  jsr     BSOUT
 ; IRQ logic to handle F keys and scrolling
 ; ----------------------------------------------------------------
 set_irq_vector:
-        lda     $0314
+        lda     CINV
         cmp     #<irq_handler
         bne     LB6C1
-        lda     $0315
+        lda     CINV + 1
         cmp     #>irq_handler
         beq     LB6D3
-LB6C1:  lda     $0314
-        ldx     $0315
+LB6C1:  lda     CINV
+        ldx     CINV + 1
         sta     irq_lo
         stx     irq_hi
         lda     #<irq_handler
@@ -1819,8 +1838,8 @@ LB6C1:  lda     $0314
 LB6D3:  lda     irq_lo
         ldx     irq_hi
 LB6D9:  sei
-        sta     $0314
-        stx     $0315
+        sta     CINV
+        stx     CINV + 1
         cli
         rts
 
@@ -1872,7 +1891,7 @@ LB71C:  cmp     #KEY_F5
         clc
         jsr     $FFF0 ; KERNAL set cursor position
 .else
-        jsr     $E50C ; KERNAL set cursor position
+        jsr     LE50C ; KERNAL set cursor position
 .endif
 LB72E:  lda     #CSR_DOWN
         sta     KBD_BUFFER
@@ -1887,7 +1906,7 @@ LB733:  cmp     #KEY_F3
         clc
         jsr     $FFF0 ; KERNAL set cursor position
 .else
-        jsr     $E50C ; KERNAL set cursor position
+        jsr     LE50C ; KERNAL set cursor position
 .endif
 LB745:  lda     #CSR_UP
         sta     KBD_BUFFER
@@ -1996,8 +2015,8 @@ LB82D:  lda     #$20
         jsr     dump_ascii_line
         jmp     LB7CD
 
-LB838:  lda     $D1
-        ldx     $D2
+LB838:  lda     PNT
+        ldx     PNT + 1
         sta     zp2
         stx     zp2 + 1
         lda     #$19
@@ -2088,14 +2107,14 @@ LB8D3:  rts
 LB8D4:  lda     #$FF
         sta     disable_f_keys
 LB8D9:  lda     #$FF
-        sta     $CC
-        lda     $CF
+        sta     BLNSW
+        lda     BLNON
         beq     LB8EB ; rts
-        lda     $CE
+        lda     GDBLN
         ldy     CSR_COLUMN
-        sta     ($D1),y
+        sta     (PNT),y
         lda     #0
-        sta     $CF
+        sta     BLNON
 LB8EB:  rts
 
 LB8EC:  lda     #8
@@ -2111,8 +2130,8 @@ LB8FD:  rts
 LB8FE:  ldx     #0
         jsr     LE96C ; insert line at top of screen
         lda     #$94
-        sta     $D9
-        sta     $DA
+        sta     LDTB1
+        sta     LDTB1 + 1
         lda     #CSR_HOME
         jmp     BSOUT
 
@@ -2552,7 +2571,7 @@ LBC16:  sta     KBD_BUFFER
         sta     DEV ; set device 4
         sta     LFN
         ldx     #0
-        stx     $B7
+        stx     FNLEN
         jsr     CLOSE
         jsr     OPEN
         ldx     LFN
@@ -2676,7 +2695,7 @@ LBCFD:  ldy     ST
         bne     LBD0B ; also convert $8D to $1F
 LBD09:  lda     #$1F ; ???BLUE
 LBD0B:  jsr     LE716 ; KERNAL: output character to screen
-        inc     $D8
+        inc     INSRT
         jsr     GETIN
         cmp     #KEY_STOP
         beq     LBD2F
@@ -2708,7 +2727,7 @@ LBD3F:  lda     #9
         lda     #8
 LBD47:
         bne     LBD3C
-        lda     $FF
+        lda     zp3 ; XXX ???
 LBD4B:  ldy     ST
         bne     LBD7D
         cmp     #CR
@@ -2717,7 +2736,7 @@ LBD4B:  ldy     ST
         bne     LBD59
 LBD57:  lda     #$1F
 LBD59:  jsr     LE716 ; KERNAL: output character to screen
-        inc     $D8
+        inc     INSRT
         jsr     GETIN
         cmp     #KEY_STOP
         beq     LBD7D
