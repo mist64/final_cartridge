@@ -49,6 +49,8 @@
 
 .global monitor
 
+.if 1
+; C-64
 LE50C := $E50C ; set cursor position
 LE716 := $E716 ; screen CHROUT
 LE96C := $E96C ; insert line at top of screen
@@ -56,6 +58,18 @@ LEA31 := $EA31 ; default contents of CINV vector (VIC-20: $EABF)
 LF0BD := $F0BD ; string "I/O ERROR"
 LF333 := $F333 ; default contents of CLRCHN vector
 LF646 := $F646 ; IEC close
+CHARS_PER_LINE := 40
+.else
+; VIC-20
+LE50C := $E50C ; set cursor position
+LE716 := $E742 ; screen CHROUT
+LE96C := $E9F5 ; insert line at top of screen
+LEA31 := $EABF ; default contents of CINV vector (VIC-20: $EABF)
+LF0BD := $F174 ; string "I/O ERROR"
+LF333 := $F3F3 ; default contents of CLRCHN vector
+LF646 := $F6DE ; IEC close
+CHARS_PER_LINE := 22
+.endif
 
 CINV   := $0314 ; IRQ vector
 CBINV  := $0316 ; BRK vector
@@ -2034,14 +2048,14 @@ LB845:  ldy     #1
         bne     LB877
         sec
         lda     zp2
-        sbc     #40
+        sbc     #CHARS_PER_LINE
         sta     zp2
         bcs     LB845
         dec     zp2 + 1
         bne     LB845
 LB877:  clc
         lda     zp2
-        adc     #$28
+        adc     #CHARS_PER_LINE
         sta     zp2
         bcc     LB845
         inc     zp2 + 1
