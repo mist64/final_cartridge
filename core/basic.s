@@ -134,11 +134,11 @@ L81C4:  sbc     #$2F
 
 L81D6:  sta     $61
 L81D8:  pla
-        jsr     _add_A_to_FAC
+        jsr     _add_a_to_fac1
         jmp     L81B9
 
 L81DF:  clc
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 L81E3:  lda     #$16
         sta     $0326
@@ -183,7 +183,7 @@ new_mainloop:
         jsr     new_tokenize
         jmp     _new_execute
 
-L822B:  jsr     _get_line_number
+L822B:  jsr     _basic_string_to_word
         tax
         bne     L8234
         sta     $02A9
@@ -340,7 +340,7 @@ L832F:  cmp     #$E9 ; last new token + 1
         pha
         jmp     _CHRGET
 
-L8342:  jmp     _disable_rom
+L8342:  jmp     _disable_fc3rom
 
 trace_command:
         lda     PNTR ; save cursor state
@@ -659,7 +659,7 @@ L8531:  php
         stx     $5F
 :       rts
 
-L858E:  jsr     _get_line_number
+L858E:  jsr     _basic_string_to_word
         lda     $14
         sta     auto_current_line_number,y
         iny
@@ -668,7 +668,7 @@ L858E:  jsr     _get_line_number
         iny
         jmp     _CHRGOT
 
-L85A0:  jsr     _get_line_number
+L85A0:  jsr     _basic_string_to_word
         ldx     $14
         stx     $AC,y
         ldx     $15
@@ -970,7 +970,7 @@ L87F7:  cmp     L8603,x
         bpl     L87F7
         jsr     _CHRGOT
         bcs     L87D4
-        jsr     _get_line_number
+        jsr     _basic_string_to_word
         lda     $15
         ldy     $14
         jsr     L8FF9
@@ -1390,7 +1390,7 @@ get_secaddr_and_send_listen:
         bne     :+
         jsr     _CHRGET
         bcs     L8B3A ; SYNTAX ERROR
-        jsr     _get_line_number
+        jsr     _basic_string_to_word
         lda     $15
         bne     L8B3A ; must be < 256, otherwise SYNTAX ERROR
         lda     $14
@@ -1547,7 +1547,7 @@ L8C03:  lda     $028D
         bne     L8C03 ; wait while CBM key is pressed
         txa
         jsr     do_detokenize
-        jmp     _list
+        jmp     _list_print_non_token_byte
 
 do_detokenize:
         cmp     #$E9
@@ -1659,7 +1659,7 @@ L8CB6:  sta     $22
 
 L8CCE:  tya
         bmi     L8CD7
-        jsr     _int_to_fac
+        jsr     _int_to_fac1
         jmp     L8CDA
 
 L8CD7:  jsr     L8D21
@@ -1702,7 +1702,7 @@ L8D12:  ldy     #0
         jsr     _lda_22_indy
         tay
         txa
-        jmp     _ay_to_float
+        jmp     _ay_to_fac1
 
 L8D21:  jsr     L8D0D
         ldy     #2
@@ -1819,7 +1819,7 @@ L8DCC:  jsr     _basic_bsout
 L8E02:  iny
         jsr     _lda_5f_indy
         bmi     L8E0F
-        jsr     _int_to_fac
+        jsr     _int_to_fac1
         lda     #5
         bne     L8E14
 L8E0F:  jsr     L8D21
@@ -2105,7 +2105,7 @@ L901D:  lda     alt_pack_run,x
         pha
         lda     #<(unpack_entry - 1)
         pha
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 alt_pack_run:
         jsr     $A663 ; CLR

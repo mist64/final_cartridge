@@ -144,7 +144,7 @@ L99C9:  pla
         pha
         lda     #$A6
         pha
-        jmp     _disable_rom_set_01
+        jmp     _disable_fc3rom_set_01
 
 L99D6:  pla
         pla
@@ -154,7 +154,7 @@ L99D6:  pla
         pha
         lda     #$F2
         pha
-        jmp     _disable_rom_set_01
+        jmp     _disable_fc3rom_set_01
 
 new_load2:
         sty     $93
@@ -1130,7 +1130,7 @@ LA7C4:  clc
         jsr     LA75B
         bcc     :+
         lda     #0
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 :       jsr     LA77E
         jsr     turn_screen_off
         jsr     LA999
@@ -1183,7 +1183,7 @@ LA841:  lda     $D7
         dey
         bne     LA841
         jsr     LA912
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 LA851:  jsr     LA8C9
         lda     $AB
@@ -1242,7 +1242,7 @@ LA88C:  sty     ST
         sta     ST
 LA8C2:  ldx     $AE
         ldy     $AF
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 LA8C9:  jsr     LA92B
         lda     $BD
@@ -1301,7 +1301,7 @@ LA92B:  jsr     LA742
         pla
         pla
         lda     #0
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 LA939:  jsr     turn_screen_off
         sty     $D7

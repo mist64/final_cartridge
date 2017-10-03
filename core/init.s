@@ -126,7 +126,7 @@ go_basic:
         pha
         lda     #<($E397 - 1) ; BASIC start
         pha
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 load_save_vectors:
         .addr   _new_load       ; $0330 LOAD

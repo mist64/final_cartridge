@@ -166,7 +166,7 @@ enable_all_roms:
         rts
 
 disable_rom_rti:
-        jsr     _disable_rom
+        jsr     _disable_fc3rom
         sta     R6510
         lda     reg_a
         rti
@@ -1393,16 +1393,16 @@ LB40A:  bne     LB3F0
         jsr     set_io_vectors
         jmp     LB3A4
 
-LB42D:  lda     #>(_enable_rom - 1)
+LB42D:  lda     #>(_enable_fcbank0 - 1)
         pha
-        lda     #<(_enable_rom - 1)
+        lda     #<(_enable_fcbank0 - 1)
         pha
         lda     #0
         jmp     LOAD
 
-LB438:  lda     #>(_enable_rom - 1)
+LB438:  lda     #>(_enable_fcbank0 - 1)
         pha
-        lda     #<(_enable_rom - 1)
+        lda     #<(_enable_fcbank0 - 1)
         pha
         lda     #zp1 ; pointer to ZP location with address
         jmp     SAVE
