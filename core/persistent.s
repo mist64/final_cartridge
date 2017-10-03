@@ -51,7 +51,7 @@ basic_print_char               = $AB47
 basic_continue_arithmic_element= $AE8D
 basic_floatptr22_to_fac1       = $BBA6
 basic_add_a_to_fac1            = $BD7E		; Add a as signed integer to float accu
-basic_print_number             = $BDCD		; Print 16 bit number in AX
+basic_LINPRT                   = $BDCD		; Print 16 bit number in AX
 basic_FRMNUM                   = $AD8A
 basic_GETADR                   = $B7F7
 basic_ay_to_fac1               = $B395
@@ -320,13 +320,13 @@ LDEFF:  iny
 .global _print_ax_int
 _print_ax_int: ; $DF06
         jsr     _disable_fc3rom
-        jsr     $BDCD ; LINPRT print A/X as integer
+        jsr     basic_LINPRT ; LINPRT print A/X as integer
         jmp     _enable_fcbank0
 
 .global _search_for_line
 _search_for_line: ; $DF0F
         jsr     _disable_fc3rom
-        jsr     $A613 ; search for BASIC line
+        jsr    basic_search_line
         php
         jsr     _enable_fcbank0
         plp
