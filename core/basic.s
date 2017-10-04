@@ -300,9 +300,9 @@ L82EF:  plp
         lda     $23
         cmp     #$A9
         bcs     L8306
-        lda     #>basic_keywords
+        lda     #>(basic_keywords - 1)
         sta     $23
-        lda     #<basic_keywords
+        lda     #<(basic_keywords - 1)
         sta     $22
         bne     L828F ; always
 
