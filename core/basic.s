@@ -114,9 +114,10 @@ new_expression:
 evaluate_hex_expression:
         lda     #0
         ldx     #10
-:       sta     $5D,x
+@1:
+        sta     $5D,x
         dex
-        bpl     :-
+        bpl     @1
 L81B9:  jsr     _CHRGET
         bcc     L81C4
         cmp     #'A'
@@ -299,9 +300,9 @@ L82EF:  plp
         lda     $23
         cmp     #$A9
         bcs     L8306
-        lda     #$A9
+        lda     #>basic_keywords
         sta     $23
-        lda     #$FF
+        lda     #<basic_keywords
         sta     $22
         bne     L828F ; always
 
