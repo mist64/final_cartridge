@@ -65,9 +65,11 @@ iec_tab:
 .assert >* = >iec_tab, error, "Page boundary!"
 
 receive_4_bytes:
-       lda     $0330
+        ; PAL/NTSC check. Vector points to _new_load for NTSC, _new_load+1 for PAL
+        lda     $0330
         cmp     #<_new_load
         beq     L998B
+        ; PAL
 :       bit     $DD00
         bvs     :-
         ldy     #3
@@ -95,7 +97,8 @@ receive_4_bytes:
 .assert >* = >:-, error, "Page boundary!"
         rts
 
-L998B:  bit     $DD00
+L998B:  ; NTSC
+        bit     $DD00
         bvs     L998B
         ldy     #3
         nop

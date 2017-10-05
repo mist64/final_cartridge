@@ -3,7 +3,7 @@ LD=ld65
 
 ASFLAGS=--include-dir core
 
-SOURCES=core/header.s core/vectors.s core/init.s core/basic.s core/drive.s core/desktop_helper.s core/speeder.s core/monitor.s core/wrappers.s core/editor.s core/printer.s core/format.s core/freezer.s core/persistent.s
+SOURCES=core/header.s core/vectors.s core/init.s core/basic.s core/drive.s core/desktop_helper.s core/speeder.s core/monitor.s core/wrappers.s core/editor.s core/printer.s core/format.s core/freezer.s core/persistent.s core/junk.s
 
 DEPS=core/kernal.i core/persistent.i
 
