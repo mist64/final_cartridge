@@ -516,7 +516,7 @@ L9BFE:
         sta     sector_order,x ; initialize array
         dec     $C1
         bne     L9BFE
-        
+
         ;
         ; Now build the sector_order array
         ;
@@ -702,6 +702,7 @@ L9BFE:
         sta     $57
         iny
         sty     $C1
+@transmit_tuple:
         ; Transmit the 4-byte tuple to the C64
         ; $55..5D contain indexes into the tables with CIA register values
         ldy     #$08        ; Signal C64 with CLOCK OUT high, DATA OUT low
@@ -716,6 +717,7 @@ L9BFE:
         sta     $1800
         dey
         bne     @17
+.assert >* = >@transmit_tuple, error, "Page boundary!"
         jmp     @next
 
 wait_for_header:
