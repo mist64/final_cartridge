@@ -28,11 +28,17 @@ The source was separated into files with minimal dependencies, so they can be in
 
 For example:
 
-    make monitor.prg
+    make clean PROJECT=monitor monitor.prg
 
 builds a standalone version of the monitor that can be started with
 
-    sys 32768
+    sys 16384
+
+The monitor has also been adapted to work with the TED series (C16, C116, Plus/4):
+
+    make clean MACHINE=ted PROJECT=monitor monitor.prg
+
+In this version, the `O` command takes a single hex character argument for the 16 banks. Since `OD` clashes with switching to disk, bank `D` can be reached with `O<SHIFT>D`.
 
 ### Creating Derivatives
 

@@ -38,7 +38,16 @@
 ; * "B" command to introspect cartridge ROM
 
 .include "kernal.i"
+
+.ifdef CART_FC3
 .include "persistent.i"
+.else
+.ifdef MACHINE_C64
+_basic_warm_start := $E37B
+.elseif .defined(MACHINE_TED)
+_basic_warm_start := $800A
+.endif
+.endif
 
 ; from vectors
 .import jfast_format
@@ -49,39 +58,29 @@
 
 .global monitor
 
-.if 1
-; C-64
-LE50C := $E50C ; set cursor position
-LE716 := $E716 ; screen CHROUT
-LE96C := $E96C ; insert line at top of screen
-LEA31 := $EA31 ; default contents of CINV vector (VIC-20: $EABF)
-LF0BD := $F0BD ; string "I/O ERROR"
-LF333 := $F333 ; default contents of CLRCHN vector
-LF646 := $F646 ; IEC close
+
+.ifdef MACHINE_C64
+zp1             := $C1
+zp2             := $C3
+zp3             := $FF
 CHARS_PER_LINE := 40
-.else
-; VIC-20
-LE50C := $E50C ; set cursor position
-LE716 := $E742 ; screen CHROUT
-LE96C := $E9F5 ; insert line at top of screen
-LEA31 := $EABF ; default contents of CINV vector (VIC-20: $EABF)
-LF0BD := $F174 ; string "I/O ERROR"
-LF333 := $F3F3 ; default contents of CLRCHN vector
-LF646 := $F6DE ; IEC close
-CHARS_PER_LINE := 22
+DEFAULT_BANK := $37
+.endif
+
+.ifdef MACHINE_TED
+zp1             := $60
+zp2             := $62
+zp3             := $64
+CHARS_PER_LINE := 40
+DEFAULT_BANK := 0
 .endif
 
 CINV   := $0314 ; IRQ vector
 CBINV  := $0316 ; BRK vector
-ICLRCH := $0322 ; CLRCHN vector
-IBSOUT := $0326 ; CHROUT vector
 
+.ifdef CART_FC3
 FC3CFG := $DFFF ; Final Cartridge III banking config register
-
-; variables
-zp1             := $C1
-zp2             := $C3
-zp3             := $FF
+.endif
 
 tmp3            := BUF + 3
 tmp4            := BUF + 4
@@ -131,16 +130,30 @@ cartridge_bank  := ram_code_end + 20
 .import __asmchars2_RUN__
 
 monitor:
+.ifdef MACHINE_TED
+; change F keys to return their code, like on the C64
+; http://plus4world.powweb.com/software/Club_Info_53
+        ldx #7
+:       lda #1
+        sta $055f,x ; set length of string to 1
+        lda $dc41,x ; table of F key codes
+        sta $0567,x ; set as strings
+        dex
+        bpl :-
+.endif
+
         lda     #<brk_entry
         sta     CBINV
         lda     #>brk_entry
         sta     CBINV + 1 ; BRK vector
         lda     #'C'
         sta     entry_type
-        lda     #$37
-        sta     bank ; bank 7
+        lda     #DEFAULT_BANK
+        sta     bank
+.ifdef CART_FC3
         lda     #$70
         sta     cartridge_bank ; by default, hide cartridge
+.endif
         ldx     #ram_code_end - ram_code - 1
 :       lda     __monitor_ram_code_LOAD__,x
         sta     __monitor_ram_code_RUN__,x
@@ -151,28 +164,50 @@ monitor:
 .segment "monitor_ram_code"
 ; code that will be copied to $0220
 ram_code:
+
+.ifndef MACHINE_TED
+load_byte_ram:
 ; read from memory with a specific ROM and cartridge config
+.ifdef CART_FC3
         sta     FC3CFG ; set cartridge config
         pla
+.endif
         sta     R6510 ; set ROM config
         lda     (zp1),y ; read
 enable_all_roms:
         pha
-        lda     #$37
+        lda     #DEFAULT_BANK
         sta     R6510 ; restore ROM config
+.ifdef CART_FC3
         lda     #$40
         sta     FC3CFG ; resture cartridge config
+.endif
         pla
         rts
+.endif
 
-disable_rom_rti:
+goto_user:
+.ifdef CART_FC3
         jsr     _disable_rom
+.endif
+.ifdef MACHINE_C64
         sta     R6510
+.endif
+.ifdef MACHINE_TED
+        stx     tmp1
+        tax
+        sta     $fdd0,x
+        ldx     tmp1
+.endif
         lda     reg_a
         rti
 
 brk_entry:
+.ifdef MACHINE_TED
+        sta $fdd0
+.else
         jsr     enable_all_roms
+.endif
         jmp     brk_entry2
 ram_code_end:
 
@@ -197,7 +232,9 @@ brk_entry2:
         tsx
         stx     reg_s
         jsr     set_irq_vector
+.ifdef CART_FC3
         jsr     set_io_vectors
+.endif
         jsr     print_cr
         lda     entry_type
         cmp     #'C'
@@ -218,8 +255,10 @@ brk_entry2:
         sta     FA
         lda     #'B'
         sta     entry_type
+.ifdef MACHINE_C64
         lda     #$80
         sta     RPTFLG ; enable key repeat for all keys
+.endif
         bne     dump_registers ; always
 
 ; ----------------------------------------------------------------
@@ -288,7 +327,7 @@ input_loop2:
         beq     input_loop2 ; skip dots
         cmp     #' '
         beq     input_loop2 ; skip spaces
-        ldx     #$1A
+        ldx     #command_names_end - command_names - 1
 LAC27:  cmp     command_names,x
         bne     LAC3B
         stx     command_index
@@ -551,7 +590,9 @@ cmd_semicolon:
 LAE12:  jsr     get_hex_byte2
         cmp     #8
         bcs     syn_err1
+.ifdef MACHINE_C64
         ora     #$30
+.endif
 LAE1B:  sta     bank
         ldx     #0
 LAE20:  jsr     basin_if_more
@@ -673,7 +714,9 @@ LAF03:  jsr     copy_pc_to_zp2_and_zp1
 LAF06:  lda     bank
         bmi     LAF2B ; drive
         jsr     set_irq_vector
+.ifdef CART_FC3
         jsr     set_io_vectors_with_hidden_rom
+.endif
         ldx     reg_s
         txs
         lda     zp2 + 1
@@ -685,7 +728,7 @@ LAF06:  lda     bank
         ldx     reg_x
         ldy     reg_y
         lda     bank
-        jmp     disable_rom_rti
+        jmp     goto_user
 LAF2B:  lda     #'E' ; send M-E to drive
         jsr     send_m_dash2
         lda     zp2
@@ -1051,9 +1094,16 @@ LB19B:  jsr     print_up_dot
 ; ----------------------------------------------------------------
 cmd_x:
         jsr     set_irq_vector
+.ifdef CART_FC3
         jsr     set_io_vectors_with_hidden_rom
+.endif
+.ifdef MACHINE_C64
         lda     #0
         sta     RPTFLG
+.endif
+.ifdef MACHINE_TED
+        jsr     $F39C; restore F keys
+.endif
         ldx     reg_s
         txs
         jmp     _basic_warm_start
@@ -1201,6 +1251,7 @@ LB2CB:  lda     #'W' ; send M-W to drive
         pla
         rts
 
+.ifdef CART_FC3
 ; ??? unreferenced?
         lda     (zp1),y
         rts
@@ -1209,19 +1260,43 @@ LB2CB:  lda     #'W' ; send M-W to drive
         pla
         sta     (zp1),y
         rts
+.endif
 
 ; loads a byte at (zp1),y from RAM with the correct ROM config
 load_byte:
+.ifdef MACHINE_TED
+        stx tmp1
+        sty tmp2
+        lda zp1
+        sta FETPTR
+        lda zp1 + 1
+        sta FETPTR + 1
+        lda #DEFAULT_BANK
+        ldx bank
+        sei
+        jsr FETCHL
+        cli
+        ldx tmp1
+        ldy tmp2
+        rts
+.else
         sei
         lda     bank
         bmi     LB2B4 ; drive
         clc
+.ifdef CART_FC3
         pha
         lda     cartridge_bank
-        jmp     ram_code ; "lda (zp1),y" with ROM and cartridge config
+.endif
+        jmp     load_byte_ram ; "lda (zp1),y" with ROM and cartridge config
+.endif
 
 ; stores a byte at (zp1),y in RAM with the correct ROM config
 store_byte:
+.ifdef MACHINE_TED
+        sta     (zp1),y ; store
+        rts
+.else
         sei
         pha
         lda     bank
@@ -1233,11 +1308,13 @@ store_byte:
 LB306:  pla
         sta     (zp1),y ; store
         pha
-        lda     #$37
+        lda     #DEFAULT_BANK
         sta     R6510 ; restore ROM config
         pla
         rts
+.endif
 
+.ifdef CART_FC3
 ; ----------------------------------------------------------------
 ; "B" - set cartridge bank (0-3) to be visible at $8000-$BFFF
 ;       without arguments, this turns off cartridge visibility
@@ -1256,6 +1333,7 @@ cmd_b:  jsr     basin_cmp_cr
 LB326:  lda     #$70 ; by default, hide cartridge
         sta     cartridge_bank
         jmp     print_cr_then_input_loop
+.endif
 
 syn_err3:
         jmp     syntax_error
@@ -1270,14 +1348,23 @@ cmd_o:
         beq     LB33F ; without arguments: bank 7
         cmp     #' '
         beq     cmd_o
+.ifdef MACHINE_TED
+        tax
+        bmi     :+ ; shifted arg skips 'D' test
+.endif
         cmp     #'D'
         beq     LB34A ; disk
+.ifdef MACHINE_TED
+:       jsr     hex_digit_to_nybble
+.endif
         .byte   $2C
-LB33F:  lda     #$37 ; bank 7
+LB33F:  lda     #DEFAULT_BANK
+.ifdef MACHINE_C64
         cmp     #$38
         bcs     syn_err3
         cmp     #$30
         bcc     syn_err3
+.endif
         .byte   $2C
 LB34A:  lda     #$80 ; drive
         sta     bank
@@ -1320,13 +1407,18 @@ cmd_ls:
 LB388:  lda     command_index
         cmp     #command_index_l
         bne     syn_err4
-LB38F:  jsr     restore_bsout_chrch
+LB38F:
+.ifdef CART_FC3
+        jsr     restore_bsout_chrch
+.endif
         jsr     set_irq_vector
         ldx     zp1
         ldy     zp1 + 1
         jsr     LB42D
         php
+.ifdef CART_FC3
         jsr     set_io_vectors
+.endif
         jsr     set_irq_vector
         plp
 LB3A4:  bcc     LB3B3
@@ -1388,22 +1480,32 @@ LB40A:  bne     LB3F0
         cmp     #command_index_s
         bne     LB40A
         dec     SA
+.ifdef CART_FC3
         jsr     restore_bsout_chrch
+.endif
         jsr     LB438
+.ifdef CART_FC3
         jsr     set_io_vectors
+.endif
         jmp     LB3A4
 
-LB42D:  lda     #>(_enable_rom - 1)
+LB42D:
+.ifdef CART_FC3
+        lda     #>(_enable_rom - 1)
         pha
         lda     #<(_enable_rom - 1)
         pha
+.endif
         lda     #0
         jmp     LOAD
 
-LB438:  lda     #>(_enable_rom - 1)
+LB438:
+.ifdef CART_FC3
+        lda     #>(_enable_rom - 1)
         pha
         lda     #<(_enable_rom - 1)
         pha
+.endif
         lda     #zp1 ; pointer to ZP location with address
         jmp     SAVE
 
@@ -1419,10 +1521,12 @@ cmd_at:
         beq     print_drive_status
         cmp     #'$'
         beq     LB475
+.ifdef CART_FC3
         cmp     #'F'
         bne     LB458
         jsr     jfast_format
         lda     #'F'
+.endif
 LB458:  jsr     IECOUT
         jsr     basin_cmp_cr
         bne     LB458
@@ -1852,7 +1956,7 @@ LB6D9:  sei
         rts
 
 irq_handler:
-        lda     #>after_irq ; XXX shouldn't this be "-1"?
+        lda     #>after_irq
         pha
         lda     #<after_irq
         pha
@@ -1866,6 +1970,17 @@ irq_handler:
 after_irq:
         lda     disable_f_keys
         bne     LB6FA
+.ifdef MACHINE_TED
+        lda     KYNDX
+        beq     :+
+        ldy KEYIDX
+        lda PKYBUF,y
+        ; we leave it in there for the editor to discard,
+        ; otherwise we don't go through the kernal code
+        ; that repositions the hardware cursor
+        bne fk_2 ; always
+:
+.endif
         lda     NDX
         bne     LB700
 LB6FA:  pla ; XXX JMP $EA81
@@ -1876,7 +1991,7 @@ LB6FA:  pla ; XXX JMP $EA81
         rti
 
 LB700:  lda     KEYD
-        cmp     #KEY_F7
+fk_2:   cmp     #KEY_F7
         bne     LB71C
         lda     #'@'
         sta     KEYD
@@ -1895,12 +2010,7 @@ LB71C:  cmp     #KEY_F5
         beq     LB72E ; already on last line
         jsr     LB8D9
         ldy     PNTR
-.if 0
-        clc
-        jsr     $FFF0 ; KERNAL set cursor position
-.else
         jsr     LE50C ; KERNAL set cursor position
-.endif
 LB72E:  lda     #CSR_DOWN
         sta     KEYD
 LB733:  cmp     #KEY_F3
@@ -1910,12 +2020,7 @@ LB733:  cmp     #KEY_F3
         beq     LB745
         jsr     LB8D9
         ldy     PNTR
-.if 0
-        clc
-        jsr     $FFF0 ; KERNAL set cursor position
-.else
         jsr     LE50C ; KERNAL set cursor position
-.endif
 LB745:  lda     #CSR_UP
         sta     KEYD
 LB74A:  cmp     #CSR_DOWN
@@ -2114,7 +2219,9 @@ LB8D3:  rts
 
 LB8D4:  lda     #$FF
         sta     disable_f_keys
-LB8D9:  lda     #$FF
+LB8D9:
+.ifndef MACHINE_TED
+        lda     #$FF
         sta     BLNSW
         lda     BLNON
         beq     LB8EB ; rts
@@ -2123,6 +2230,7 @@ LB8D9:  lda     #$FF
         sta     (PNT),y
         lda     #0
         sta     BLNON
+.endif
 LB8EB:  rts
 
 LB8EC:  lda     #8
@@ -2138,9 +2246,16 @@ LB8FD:  rts
 scroll_down:
         ldx     #0
         jsr     LE96C ; insert line at top of screen
+.ifdef MACHINE_C64
         lda     #$94
         sta     LDTB1
         sta     LDTB1 + 1
+.endif
+.ifdef MACHINE_TED
+        lda BITABL
+        and #$BF ; clear bit 6
+        sta BITABL
+.endif
         lda     #CSR_HOME
         jmp     BSOUT
 
@@ -2336,7 +2451,10 @@ command_name_i:
         .byte   "I"
         .byte   "'"
         .byte   ";"
+.ifdef CART_FC3
         .byte   "B"
+.endif
+command_names_end:
 
 function_table:
         .word   cmd_mid-1
@@ -2365,7 +2483,9 @@ function_table:
         .word   cmd_mid-1
         .word   cmd_singlequote-1
         .word   cmd_semicolon-1
+.ifdef CART_FC3
         .word   cmd_b-1
+.endif
 
 ; ----------------------------------------------------------------
 

@@ -1,7 +1,21 @@
+PROJECT ?= cartridge
+MACHINE ?= c64
+
 AS=ca65
 LD=ld65
 
 ASFLAGS=--include-dir core
+
+ifeq ($(PROJECT), cartridge)
+	ASFLAGS+=-D CART_FC3=1
+endif
+
+ifeq ($(MACHINE), c64)
+	ASFLAGS+=-D MACHINE_C64=1
+endif
+ifeq ($(MACHINE), ted)
+	ASFLAGS+=-D MACHINE_TED=1
+endif
 
 SOURCES=core/header.s core/vectors.s core/init.s core/basic.s core/drive.s core/desktop_helper.s core/speeder.s core/monitor.s core/wrappers.s core/junk.s core/editor.s core/printer.s core/format.s core/freezer.s core/persistent.s
 
