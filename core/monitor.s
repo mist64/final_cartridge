@@ -1264,6 +1264,9 @@ LB2CB:  lda     #'W' ; send M-W to drive
 
 ; loads a byte at (zp1),y from RAM with the correct ROM config
 load_byte:
+        sei
+        lda     bank
+        bmi     LB2B4 ; drive
 .ifdef MACHINE_TED
         stx tmp1
         sty tmp2
@@ -1280,9 +1283,6 @@ load_byte:
         ldy tmp2
         rts
 .else
-        sei
-        lda     bank
-        bmi     LB2B4 ; drive
         clc
 .ifdef CART_FC3
         pha
