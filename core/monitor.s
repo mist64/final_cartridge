@@ -773,10 +773,10 @@ LAF67:  tay
         beq     LAF85 ; code $89?
         and     #$07 ; opcode bits 4,3,2
         ora     #$80 ; use special bytes past first 64
-LAF76:  lsr     a
+LAF76:  lsr     a ; opcode bit 2 into carry
         tax
         lda     addmode_table,x
-        bcs     LAF81 ; bit 7 set; then use low nybble
+        bcs     LAF81 ; opcode bit 2 set, then use low nybble
         lsr     a
         lsr     a
         lsr     a
@@ -788,12 +788,12 @@ LAF85:  ldy     #$80
 LAF89:  tax
         lda     addmode_detail_table,x ; X = 0..13
         sta     prefix_suffix_bitfield
-        and     #$03
+        and     #3
         sta     num_asm_bytes
-        tya
+        tya     ; opcode
         and     #$8F
         tax
-        tya
+        tya     ; opcode
         ldy     #3
         cpx     #$8A
         beq     LAFAB
@@ -2282,32 +2282,112 @@ LB913:  sec
 ; assembler tables
 ; ----------------------------------------------------------------
 addmode_table:
-        .byte   $40,$02,$45,$03,$D0,$08,$40,$09
-        .byte   $30,$22,$45,$33,$D0,$08,$40,$09
-        .byte   $40,$02,$45,$33,$D0,$08,$40,$09
-        .byte   $40,$02,$45,$B3,$D0,$08,$40,$09
-        .byte   $00,$22,$44,$33,$D0,$8C,$44,$00
-        .byte   $11,$22,$44,$33,$D0,$8C,$44,$9A
-        .byte   $10,$22,$44,$33,$D0,$08,$40,$09
-        .byte   $10,$22,$44,$33,$D0,$08,$40,$09
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM3
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABX
 
-        .byte   $62,$13,$78,$A9
+        .byte   ADDMODE_ABS << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM3
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABX
+
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM3
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABX
+
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM3
+        .byte   ADDMODE_IND << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABX
+
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM2
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPY
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM2
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMM
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM2
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPY
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM2
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ABY
+
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM2
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABX
+
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IM2
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_REL << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_IM2 << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABX
+
+        .byte   ADDMODE_IZX << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMM << 4 | ADDMODE_ABS
+        .byte   ADDMODE_IZY << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ABY << 4 | ADDMODE_ABX
+
+P_NONE    = 0
+P_DOLLAR  = 1 << 7
+P_PAREN   = 1 << 6
+P_HASH    = 1 << 5
+S_X       = 1 << 4
+S_PAREN   = 1 << 3
+S_Y       = 1 << 2
+S_SPECIAL = S_X | S_PAREN | S_Y
+
+.macro addmode_detail symbol, bytes, flags
+		symbol = * - addmode_detail_table
+        .byte flags | bytes
+.endmacro
 
 addmode_detail_table:
-        .byte   %000000 << 2 | 0 ; implied
-        .byte   %001000 << 2 | 1 ; immediate
-        .byte   %100000 << 2 | 1 ; zero page
-        .byte   %100000 << 2 | 2 ; absolute
-        .byte   %000000 << 2 | 0 ; implied
-        .byte   %000000 << 2 | 0 ; implied
-        .byte   %010110 << 2 | 1 ; X indexed indirect
-        .byte   %010011 << 2 | 1 ; indirect Y indexed
-        .byte   %100100 << 2 | 1 ; zero page X indexed
-        .byte   %100100 << 2 | 2 ; absolute X indexed
-        .byte   %100001 << 2 | 2 ; absolute Y indexed
-        .byte   %010010 << 2 | 2 ; absolute indirect
-        .byte   %100001 << 2 | 1 ; zero page Y indexed
-        .byte   %100111 << 2 | 1 ; special case: relative
+        addmode_detail ADDMODE_IMP, 0, P_NONE ; implied
+        addmode_detail ADDMODE_IMM, 1, P_HASH ; immediate
+        addmode_detail ADDMODE_ZPG, 1, P_DOLLAR ; zero page
+        addmode_detail ADDMODE_ABS, 2, P_DOLLAR ; absolute
+        addmode_detail ADDMODE_IM2, 0, P_NONE ; implied
+        addmode_detail ADDMODE_IM3, 0, P_NONE ; implied
+        addmode_detail ADDMODE_IZX, 1, P_PAREN | S_X | S_PAREN ; X indexed indirect
+        addmode_detail ADDMODE_IZY, 1, P_PAREN | S_PAREN | S_Y ; indirect Y indexed
+        addmode_detail ADDMODE_ZPX, 1, P_DOLLAR | S_X ; zero page X indexed
+        addmode_detail ADDMODE_ABX, 2, P_DOLLAR | S_X ; absolute X indexed
+        addmode_detail ADDMODE_ABY, 2, P_DOLLAR | S_Y ; absolute Y indexed
+        addmode_detail ADDMODE_IND, 2, P_PAREN | S_PAREN ; absolute indirect
+        addmode_detail ADDMODE_ZPY, 1, P_DOLLAR | S_Y ; zero page Y indexed
+        addmode_detail ADDMODE_REL,1, P_DOLLAR | S_SPECIAL ; special case: relative
 
 .macro asmchars c1, c2
 .segment "asmchars1"
