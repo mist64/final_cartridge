@@ -4,7 +4,7 @@ MACHINE ?= c64
 AS=ca65
 LD=ld65
 
-ASFLAGS=--include-dir core
+ASFLAGS=--include-dir core -g
 
 ifeq ($(PROJECT), cartridge)
 	ASFLAGS+=-D CART_FC3=1
@@ -37,7 +37,7 @@ fc3.bin: $(OBJECTS) core/fc3.cfg
 	$(LD) -C core/fc3.cfg $(OBJECTS) -o $@
 
 monitor.prg: core/monitor.o projects/monitor/monitor_support.o projects/monitor/monitor.cfg
-	$(LD) -C projects/monitor/monitor.cfg core/monitor.o projects/monitor/monitor_support.o -o $@
+	$(LD) -C projects/monitor/monitor.cfg core/monitor.o projects/monitor/monitor_support.o -o $@ -Ln labels.txt
 
 speeder.prg: core/speeder.o projects/speeder/speeder_support.o projects/speeder/speeder.cfg
 	$(LD) -C projects/speeder/speeder.cfg core/speeder.o projects/speeder/speeder_support.o -o $@

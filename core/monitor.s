@@ -764,49 +764,53 @@ LAF58:  jsr     print_space
 decode_mnemo:
         ldy     #0
         jsr     load_byte; opcode
-LAF67:  tay
+decode_mnemo_2:
+        tay
         lsr     a
-        bcc     LAF76 ; skip if bit 0 is clear
+        bcc     @1 ; skip if copodes $x0, $x2, $x4, $x6, $x8, $xA, $xC, $xE
+        ; continue for opcodes $x1, $x3, $x5, $x7, $x9, $xB, $xD, $xF
         lsr     a
-        bcs     LAF85 ; skip more if bit 1 is set
+        bcs     @3 ; branch for opcodes $x3, $x7, $xC, $xF
+        ; continue for opcodes $x1, $x5, $x9, $xB
         cmp     #$22
-        beq     LAF85 ; code $89?
+        beq     @3 ; opcodes $89 of $8D?
         and     #$07 ; opcode bits 4,3,2
         ora     #$80 ; use special bytes past first 64
-LAF76:  lsr     a ; opcode bit 2 into carry
+@1:     lsr     a ; opcode bit 2 into carry
         tax
         lda     addmode_table,x
-        bcs     LAF81 ; opcode bit 2 set, then use low nybble
+        bcs     @2 ; opcode bit 2 set, then use low nybble
         lsr     a
         lsr     a
         lsr     a
         lsr     a ; otherwise get hi nybble
-LAF81:  and     #$0F
-        bne     LAF89 ; if nybble is 0, Y = $80
-LAF85:  ldy     #$80
+@2:     and     #$0F
+        bne     @4 ; if nybble is 0, Y = $80
+@3:     ldy     #$80
         lda     #0
-LAF89:  tax
+@4:     tax
         lda     addmode_detail_table,x ; X = 0..13
         sta     prefix_suffix_bitfield
         and     #3
         sta     num_asm_bytes
+; mnemo: convert opcode in A to mnemo index (0-64)
         tya     ; opcode
-        and     #$8F
+        and     #%10001111
         tax
         tya     ; opcode
         ldy     #3
-        cpx     #$8A
-        beq     LAFAB
-LAFA0:  lsr     a
-        bcc     LAFAB
+        cpx     #%10001010 ; $8A/$9A/.../$FA?
+        beq     @7
+@5:     lsr     a
+        bcc     @7
         lsr     a
-LAFA4:  lsr     a
-        ora     #$20
+@6:     lsr     a
+        ora     #%00100000
         dey
-        bne     LAFA4
+        bne     @6
         iny
-LAFAB:  dey
-        bne     LAFA0
+@7:     dey
+        bne     @5
         rts
 
 ; prints name of mnemo in A
@@ -940,8 +944,8 @@ LB089:  stx     tmp10
 
 LB08D:  ldx     #0
         stx     tmp4
-        lda     tmp6
-        jsr     LAF67
+        lda     tmp6 ; opcode
+        jsr     decode_mnemo_2
         ldx     prefix_suffix_bitfield
         stx     tmp8
         tax
@@ -1671,9 +1675,11 @@ hex_digit_to_nybble:
         adc     #'A' - '9'
 LB530:  rts
 
+.ifdef CART_FC3
 ; ??? unused?
         clc
         rts
+.endif
 
 ; get character and check for legal ASCII hex digit
 ; XXX this also allows ":;<=>?" (0x39-0x3F)!!!
@@ -2416,6 +2422,7 @@ addmode_detail_table:
         .byte <((c2 - $3F) << 6 | (c3 - $3F) << 1)
 .endmacro
 
+; 64 entries
         mnemo 'B','R','K'
         mnemo 'P','H','P'
         mnemo 'B','P','L'
@@ -2426,6 +2433,7 @@ addmode_detail_table:
         mnemo 'S','E','C'
         mnemo 'R','T','I'
         mnemo 'P','H','A'
+
         mnemo 'B','V','C'
         mnemo 'C','L','I'
         mnemo 'R','T','S'
@@ -2436,6 +2444,7 @@ addmode_detail_table:
         mnemo 'D','E','Y'
         mnemo 'B','C','C'
         mnemo 'T','Y','A'
+
         mnemo 'L','D','Y'
         mnemo 'T','A','Y'
         mnemo 'B','C','S'
@@ -2446,6 +2455,7 @@ addmode_detail_table:
         mnemo 'C','L','D'
         mnemo 'C','P','X'
         mnemo 'I','N','X'
+
         mnemo 'B','E','Q'
         mnemo 'S','E','D'
         mnemo '?','?','?'
@@ -2456,6 +2466,7 @@ addmode_detail_table:
         mnemo 'L','D','Y'
         mnemo 'C','P','Y'
         mnemo 'C','P','X'
+
         mnemo 'T','X','A'
         mnemo 'T','X','S'
         mnemo 'T','A','X'
@@ -2466,6 +2477,7 @@ addmode_detail_table:
         mnemo '?','?','?'
         mnemo 'A','S','L'
         mnemo 'R','O','L'
+
         mnemo 'L','S','R'
         mnemo 'R','O','R'
         mnemo 'S','T','X'
@@ -2476,6 +2488,7 @@ addmode_detail_table:
         mnemo 'A','N','D'
         mnemo 'E','O','R'
         mnemo 'A','D','C'
+
         mnemo 'S','T','A'
         mnemo 'L','D','A'
         mnemo 'C','M','P'
@@ -2489,33 +2502,26 @@ s_regs: .byte   CR, "   PC  IRQ  BK AC XR YR SP NV#BDIZC", CR, 0
 
 ; ----------------------------------------------------------------
 
-command_index_d = command_name_d - command_names
-command_index_f = command_name_f - command_names
-command_index_h = command_name_h - command_names
-command_index_c = command_name_c - command_names
-command_index_l = command_name_l - command_names
-command_index_s = command_name_s - command_names
-command_index_i = command_name_i - command_names
 
 command_names:
         .byte   "M" ; N.B.: code relies on "M" being the first entry of this table!
-command_name_d:
+command_index_d = * - command_names
         .byte   "D"
         .byte   ":"
         .byte   "A"
         .byte   "G"
         .byte   "X"
-command_name_f:
+command_index_f = * - command_names
         .byte   "F"
-command_name_h:
+command_index_h = * - command_names
         .byte   "H"
-command_name_c:
+command_index_c = * - command_names
         .byte   "C"
         .byte   "T"
         .byte   "R"
-command_name_l:
+command_index_l = * - command_names
         .byte   "L"
-command_name_s:
+command_index_s = * - command_names
         .byte   "S"
         .byte   ","
         .byte   "O"
@@ -2527,7 +2533,7 @@ command_name_s:
         .byte   "E"
         .byte   "["
         .byte   "]"
-command_name_i:
+command_index_i = * - command_names
         .byte   "I"
         .byte   "'"
         .byte   ";"
