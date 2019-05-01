@@ -17,6 +17,12 @@ ifeq ($(MACHINE), ted)
 	ASFLAGS+=-D MACHINE_TED=1
 endif
 
+ifeq ($(CPU), 6502ill)
+	ASFLAGS+=-D CPU_6502ILL=1
+else
+	ASFLAGS+=-D CPU_6502=1
+endif
+
 SOURCES=core/header.s core/vectors.s core/init.s core/basic.s core/drive.s core/desktop_helper.s core/speeder.s core/monitor.s core/wrappers.s core/junk.s core/editor.s core/printer.s core/format.s core/freezer.s core/persistent.s
 
 DEPS=core/kernal.i core/persistent.i
