@@ -96,6 +96,7 @@ tmp13           := BUF + 13
 tmp14           := BUF + 14
 tmp16           := BUF + 16
 tmp17           := BUF + 17
+tmp_opcode      := BUF + 18
 
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
@@ -765,6 +766,9 @@ decode_mnemo:
         ldy     #0
         jsr     load_byte; opcode
 decode_mnemo_2:
+.if .defined(CPU_65C02)
+        sta     tmp_opcode
+.endif
 .if .defined(CPU_6502)
         tay
         lsr     a
@@ -861,7 +865,21 @@ LAFC2:  asl     tmp8
         jsr     BSOUT
         dex
         bne     LAFBE
-        jmp     print_space
+.ifdef CPU_65C02
+        lda     tmp_opcode
+        and     #$0f
+        cmp     #$0f
+        bne :+
+        lda     tmp_opcode
+        lsr
+        lsr
+        lsr
+        lsr
+        and     #$07
+        ora     #'0'
+        jsr     BSOUT
+.endif
+:       jmp     print_space
 
 ; Go through the list of prefixes (3) and suffixes (3),
 ; and if the corresponding one of six bits is set in
@@ -911,12 +929,14 @@ print_branch_target:
 
 .ifdef CPU_65C02
 print_zprel:
+        dey
         jsr     load_byte
         jsr     print_hex_byte2
         lda     #','
         jsr     BSOUT
         lda     #'$'
         jsr     BSOUT
+        iny
         jsr     load_byte
         tax
         lda zp1
@@ -1020,9 +1040,9 @@ LB0AD:  cpx     #3
         ldy     num_asm_bytes
         beq     LB0C5
 LB0B6:  lda     prefix_suffix_bitfield
-        cmp     #$E8
+        cmp     #<(S_RELATIVE | 1) << 3 ; relative addressing mode
         lda     #$30
-        bcs     LB0DD
+        bcs     decode_rel
         jsr     LB12D
         dey
         bne     LB0B6
@@ -1036,13 +1056,14 @@ LB0C5:  asl     prefix_suffix_bitfield
 LB0D8:  dex
         bne     LB0AD
         beq     LB0E3
-LB0DD:  jsr     LB12D
+
+decode_rel:
+        jsr     LB12D
         jsr     LB12D
 LB0E3:  lda     tmp10
         cmp     tmp4
         beq     LB0EE
         jmp     LB13B
-
 LB0EE:  rts
 
 LB0EF:  ldy     num_asm_bytes
