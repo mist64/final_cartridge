@@ -20,7 +20,11 @@ endif
 ifeq ($(CPU), 6502ill)
 	ASFLAGS+=-D CPU_6502ILL=1
 else
-	ASFLAGS+=-D CPU_6502=1
+	ifeq ($(CPU), 65c02)
+		ASFLAGS+=-D CPU_65C02=1
+	else
+		ASFLAGS+=-D CPU_6502=1
+	endif
 endif
 
 SOURCES=core/header.s core/vectors.s core/init.s core/basic.s core/drive.s core/desktop_helper.s core/speeder.s core/monitor.s core/wrappers.s core/junk.s core/editor.s core/printer.s core/format.s core/freezer.s core/persistent.s

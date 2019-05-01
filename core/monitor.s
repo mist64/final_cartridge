@@ -813,7 +813,7 @@ decode_mnemo_2:
 @7:     dey
         bne     @5
         rts
-.elseif .defined(CPU_6502ILL)
+.elseif .defined(CPU_6502ILL) || .defined(CPU_65C02)
         tay
         lsr
         tax
@@ -831,8 +831,13 @@ decode_mnemo_2:
         sta     num_asm_bytes
         lda     mnemotab,y
         rts
+.if .defined(CPU_6502ILL)
 mnemotab:
-	.byte 15, 44, 36, 62, 43, 44, 6, 62, 46, 44, 6, 3, 43, 44, 6, 62, 14, 44, 36, 62, 43, 44, 6, 62, 18, 44, 43, 62, 43, 44, 6, 62, 35, 4, 36, 49, 11, 4, 50, 49, 48, 4, 50, 3, 11, 4, 50, 49, 12, 4, 36, 49, 43, 4, 50, 49, 57, 4, 43, 49, 43, 4, 50, 49, 53, 29, 36, 63, 43, 29, 42, 63, 45, 29, 42, 2, 34, 29, 42, 63, 16, 29, 36, 63, 43, 29, 42, 63, 20, 29, 43, 63, 43, 29, 42, 63, 54, 0, 36, 52, 43, 0, 51, 52, 47, 0, 51, 5, 34, 0, 51, 52, 17, 0, 36, 52, 43, 0, 51, 52, 59, 0, 43, 52, 43, 0, 51, 52, 43, 64, 43, 55, 66, 64, 65, 55, 28, 43, 71, 74, 66, 64, 65, 55, 8, 64, 36, 1, 66, 64, 65, 55, 73, 64, 72, 67, 61, 64, 60, 1, 41, 39, 40, 38, 41, 39, 40, 38, 69, 39, 68, 38, 41, 39, 40, 38, 9, 39, 36, 38, 41, 39, 40, 38, 21, 39, 70, 37, 41, 39, 40, 38, 24, 22, 43, 25, 24, 22, 26, 25, 32, 22, 27, 7, 24, 22, 26, 25, 13, 22, 36, 25, 43, 22, 26, 25, 19, 22, 43, 25, 43, 22, 26, 25, 23, 56, 43, 33, 23, 56, 30, 33, 31, 56, 43, 56, 23, 56, 30, 33, 10, 56, 36, 33, 43, 56, 30, 33, 58, 56, 43, 33, 43, 56, 30, 33
+        .byte 15, 44, 36, 62, 43, 44, 6, 62, 46, 44, 6, 3, 43, 44, 6, 62, 14, 44, 36, 62, 43, 44, 6, 62, 18, 44, 43, 62, 43, 44, 6, 62, 35, 4, 36, 49, 11, 4, 50, 49, 48, 4, 50, 3, 11, 4, 50, 49, 12, 4, 36, 49, 43, 4, 50, 49, 57, 4, 43, 49, 43, 4, 50, 49, 53, 29, 36, 63, 43, 29, 42, 63, 45, 29, 42, 2, 34, 29, 42, 63, 16, 29, 36, 63, 43, 29, 42, 63, 20, 29, 43, 63, 43, 29, 42, 63, 54, 0, 36, 52, 43, 0, 51, 52, 47, 0, 51, 5, 34, 0, 51, 52, 17, 0, 36, 52, 43, 0, 51, 52, 59, 0, 43, 52, 43, 0, 51, 52, 43, 64, 43, 55, 66, 64, 65, 55, 28, 43, 71, 74, 66, 64, 65, 55, 8, 64, 36, 1, 66, 64, 65, 55, 73, 64, 72, 67, 61, 64, 60, 1, 41, 39, 40, 38, 41, 39, 40, 38, 69, 39, 68, 38, 41, 39, 40, 38, 9, 39, 36, 38, 41, 39, 40, 38, 21, 39, 70, 37, 41, 39, 40, 38, 24, 22, 43, 25, 24, 22, 26, 25, 32, 22, 27, 7, 24, 22, 26, 25, 13, 22, 36, 25, 43, 22, 26, 25, 19, 22, 43, 25, 43, 22, 26, 25, 23, 56, 43, 33, 23, 56, 30, 33, 31, 56, 43, 56, 23, 56, 30, 33, 10, 56, 36, 33, 43, 56, 30, 33, 58, 56, 43, 33, 43, 56, 30, 33
+.elseif .defined(CPU_65C02)
+mnemotab:
+        .byte 13, 37, 36, 36, 64, 37, 2, 46, 39, 37, 2, 36, 64, 37, 2, 3, 11, 37, 37, 36, 63, 37, 2, 46, 16, 37, 27, 36, 63, 37, 2, 3, 31, 1, 36, 36, 8, 1, 47, 46, 43, 1, 47, 36, 8, 1, 47, 3, 9, 1, 1, 36, 8, 1, 47, 46, 52, 1, 23, 36, 8, 1, 47, 3, 49, 26, 36, 36, 36, 26, 35, 46, 38, 26, 35, 36, 30, 26, 35, 3, 14, 26, 26, 36, 36, 26, 35, 46, 18, 26, 41, 36, 36, 26, 35, 3, 50, 0, 36, 36, 60, 0, 48, 46, 42, 0, 48, 36, 30, 0, 48, 3, 15, 0, 0, 36, 60, 0, 48, 46, 54, 0, 45, 36, 30, 0, 48, 3, 12, 56, 36, 36, 59, 56, 58, 55, 25, 8, 66, 36, 59, 56, 58, 4, 5, 56, 56, 36, 59, 56, 58, 55, 68, 56, 67, 36, 60, 56, 60, 4, 34, 32, 33, 36, 34, 32, 33, 55, 62, 32, 61, 36, 34, 32, 33, 4, 6, 32, 32, 36, 34, 32, 33, 55, 19, 32, 65, 36, 34, 32, 33, 4, 22, 20, 36, 36, 22, 20, 23, 55, 29, 20, 24, 69, 22, 20, 23, 4, 10, 20, 20, 36, 36, 20, 23, 55, 17, 20, 40, 57, 36, 20, 23, 4, 21, 51, 36, 36, 21, 51, 27, 55, 28, 51, 36, 36, 21, 51, 27, 4, 7, 51, 51, 36, 36, 51, 27, 55, 53, 51, 44, 36, 36, 51, 27, 4
+.endif
 .else
 .error "No CPU type specified!"
 .endif
@@ -870,11 +875,15 @@ LAFD9:  cpx     #3
         ldy     num_asm_bytes
         beq     LAFF4 ; no operands
 :       lda     prefix_suffix_bitfield
-        cmp     #$E8 ; "($FF,X),Y" addressing mode? relative!
+.ifdef CPU_65C02
+        cmp     #<(S_ZPREL | 2) << 3 ; zp, relative addressing mode
+        beq     print_zprel
+.endif
+        cmp     #<(S_RELATIVE | 1) << 3 ; relative addressing mode
         php
         jsr     load_byte
         plp
-        bcs     print_brach_target
+        bcs     print_branch_target
         jsr     print_hex_byte2
         dey
         bne     :-
@@ -889,7 +898,7 @@ LAFF4:  asl     prefix_suffix_bitfield
         bne     LAFD9
         rts
 
-print_brach_target:
+print_branch_target:
         jsr     zp1_plus_a_2
         tax
         inx
@@ -899,6 +908,33 @@ print_brach_target:
         jsr     print_hex_byte2
         txa
         jmp     print_hex_byte2
+
+.ifdef CPU_65C02
+print_zprel:
+        jsr     load_byte
+        jsr     print_hex_byte2
+        lda     #','
+        jsr     BSOUT
+        lda     #'$'
+        jsr     BSOUT
+        jsr     load_byte
+        tax
+        lda zp1
+        pha
+        lda zp1+1
+        pha
+        inc zp1
+        bne :+
+        inc zp1+1
+:       txa
+        sec
+        jsr     print_branch_target
+        pla
+        sta zp1+1
+        pla
+        sta zp1
+        rts
+.endif
 
 ; adds signed A to 16 bit zp1
 zp1_plus_a:
@@ -2518,18 +2554,148 @@ addmode_table:
         .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
         .byte   ADDMODE_ABX << 4 | ADDMODE_ABX
         .byte   ADDMODE_ABX << 4 | ADDMODE_ABX
+.elseif .defined(CPU_65C02)
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_ABS << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IND << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_IAX << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPY << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPY << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABY << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IZX
+        .byte   ADDMODE_IMM << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_ZPG << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMM
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABS
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ZPR
+        .byte   ADDMODE_REL << 4 | ADDMODE_IZY
+        .byte   ADDMODE_IZP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPX
+        .byte   ADDMODE_ZPX << 4 | ADDMODE_ZPG
+        .byte   ADDMODE_IMP << 4 | ADDMODE_ABY
+        .byte   ADDMODE_IMP << 4 | ADDMODE_IMP
+        .byte   ADDMODE_ABS << 4 | ADDMODE_ABX
+        .byte   ADDMODE_ABX << 4 | ADDMODE_ZPR
 .else
 .error "No CPU type specified!"
 .endif
 
-P_NONE    = 0
-P_DOLLAR  = 1 << 7
-P_PAREN   = 1 << 6
-P_HASH    = 1 << 5
-S_X       = 1 << 4
-S_PAREN   = 1 << 3
-S_Y       = 1 << 2
-S_SPECIAL = S_X | S_PAREN | S_Y
+P_NONE     = 0
+P_DOLLAR   = 1 << 7
+P_PAREN    = 1 << 6
+P_HASH     = 1 << 5
+S_X        = 1 << 4
+S_PAREN    = 1 << 3
+S_Y        = 1 << 2
+S_RELATIVE = S_X | S_PAREN | S_Y
+S_ZPREL    = S_X | S_Y
 
 .macro addmode_detail symbol, bytes, flags
 		symbol = * - addmode_detail_table
@@ -2552,7 +2718,12 @@ addmode_detail_table:
         addmode_detail ADDMODE_ABY, 2, P_DOLLAR | S_Y ; absolute Y indexed
         addmode_detail ADDMODE_IND, 2, P_PAREN | S_PAREN ; absolute indirect
         addmode_detail ADDMODE_ZPY, 1, P_DOLLAR | S_Y ; zero page Y indexed
-        addmode_detail ADDMODE_REL,1, P_DOLLAR | S_SPECIAL ; special case: relative
+        addmode_detail ADDMODE_REL,1, P_DOLLAR | S_RELATIVE ; relative
+.ifdef CPU_65C02
+        addmode_detail ADDMODE_IAX, 2, P_PAREN | S_X | S_PAREN ; X indexed indirect
+        addmode_detail ADDMODE_IZP, 1, P_PAREN | S_PAREN ; zp indirect
+        addmode_detail ADDMODE_ZPR, 2, P_DOLLAR | S_ZPREL ; zp, relative
+.endif
 
 .macro asmchars c1, c2
 .segment "asmchars1"
@@ -2593,7 +2764,6 @@ addmode_detail_table:
         mnemo 'S','E','C'
         mnemo 'R','T','I'
         mnemo 'P','H','A'
-
         mnemo 'B','V','C'
         mnemo 'C','L','I'
         mnemo 'R','T','S'
@@ -2604,7 +2774,6 @@ addmode_detail_table:
         mnemo 'D','E','Y'
         mnemo 'B','C','C'
         mnemo 'T','Y','A'
-
         mnemo 'L','D','Y'
         mnemo 'T','A','Y'
         mnemo 'B','C','S'
@@ -2615,7 +2784,6 @@ addmode_detail_table:
         mnemo 'C','L','D'
         mnemo 'C','P','X'
         mnemo 'I','N','X'
-
         mnemo 'B','E','Q'
         mnemo 'S','E','D'
         mnemo '?','?','?'
@@ -2626,7 +2794,6 @@ addmode_detail_table:
         mnemo 'L','D','Y'
         mnemo 'C','P','Y'
         mnemo 'C','P','X'
-
         mnemo 'T','X','A'
         mnemo 'T','X','S'
         mnemo 'T','A','X'
@@ -2637,7 +2804,6 @@ addmode_detail_table:
         mnemo '?','?','?'
         mnemo 'A','S','L'
         mnemo 'R','O','L'
-
         mnemo 'L','S','R'
         mnemo 'R','O','R'
         mnemo 'S','T','X'
@@ -2648,7 +2814,6 @@ addmode_detail_table:
         mnemo 'A','N','D'
         mnemo 'E','O','R'
         mnemo 'A','D','C'
-
         mnemo 'S','T','A'
         mnemo 'L','D','A'
         mnemo 'C','M','P'
@@ -2729,6 +2894,77 @@ addmode_detail_table:
         mnemo 'T','X','S'
         mnemo 'T','Y','A'
         mnemo 'X','A','A'
+.elseif .defined(CPU_65C02)
+        mnemo 'A','D','C'
+        mnemo 'A','N','D'
+        mnemo 'A','S','L'
+        mnemo 'B','B','R'
+        mnemo 'B','B','S'
+        mnemo 'B','C','C'
+        mnemo 'B','C','S'
+        mnemo 'B','E','Q'
+        mnemo 'B','I','T'
+        mnemo 'B','M','I'
+        mnemo 'B','N','E'
+        mnemo 'B','P','L'
+        mnemo 'B','R','A'
+        mnemo 'B','R','K'
+        mnemo 'B','V','C'
+        mnemo 'B','V','S'
+        mnemo 'C','L','C'
+        mnemo 'C','L','D'
+        mnemo 'C','L','I'
+        mnemo 'C','L','V'
+        mnemo 'C','M','P'
+        mnemo 'C','P','X'
+        mnemo 'C','P','Y'
+        mnemo 'D','E','C'
+        mnemo 'D','E','X'
+        mnemo 'D','E','Y'
+        mnemo 'E','O','R'
+        mnemo 'I','N','C'
+        mnemo 'I','N','X'
+        mnemo 'I','N','Y'
+        mnemo 'J','M','P'
+        mnemo 'J','S','R'
+        mnemo 'L','D','A'
+        mnemo 'L','D','X'
+        mnemo 'L','D','Y'
+        mnemo 'L','S','R'
+        mnemo 'N','O','P'
+        mnemo 'O','R','A'
+        mnemo 'P','H','A'
+        mnemo 'P','H','P'
+        mnemo 'P','H','X'
+        mnemo 'P','H','Y'
+        mnemo 'P','L','A'
+        mnemo 'P','L','P'
+        mnemo 'P','L','X'
+        mnemo 'P','L','Y'
+        mnemo 'R','M','B'
+        mnemo 'R','O','L'
+        mnemo 'R','O','R'
+        mnemo 'R','T','I'
+        mnemo 'R','T','S'
+        mnemo 'S','B','C'
+        mnemo 'S','E','C'
+        mnemo 'S','E','D'
+        mnemo 'S','E','I'
+        mnemo 'S','M','B'
+        mnemo 'S','T','A'
+        mnemo 'S','T','P'
+        mnemo 'S','T','X'
+        mnemo 'S','T','Y'
+        mnemo 'S','T','Z'
+        mnemo 'T','A','X'
+        mnemo 'T','A','Y'
+        mnemo 'T','R','B'
+        mnemo 'T','S','B'
+        mnemo 'T','S','X'
+        mnemo 'T','X','A'
+        mnemo 'T','X','S'
+        mnemo 'T','Y','A'
+        mnemo 'W','A','I'
 .else
 .error "No CPU type specified!"
 .endif
