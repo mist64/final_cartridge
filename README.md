@@ -40,6 +40,11 @@ The monitor has also been adapted to work with the TED series (C16, C116, Plus/4
 
 In this version, the `O` command takes a single hex character argument for the 16 banks. Since `OD` clashes with switching to disk, bank `D` can be reached with `O<SHIFT>D`.
 
+The standalone version can optionally be built with support for illegal opcodes by adding `CPU=6502ill` to the make command like, i.e.
+
+    make clean CPU=6502ill PROJECT=monitor monitor.prg # C64
+    make clean CPU=6502ill MACHINE=ted PROJECT=monitor monitor.prg # TED
+
 ### Creating Derivatives
 
 The existing code is a great starting point to create an improved Final Cartridge. Some ideas:
