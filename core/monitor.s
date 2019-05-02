@@ -96,7 +96,9 @@ tmp13           := BUF + 13
 tmp14           := BUF + 14
 tmp16           := BUF + 16
 tmp17           := BUF + 17
-tmp_opcode      := BUF + 18
+.if .defined(CPU_65C02)
+tmp_opcode      := tmp12
+.endif
 
 reg_pc_hi       := ram_code_end + 5
 reg_pc_lo       := ram_code_end + 6
@@ -772,7 +774,7 @@ decode_mnemo_2:
 .if .defined(CPU_6502)
         tay
         lsr     a
-        bcc     @1 ; skip if copodes $x0, $x2, $x4, $x6, $x8, $xA, $xC, $xE
+        bcc     @1 ; skip if opodes $x0, $x2, $x4, $x6, $x8, $xA, $xC, $xE
         ; continue for opcodes $x1, $x3, $x5, $x7, $x9, $xB, $xD, $xF
         lsr     a
         bcs     @3 ; branch for opcodes $x3, $x7, $xC, $xF
@@ -866,10 +868,11 @@ LAFC2:  asl     tmp8
         dex
         bne     LAFBE
 .ifdef CPU_65C02
+        ; add numeric suffix to BBR/BBS
         lda     tmp_opcode
         and     #$0f
         cmp     #$0f
-        bne :+
+        bne     :+
         lda     tmp_opcode
         lsr
         lsr
@@ -878,8 +881,9 @@ LAFC2:  asl     tmp8
         and     #$07
         ora     #'0'
         jsr     BSOUT
+:
 .endif
-:       jmp     print_space
+        jmp     print_space
 
 ; Go through the list of prefixes (3) and suffixes (3),
 ; and if the corresponding one of six bits is set in
@@ -2715,8 +2719,11 @@ P_HASH     = 1 << 5
 S_X        = 1 << 4
 S_PAREN    = 1 << 3
 S_Y        = 1 << 2
+; use otherwise illegal combinations for the special cases
 S_RELATIVE = S_X | S_PAREN | S_Y
+.ifdef CPU_65C02
 S_ZPREL    = S_X | S_Y
+.endif
 
 .macro addmode_detail symbol, bytes, flags
 		symbol = * - addmode_detail_table
