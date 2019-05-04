@@ -46,6 +46,7 @@
 _basic_warm_start := $E37B
 .elseif .defined(MACHINE_TED)
 _basic_warm_start := $800A
+.elseif .defined(MACHINE_STECKSCHWEIN)
 .endif
 .endif
 
@@ -71,6 +72,14 @@ DEFAULT_BANK := $37
 zp1             := $60
 zp2             := $62
 zp3             := $64
+CHARS_PER_LINE := 40
+DEFAULT_BANK := 0
+.endif
+
+.ifdef MACHINE_STECKSCHWEIN
+zp1             := $80
+zp2             := $82
+zp3             := $84
 CHARS_PER_LINE := 40
 DEFAULT_BANK := 0
 .endif
@@ -145,10 +154,12 @@ monitor:
         bpl :-
 .endif
 
+.ifndef MACHINE_STECKSCHWEIN
         lda     #<brk_entry
         sta     CBINV
         lda     #>brk_entry
         sta     CBINV + 1 ; BRK vector
+.endif
         lda     #'C'
         sta     entry_type
         lda     #DEFAULT_BANK
@@ -157,14 +168,26 @@ monitor:
         lda     #$70
         sta     cartridge_bank ; by default, hide cartridge
 .endif
+.ifdef MACHINE_STECKSCHWEIN
+        lda #0
+        pha
+        pha
+        pha
+        pha
+        pha
+        pha
+        jmp brk_entry2
+.else
         ldx     #ram_code_end - ram_code - 1
 :       lda     __monitor_ram_code_LOAD__,x
         sta     __monitor_ram_code_RUN__,x
         dex
         bpl     :-
         brk ; <- nice!
+.endif
 
 .segment "monitor_ram_code"
+.ifndef MACHINE_STECKSCHWEIN
 ; code that will be copied to $0220
 ram_code:
 
@@ -215,6 +238,7 @@ brk_entry:
 ram_code_end:
 
 ; XXX ram_code is here - why put it between ROM code, so we have to jump over it?
+.endif
 
 .segment "monitor_b"
 
@@ -234,7 +258,9 @@ brk_entry2:
         sta     reg_pc_hi
         tsx
         stx     reg_s
+.ifndef MACHINE_STECKSCHWEIN
         jsr     set_irq_vector
+.endif
 .ifdef CART_FC3
         jsr     set_io_vectors
 .endif
@@ -253,9 +279,11 @@ brk_entry2:
         lda     reg_pc_hi
         adc     #$FF
         sta     reg_pc_hi ; decrement PC
+.ifndef MACHINE_STECKSCHWEIN
         lda     FA
         and     #$FB
         sta     FA
+.endif
         lda     #'B'
         sta     entry_type
 .ifdef MACHINE_C64
@@ -347,7 +375,7 @@ LAC3B:  dex
         bmi     syntax_error ; always
 
 ; ----------------------------------------------------------------
-; "EC"/"ES"/"D" - dump character or sprite data
+; "EC"/"ES" - dump character or sprite data
 ; ----------------------------------------------------------------
 cmd_e:
         jsr     BASIN
@@ -358,6 +386,7 @@ cmd_e:
         jmp     syntax_error
 
 fill_kbd_buffer_with_csr_right:
+.ifndef MACHINE_STECKSCHWEIN
         lda     #CSR_UP
         ldx     #CR
         jsr     print_a_x
@@ -368,6 +397,7 @@ fill_kbd_buffer_with_csr_right:
         cpx     #7
         bne     :-
         stx     NDX ; 7
+.endif
         jmp     input_loop2
 
 cmd_mid2:
@@ -515,7 +545,9 @@ cmd_leftbracket:
         jsr     LB4DB
         ldy     #0
         jsr     store_byte
+.ifndef MACHINE_STECKSCHWEIN
         jsr     print_up
+.endif
         jsr     dump_char_line
         jsr     print_cr_dot
         jsr     fill_kbd_buffer_leftbracket
@@ -536,7 +568,9 @@ LAD9F:  jsr     store_byte
         iny
         cpy     #3
         bne     LAD9C
+.ifndef MACHINE_STECKSCHWEIN
         jsr     print_up
+.endif
         jsr     dump_sprite_line
         jsr     print_cr_dot
         jsr     fill_kbd_buffer_rightbracket
@@ -548,7 +582,9 @@ LAD9F:  jsr     store_byte
 cmd_singlequote:
         jsr     get_hex_word
         jsr     read_ascii
+.ifndef MACHINE_STECKSCHWEIN
         jsr     print_up
+.endif
         jsr     dump_ascii_line
         jsr     print_cr_dot
         jsr     fill_kbd_buffer_singlequote
@@ -560,7 +596,9 @@ cmd_singlequote:
 cmd_colon:
         jsr     get_hex_word
         jsr     read_8_bytes
+.ifndef MACHINE_STECKSCHWEIN
         jsr     print_up
+.endif
         jsr     dump_hex_line
         jsr     print_cr_dot
         jsr     fill_kbd_buffer_semicolon
@@ -607,7 +645,9 @@ LAE20:  jsr     basin_if_more
         jsr     basin_if_more
         jsr     get_bin_byte
         sta     reg_p
+.ifndef MACHINE_STECKSCHWEIN
         jsr     print_up
+.endif
         jmp     dump_registers2
 
 syn_err1:
@@ -646,7 +686,9 @@ LAE61:  ldx     reg_s
         jmp     input_loop2
 
 LAE7C:  pha
+.ifndef MACHINE_STECKSCHWEIN
         jsr     print_up
+.endif
         pla
         tax
         jsr     LAD4B
@@ -714,9 +756,12 @@ cmd_g:
         jmp     syntax_error
 
 LAF03:  jsr     copy_pc_to_zp2_and_zp1
-LAF06:  lda     bank
+LAF06:
+.ifndef MACHINE_STECKSCHWEIN
+        lda     bank
         bmi     LAF2B ; drive
         jsr     set_irq_vector
+.endif
 .ifdef CART_FC3
         jsr     set_io_vectors_with_hidden_rom
 .endif
@@ -731,7 +776,21 @@ LAF06:  lda     bank
         ldx     reg_x
         ldy     reg_y
         lda     bank
+.ifdef MACHINE_STECKSCHWEIN
+        lda #'T'
+        jsr BSOUT
+        lda #'O'
+        jsr BSOUT
+        lda #'D'
+        jsr BSOUT
+        lda #'O'
+        jsr BSOUT
+        jmp *
+.else
         jmp     goto_user
+.endif
+
+.ifndef MACHINE_STECKSCHWEIN
 LAF2B:  lda     #'E' ; send M-E to drive
         jsr     send_m_dash2
         lda     zp2
@@ -740,6 +799,7 @@ LAF2B:  lda     #'E' ; send M-E to drive
         jsr     IECOUT
         jsr     UNLSTN
         jmp     print_cr_then_input_loop
+.endif
 
 ; ----------------------------------------------------------------
 ; assembler/disassembler
@@ -1182,7 +1242,9 @@ LB19B:  jsr     print_up_dot
 ; "X" - exit monitor
 ; ----------------------------------------------------------------
 cmd_x:
+.ifndef MACHINE_STECKSCHWEIN
         jsr     set_irq_vector
+.endif
 .ifdef CART_FC3
         jsr     set_io_vectors_with_hidden_rom
 .endif
@@ -1195,7 +1257,11 @@ cmd_x:
 .endif
         ldx     reg_s
         txs
+.ifdef MACHINE_STECKSCHWEIN
+        jmp ($da)
+.else
         jmp     _basic_warm_start
+.endif
 
 LB1CB:  lda     zp2
         cmp     zp1
@@ -1315,6 +1381,7 @@ LB2B3:  rts
 ; memory load/store
 ; ----------------------------------------------------------------
 
+.ifndef MACHINE_STECKSCHWEIN
 ; loads a byte at (zp1),y from drive RAM
 LB2B4:  lda     #'R' ; send M-R to drive
         jsr     send_m_dash2
@@ -1339,6 +1406,7 @@ LB2CB:  lda     #'W' ; send M-W to drive
         jsr     UNLSTN
         pla
         rts
+.endif
 
 .ifdef CART_FC3
 ; ??? unreferenced?
@@ -1354,8 +1422,10 @@ LB2CB:  lda     #'W' ; send M-W to drive
 ; loads a byte at (zp1),y from RAM with the correct ROM config
 load_byte:
         sei
+.ifndef MACHINE_STECKSCHWEIN
         lda     bank
         bmi     LB2B4 ; drive
+.endif
 .ifdef MACHINE_TED
         stx tmp1
         sty tmp2
@@ -1371,6 +1441,10 @@ load_byte:
         ldx tmp1
         ldy tmp2
         rts
+.elseif .defined(MACHINE_STECKSCHWEIN)
+        lda     (zp1),y ; read
+        cli
+        rts
 .else
         clc
 .ifdef CART_FC3
@@ -1382,15 +1456,17 @@ load_byte:
 
 ; stores a byte at (zp1),y in RAM with the correct ROM config
 store_byte:
-.ifdef MACHINE_TED
+.if .defined(MACHINE_TED) || .defined(MACHINE_STECKSCHWEIN)
         sta     (zp1),y ; store
         rts
 .else
         sei
         pha
         lda     bank
+.ifndef MACHINE_STECKSCHWEIN
         bmi     LB2CB ; drive
-        cmp     #$35
+.endif
+cmp     #$35
         bcs     LB306 ; I/O on
         lda     #$33 ; ROM at $A000, $D000 and $E000
         sta     R6510 ; ??? why?
@@ -1459,6 +1535,7 @@ LB34A:  lda     #$80 ; drive
         sta     bank
         jmp     print_cr_then_input_loop
 
+.ifndef MACHINE_STECKSCHWEIN
 listen_command_channel:
         lda     #$6F
         jsr     init_and_listen
@@ -1640,15 +1717,18 @@ LB475:  jsr     UNLSTN
         jsr     UNLSTN
         jsr     directory
         jmp     input_loop
+.endif
 
 LB48E:  jsr     print_space
         lda     #'='
         ldx     #' '
         bne     print_a_x
 
+.ifndef MACHINE_STECKSCHWEIN
 print_up:
         ldx     #CSR_UP
         .byte   $2C
+.endif
 print_cr_dot:
         ldx     #'.'
         lda     #CR
@@ -1661,12 +1741,16 @@ print_a_x:
         jmp     BSOUT
 
 print_up_dot:
+.ifndef MACHINE_STECKSCHWEIN
         jsr     print_up
+.endif
         lda     #'.'
         .byte   $2C
+.ifdef CART_FC3
 ; XXX unused?
         lda     #CSR_RIGHT
         .byte   $2C
+.endif
 print_hash:
         lda     #'#'
         .byte   $2C
@@ -1839,7 +1923,9 @@ dump_ascii_characters:
 LB594:  jsr     load_byte
         cmp     #$20
         bcs     LB59F
+.ifndef MACHINE_STECKSCHWEIN
         inc     RVS
+.endif
         ora     #$40
 LB59F:  cmp     #$80
         bcc     LB5AD
@@ -1847,11 +1933,15 @@ LB59F:  cmp     #$80
         bcs     LB5AD
         and     #$7F
         ora     #$60
+.ifndef MACHINE_STECKSCHWEIN
         inc     RVS
+.endif
 LB5AD:  jsr     BSOUT
+.ifndef MACHINE_STECKSCHWEIN
         lda     #0
         sta     RVS
         sta     QTSW
+.endif
         iny
         dex
         bne     LB594
@@ -1864,13 +1954,17 @@ read_ascii:
         jsr     copy_zp2_to_zp1
         jsr     basin_if_more
 LB5C8:  sty     tmp9
+.ifndef MACHINE_STECKSCHWEIN
         ldy     PNTR
         lda     (PNT),y
         php
+.endif
         jsr     basin_if_more
         ldy     tmp9
+.ifndef MACHINE_STECKSCHWEIN
         plp
         bmi     :+
+.endif
         cmp     #$60
         bcs     :+
         jsr     store_byte
@@ -1973,21 +2067,32 @@ check_end:
         rts
 
 fill_kbd_buffer_comma:
+.ifndef MACHINE_STECKSCHWEIN
         lda     #','
         .byte   $2C
+.endif
 fill_kbd_buffer_semicolon:
+.ifndef MACHINE_STECKSCHWEIN
         lda     #':'
         .byte   $2C
+.endif
 fill_kbd_buffer_a:
+.ifndef MACHINE_STECKSCHWEIN
         lda     #'A'
         .byte   $2C
+.endif
 fill_kbd_buffer_leftbracket:
+.ifndef MACHINE_STECKSCHWEIN
         lda     #'['
         .byte   $2C
+.endif
 fill_kbd_buffer_rightbracket:
+.ifndef MACHINE_STECKSCHWEIN
         lda     #']'
         .byte   $2C
+.endif
 fill_kbd_buffer_singlequote:
+.ifndef MACHINE_STECKSCHWEIN
         lda     #$27 ; "'"
         sta     KEYD
         lda     zp1 + 1
@@ -2002,13 +2107,16 @@ fill_kbd_buffer_singlequote:
         sta     KEYD + 5
         lda     #6 ; number of characters
         sta     NDX
+.endif
         rts
 
+.ifndef MACHINE_STECKSCHWEIN
 ; print 7x cursor right
 print_7_csr_right:
         lda     #CSR_RIGHT
         ldx     #7
         bne     LB6AC ; always
+.endif
 
 ; print 8 spaces - this is used to clear some leftover characters
 ; on the screen when re-dumping a line with proper spacing after the
@@ -2021,6 +2129,7 @@ LB6AC:  jsr     BSOUT
         bne     LB6AC
         rts
 
+.ifndef MACHINE_STECKSCHWEIN
 ; ----------------------------------------------------------------
 ; IRQ logic to handle F keys and scrolling
 ; ----------------------------------------------------------------
@@ -2300,6 +2409,7 @@ LB8B1:  jsr     LB88B
         rts
 
 LB8C8:  lda     #8
+.endif
 add_a_to_zp1:
         clc
         adc     zp1
@@ -2307,6 +2417,7 @@ add_a_to_zp1:
         bcc     LB8D3
         inc     zp1 + 1
 LB8D3:  rts
+.ifndef MACHINE_STECKSCHWEIN
 
 LB8D4:  lda     #$FF
         sta     disable_f_keys
@@ -2368,6 +2479,7 @@ LB913:  sec
         dec     tmp13
         bne     LB913
 :       rts
+.endif
 
 ; ----------------------------------------------------------------
 ; assembler tables
@@ -3023,17 +3135,23 @@ command_index_c = * - command_names
         .byte   "T"
         .byte   "R"
 command_index_l = * - command_names
+.ifndef MACHINE_STECKSCHWEIN
         .byte   "L"
 command_index_s = * - command_names
         .byte   "S"
+.endif
         .byte   ","
         .byte   "O"
+.ifndef MACHINE_STECKSCHWEIN
         .byte   "@"
-        .byte   "$"
+.endif
+.byte   "$"
         .byte   "#"
+.ifndef MACHINE_STECKSCHWEIN
         .byte   "*"
         .byte   "P"
-        .byte   "E"
+.endif
+.byte   "E"
         .byte   "["
         .byte   "]"
 command_index_i = * - command_names
@@ -3057,16 +3175,22 @@ function_table:
         .word   cmd_fhct-1
         .word   cmd_fhct-1
         .word   cmd_r-1
+.ifndef MACHINE_STECKSCHWEIN
         .word   cmd_ls-1
         .word   cmd_ls-1
-        .word   cmd_comma-1
+.endif
+.word   cmd_comma-1
         .word   cmd_o-1
+.ifndef MACHINE_STECKSCHWEIN
         .word   cmd_at-1
-        .word   cmd_dollar-1
+.endif
+.word   cmd_dollar-1
         .word   cmd_hash-1
+.ifndef MACHINE_STECKSCHWEIN
         .word   cmd_asterisk-1
         .word   cmd_p-1
-        .word   cmd_e-1
+.endif
+.word   cmd_e-1
         .word   cmd_leftbracket-1
         .word   cmd_rightbracket-1
         .word   cmd_mid-1
@@ -3081,6 +3205,7 @@ function_table:
 syn_err7:
         jmp     syntax_error
 
+.ifndef MACHINE_STECKSCHWEIN
 ; ----------------------------------------------------------------
 ; "*R"/"*W" - read/write sector
 ; ----------------------------------------------------------------
@@ -3304,6 +3429,7 @@ LBC39:  lda     LA
         lda     #0
         sta     NDX
         jmp     input_loop
+.endif
 
 LBC4C:  stx     zp1
         sta     zp1 + 1
@@ -3340,6 +3466,7 @@ pow10lo2:
 pow10hi2:
         .byte >1, >10, >100, >1000, >10000
 
+.ifndef MACHINE_STECKSCHWEIN
 init_and_listen:
         pha
         jsr     init_drive
@@ -3362,6 +3489,7 @@ cat_line_iec:
         cmp     #CR
         bne     cat_line_iec
         jmp     UNTALK
+.endif
 
 print_hex_byte:
         jsr     byte_to_hex_ascii
@@ -3387,6 +3515,7 @@ LBCC8:  clc
 LBCCF:  adc     #$3A
         rts
 
+.ifndef MACHINE_STECKSCHWEIN
 directory:
         lda     #$60
         sta     SA
@@ -3484,3 +3613,23 @@ LBD8D:  lda     #9
         bcs     LBD8C
         lda     #8
         bne     LBD8A ; always
+.endif
+
+.ifdef MACHINE_STECKSCHWEIN
+GETIN:
+BASIN:
+        jsr $ffb0
+        bcs :+
+        lda #0
+:       rts
+
+STOP:
+        lda #0
+        rts
+
+ram_code_end:
+
+.endif
+
+
+

@@ -9,6 +9,15 @@
 .include "kernal_ted.i"
 .endif
 
+.ifdef MACHINE_STECKSCHWEIN
+BSOUT = $ffb3
+LE716 = BSOUT
+
+CR = 13
+
+BUF = $0400
+
+.else
 CINT            := $FF81
 IOINIT          := $FF84
 RAMTAS          := $FF87
@@ -62,3 +71,4 @@ KEY_STOP        := $03
 KEY_F3          := $86
 KEY_F5          := $87
 KEY_F7          := $88
+.endif

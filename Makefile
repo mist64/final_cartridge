@@ -16,6 +16,9 @@ endif
 ifeq ($(MACHINE), ted)
 	ASFLAGS+=-D MACHINE_TED=1
 endif
+ifeq ($(MACHINE), steckschwein)
+	ASFLAGS+=-D MACHINE_STECKSCHWEIN=1
+endif
 
 ifeq ($(CPU), 6502ill)
 	ASFLAGS+=-D CPU_6502ILL=1
@@ -44,7 +47,7 @@ test: fc3.bin
 	@diff -u fc3-orig.bin.hexdump fc3.bin.hexdump
 
 fc3.bin: $(OBJECTS) core/fc3.cfg
-	$(LD) -C core/fc3.cfg $(OBJECTS) -o $@
+	$(LD) -C core/fc3.cfg $(OBJECTS) -o $@ -Ln fc3.txt
 
 monitor.prg: core/monitor.o projects/monitor/monitor_support.o projects/monitor/monitor.cfg
 	$(LD) -C projects/monitor/monitor.cfg core/monitor.o projects/monitor/monitor_support.o -o $@ -Ln labels.txt
