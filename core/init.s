@@ -26,9 +26,14 @@ LBFFA           := $BFFA
 
 .segment "basic_init"
 
-; ??? unused?
+;
+; This is called from the freezer to perform the PSET command
+;
+
+.export pset
+pset:
         jsr     set_io_vectors_with_hidden_rom
-        lda     #$43 ; bank 2
+        lda     #$43 ; bank 3
         jmp     _jmp_bank
 
 init_load_and_basic_vectors:
@@ -82,22 +87,24 @@ L805A:  sta     $02,y
         jsr     init_load_and_basic_vectors
         cli
         pla ; $ D
-        tax
+        tax     ; X = $DC01 value
         pla
-        cpx     #$7F ; $DC01 value
+        cpx     #$7F ; runstop pressed?
         beq     L80C4 ; 1988-13 changes this to "bne" to start into BASIC
-        cpx     #$DF
+        cpx     #$DF ; C= pressed?
         beq     go_desktop
-        and     #$7F
-        beq     go_desktop
+        ; This determines which is default at power-on: Desktop or BASIC
+        and     #$7F     ; Was the VIC-II not initialized at reset??
+        beq     go_desktop ; Boot DESKTOP by default
+        ; If the VIC-II was initalized... check wether the desktop signature
+        ; is in memory, if yes, boot into desktop.
         ldy     #mg87_signature_end - mg87_signature - 1
-L809D:  lda     $CFFC,y
+:       lda     $CFFC,y
         cmp     mg87_signature,y
-        bne     L80AA
+        bne     go_basic
         dey
-        bpl     L809D
+        bpl     :-
         bmi     go_desktop ; MG87 found
-L80AA:  jmp     ($A000)
 
 mg87_signature:
         .byte   "MG87"
