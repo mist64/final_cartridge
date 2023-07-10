@@ -105,7 +105,10 @@ L805A:  sta     $02,y
         dey
         bpl     :-
         bmi     go_desktop ; MG87 found
-L80AA:  jmp     ($A000)
+L80AA:  ; Note we are still into 16K cartridge mode. This boots into BASIC thanks to
+        ; the basic_vectors segment in basic.s, which is located at $A000 in cartridge
+        ; ROM.
+        jmp     ($A000) ; Boot into BASIC
 
 mg87_signature:
         .byte   "MG87"
