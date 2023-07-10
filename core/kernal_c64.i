@@ -12,6 +12,8 @@ LF646  := $F646 ; IEC close
 ICLRCH := $0322 ; CLRCHN vector
 IBSOUT := $0326 ; CHROUT vector
 
+START  := $FCE2 ; RESET routine
+
 R6510           := $01   ; 6510 I/O register
 TXTPTR          := $7A   ; current byte of BASIC text
 ST              := $90   ; kernal I/O status

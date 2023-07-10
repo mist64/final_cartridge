@@ -101,7 +101,7 @@ L805A:  sta     $02,y
         ldy     #mg87_signature_end - mg87_signature - 1
 :       lda     $CFFC,y
         cmp     mg87_signature,y
-        bne     L80AA
+        bne     go_basic
         dey
         bpl     :-
         bmi     go_desktop ; MG87 found
