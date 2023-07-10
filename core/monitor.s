@@ -189,7 +189,7 @@ enable_all_roms:
         rts
 .endif
 
-disable_rom_rti:
+goto_user:
 .ifdef CART_FC3
         jsr     _disable_fc3rom
 .endif
