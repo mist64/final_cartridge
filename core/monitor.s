@@ -1578,8 +1578,9 @@ LB40A:  bne     LB3F0
 .endif
         jmp     LB3A4
 
+LB42D:
 .ifdef CART_FC3
-LB42D:  lda     #>(_enable_fcbank0 - 1)
+        lda     #>(_enable_fcbank0 - 1)
         pha
         lda     #<(_enable_fcbank0 - 1)
         pha
@@ -1587,8 +1588,9 @@ LB42D:  lda     #>(_enable_fcbank0 - 1)
         lda     #0
         jmp     LOAD
 
+LB438:
 .ifdef CART_FC3
-LB438:  lda     #>(_enable_fcbank0 - 1)
+        lda     #>(_enable_fcbank0 - 1)
         pha
         lda     #<(_enable_fcbank0 - 1)
         pha
