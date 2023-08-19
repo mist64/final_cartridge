@@ -209,28 +209,33 @@ new_tokenize:
         ldx     TXTPTR
         ldy     #4
         sty     $0F
-L8259:  lda     $0200,x ; read character from direct mode
-        bpl     L8265
+@loadchar:
+        lda     $0200,x ; read character from direct mode
+        bpl     @notoken
         cmp     #$FF ; PI
-        beq     L82B6
+        beq     @nextchar
         inx
-        bne     L8259
-L8265:  cmp     #' '
-        beq     L82B6
-        sta     $08
+        bne     @loadchar
+@notoken:
+        cmp     #' '
+        beq     @nextchar
+        sta     $08              ; If '"' then '"' is the char that ends skipping
         cmp     #'"'
-        beq     L82DB
+        beq     @skip_til_end
         bit     $0F
-        bvs     L82B6
+        bvs     @nextchar
         cmp     #'?'
-        bne     L827B
+        bne     @not_print
         lda     #$99 ; PRINT token
-        bne     L82B6
-L827B:  cmp     #'0'
-        bcc     L8283
-        cmp     #$3C
-        bcc     L82B6
-L8283:  sty     $71
+        bne     @nextchar
+@not_print:
+        cmp     #'0'
+        bcc     @punctuation
+        cmp     #'<'
+        bcc     @nextchar
+@punctuation:
+        ; PETSCII characters less than '0', i.e. punctuation characters like @#?,.
+        sty     $71
 ; **** this is the same code as BASIC ROM $A579-$A5AD (end) ****
 
         stx     TXTPTR
@@ -238,78 +243,92 @@ L8283:  sty     $71
         sty     $22
         ldy     #>(new_basic_keywords - 1)
         sty     $23
-L828F:  ldy     #0
+@zero_token:
+        ldy     #0  ; Start at token 0
         sty     $0B
         dex
-L8294:  inx
+@incptr_cmpchar:
+        inx
         inc     $22
-        bne     L829B
+        bne     @cmpchar
         inc     $23
-L829B:  lda     $0200,x
+@cmpchar:
+        lda     $0200,x
         sec
         sbc     ($22),y
-        beq     L8294
+        beq     @incptr_cmpchar
         cmp     #$80
-        bne     L82E2
+        bne     @char_nomatch
         ldy     $23
-        cpy     #$A9
-        bcs     L82B2
+        cpy     #$A9   ; $22/$23 pointing to original token table?
+        bcs     :+
         lda     $0B
-        adc     #$CC
+        adc     #$CC   ; Final Cartridge III tokens start at $CC
         .byte   $2C
-L82B2:  ora     $0B
-L82B4:  ldy     $71
-
+:       ora     $0B
+@maybe_skip:
+        ldy     $71
 ; **** this is the same code as BASIC ROM $A5C9-$A5F8 (start) ****
-L82B6:  inx
-        iny
-        sta     $01FB,y
-        lda     $01FB,y
-        beq     L830B
-        sec
-        sbc     #$3A
-        beq     L82C9
-        cmp     #$49
-        bne     L82CB
-L82C9:  sta     $0F
-L82CB:  sec
-        sbc     #$55
-        bne     L8259
-        sta     $08
-L82D2:  lda     $0200,x
-        beq     L82B6
-        cmp     $08
-        beq     L82B6
-L82DB:  iny
-        sta     $01FB,y
+@nextchar:
         inx
-        bne     L82D2
-L82E2:  ldx     TXTPTR
-        inc     $0B
+        iny
+        sta     $0200 - 5,y
+        lda     $0200 - 5,y
+        beq     @done
+        sec
+        sbc     #':'      ; Is it a ":" ?
+        beq     @colon_or_data
+        cmp     #$83-':'  ; Is it a DATA token?
+        bne     @nor_colon_nor_data
+@colon_or_data:
+        sta     $0F
+@nor_colon_nor_data:
+        sec
+        sbc     #$8f-':'  ; Is it a REM token ?
+        bne     @loadchar
+        ; REM token, no further tokenizaton until end of line
+        sta     $08
+@loadskip:
+        lda     $0200,x
+        beq     @nextchar
+        cmp     $08       ; Value in $08 = char that stops skipping
+        beq     @nextchar
+@skip_til_end:
+        iny
+        sta     $0200 - 5,y
+        inx
+        bne     @loadskip
+@char_nomatch:
+        ldx     TXTPTR
+        inc     $0B   ; increase token
 ; **** this is the same code as BASIC ROM $A5C9-$A5F8 (end) ****
 
-L82E6:  lda     ($22),y
+        ; Move the token pointer to the next token
+@tokenptr_nexttoken:
+        lda     ($22),y ; Load current char of token
         php
-        inc     $22
-        bne     L82EF
-        inc     $23
-L82EF:  plp
-        bpl     L82E6
+        inc     $22     ; Inc token pointer low byte
+        bne     :+
+        inc     $23     ; Inc token pointer high byte
+:       plp
+        bpl     @tokenptr_nexttoken
         lda     ($22),y
-        bne     L829B
-        lda     $23
+        bne     @cmpchar
+        ; End of token table
+        lda     $23     ; $22/$23 pointing to original token table?
         cmp     #$A9
-        bcs     L8306
+        bcs     @get_next_char
         lda     #>(basic_keywords - 1)
         sta     $23
         lda     #<(basic_keywords - 1)
         sta     $22
-        bne     L828F ; always
+        bne     @zero_token ; always
 
 ; **** this is the same code as BASIC ROM $A604-$A612 (start) ****
-L8306:  lda     $0200,x
-        bpl     L82B4
-L830B:  sta     $01FD,y
+@get_next_char:
+        lda     $0200,x
+        bpl     @maybe_skip
+@done:  sta     $01FD,y
         dec     TXTPTR + 1
         lda     #$FF
         sta     TXTPTR
