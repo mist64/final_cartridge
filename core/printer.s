@@ -230,7 +230,7 @@ LA19B:  rts
 
 new_bsout:
         jsr     new_bsout2
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 new_bsout2:
         pha
@@ -256,11 +256,11 @@ LA1C0:  lda     $95
 
 new_clall:
         jsr     new_clall2
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 new_clrch:
         jsr     new_clrch2
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 new_clall2:
         lda     #0

@@ -69,7 +69,7 @@ L926A:  cmp     #CR ; CTRL + CR: print screen
 
 L927C:  jmp     _evaluate_modifier
 
-L927F:  jmp     _disable_rom
+L927F:  jmp     _disable_fc3rom
 
 L9282:  cmp     #$11 ; DOWN
         beq     L92DD

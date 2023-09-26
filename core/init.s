@@ -26,9 +26,14 @@ LBFFA           := $BFFA
 
 .segment "basic_init"
 
-; ??? unused?
+;
+; This is called from the freezer to perform the PSET command
+;
+
+.export pset
+pset:
         jsr     set_io_vectors_with_hidden_rom
-        lda     #$43 ; bank 2
+        lda     #$43 ; bank 3
         jmp     _jmp_bank
 
 init_load_and_basic_vectors:
@@ -82,22 +87,28 @@ L805A:  sta     $02,y
         jsr     init_load_and_basic_vectors
         cli
         pla ; $ D
-        tax
+        tax     ; X = $DC01 value
         pla
-        cpx     #$7F ; $DC01 value
+        cpx     #$7F ; runstop pressed?
         beq     L80C4 ; 1988-13 changes this to "bne" to start into BASIC
-        cpx     #$DF
+        cpx     #$DF ; C= pressed?
         beq     go_desktop
-        and     #$7F
-        beq     go_desktop
+        ; This determines which is default at power-on: Desktop or BASIC
+        and     #$7F     ; Was the VIC-II not initialized at reset??
+        beq     go_desktop ; Boot DESKTOP by default
+        ; If the VIC-II was initalized... check wether the desktop signature
+        ; is in memory, if yes, boot into desktop.
         ldy     #mg87_signature_end - mg87_signature - 1
-L809D:  lda     $CFFC,y
+:       lda     $CFFC,y
         cmp     mg87_signature,y
-        bne     L80AA
+        bne     go_basic
         dey
-        bpl     L809D
+        bpl     :-
         bmi     go_desktop ; MG87 found
-L80AA:  jmp     ($A000)
+L80AA:  ; Note we are still into 16K cartridge mode. This boots into BASIC thanks to
+        ; the basic_vectors segment in basic.s, which is located at $A000 in cartridge
+        ; ROM.
+        jmp     ($A000) ; Boot into BASIC
 
 mg87_signature:
         .byte   "MG87"
@@ -126,7 +137,7 @@ go_basic:
         pha
         lda     #<($E397 - 1) ; BASIC start
         pha
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 load_save_vectors:
         .addr   _new_load       ; $0330 LOAD
@@ -157,7 +168,7 @@ L80FE:  lda     load_save_vectors,y ; overwrite LOAD and SAVE vectors
         sta     $0330,y
         dey
         bpl     L80FE
-        lda     $02A6
+        lda     $02A6  ; PAL or NTSC?
         beq     L810F
-        inc     $0330
+        inc     $0330  ; For PAL machines, $0330/$0331 points to $DE21.
 L810F:  rts
