@@ -129,16 +129,17 @@ receive_4_bytes:
 
 ; *** tape
 L99B5:  tax
-        beq     L99C3
+        beq     @1     ; LOAD? Then do not install stack code.
         ldx     #$16
 :       lda     L9A50,x
         sta     L0110,x
         dex
         bpl     :-
-L99C3:  jmp     LA851
+@1:     jmp     tape_load_code
 ; *** tape
 
-L99C6:  jmp     $F530 ; IEC LOAD - used in the error case
+iec_load:
+        jmp     $F530 ; IEC LOAD - used in the error case
 
 L99C9:  pla
         pla
@@ -167,9 +168,9 @@ new_load2:
         cpy     #7
         beq     L99B5 ; tape turbo
         cpy     #8
-        bcc     L99C9
+        bcc     iec_load
         cpy     #10
-        bcs     L99C9
+        bcs     iec_load
         tay
         lda     $B7
         beq     L99C9
@@ -192,7 +193,7 @@ new_load2:
         lda     ST
         lsr     a
         lsr     a
-        bcs     L99C6
+        bcs     iec_load
         jsr     $EE13 ; IECIN
         sta     $AF
         txa
@@ -238,20 +239,20 @@ L9A50:  lda     #$0C
 
 L9A67:  jmp     $F636 ; LDA #0 : SEC : RTS
 
-L9A6A:  jmp     $F5ED ; default SAVE vector
-
-L9A6D:  jmp     $A7C6 ; interpreter loop
+original_save:
+        jmp     $F5ED ; execute original SAVE routine
 
 new_save2:
         lda     FA
         cmp     #7
-        beq     L9A6D ; tape turbo
-        cmp     #8
-        bcc     L9A6A ; not a drive
+        bne     @1
+        jmp     new_save_tape ; tape turbo
+@1:     cmp     #8 ; if <8 then not a drive
+        bcc     original_save
         cmp     #10
-        bcs     L9A6A ; not a drive (XXX why only support drives 8 and 9?)
-        ldy     $B7
-        beq     L9A6A
+        bcs     original_save ; not a drive (XXX why only support drives 8 and 9?)
+        ldy     $B7   ; length of filename
+        beq     original_save
         lda     #$61
         sta     SA
         jsr     LA71B
@@ -271,15 +272,15 @@ L9AA3:  jsr     L9AD0
         lda     $C1
         jsr     L9AC7
         lda     $C2
-        jsr     L9AC7
-L9AB0:  lda     #$35
+        jsr     send_byte_and_increment
+@3:     lda     #$35
         jsr     _load_ac_indy
-        jsr     L9AC7
-        bne     L9AB0
+        jsr     send_byte_and_increment
+        bne     @3
         lda     $A4
         bmi     L9AC4
         jsr     L9AD0
-        jmp     L9AB0
+        jmp     @3
 
 L9AC4:  cli
         clc
@@ -1110,26 +1111,35 @@ LA734:  jsr     _load_FNADR_indy
         bne     LA734
         jmp     $F654 ; UNLISTEN
 
-LA742:  jsr     $F82E ; cassette sense
-        beq     LA764
-        ldy     #$1B
-LA749:  jsr     LA7B3
-LA74C:  bit     $DC01
-        bpl     LA766
-        jsr     $F82E ; cassette sense
-        bne     LA74C
-        ldy     #$6A
-        jmp     LA7B3
 
-LA75B:  jsr     $F82E ; cassette sense
-        beq     LA764
-        ldy     #$2E
-LA762: ; ???
+tape_wait_play:
+         ; if already pressed, no need to display messages
+        jsr     $F82E ; cassette sense
+        beq     rts_carry_clear
+        ldy     #$1B  ; print PRESS PLAY ON TAPE
+LA749:  jsr     LA7B3 ; print
+        ; Wait for key on tape, but allow run/stop to abort.
+        ; Run/stop is column 7, row 7
+        ; $DC00 = $7f, = row 7 selected. Therefore test bit 7 of $DC01:
+:       bit     $DC01
+        bpl     rts_carry_set
+        jsr     $F82E ; cassette sense
+        bne     :-
+        ldy     #$6A  ; Offset to OK
+        jmp     LA7B3 ; print OK
+
+tape_wait_record:
+        jsr     $F82E ; cassette sense
+        beq     rts_carry_clear
+        ldy     #$2E  ; print PRESS RECORD & PLAY ON TAPE
         bne     LA749
-LA764:  clc
+
+rts_carry_clear:
+        clc
         rts
 
-LA766:  sec
+rts_carry_set:
+        sec
         rts
 
 print_found:
@@ -1193,7 +1203,7 @@ LA7C4:  clc
 
 .segment "tape"
 
-; ??? unused?
+new_save_tape:
         ldx     #load_ac_indy_end - load_ac_indy - 1
 :       lda     load_ac_indy,x
         sta     L0110,x
@@ -1202,7 +1212,7 @@ LA7C4:  clc
         ldx     #5
         stx     $AB
         jsr     $FB8E ; copy I/O start address to buffer address
-        jsr     LA75B
+        jsr     tape_wait_record
         bcc     :+
         lda     #0
         jmp     _disable_fc3rom
@@ -1260,15 +1270,16 @@ LA841:  lda     $D7
         jsr     LA912
         jmp     _disable_fc3rom
 
-LA851:  jsr     LA8C9
+tape_load_code:
+        jsr     LA8C9
         lda     $AB
         cmp     #2
-        beq     LA862
+        beq     :+
         cmp     #1
-        bne     LA851
+        bne     tape_load_code
         lda     SA
         beq     LA86C ; "LOAD"[...]",n,0" -> skip load address
-LA862:  lda     $033C
+:       lda     $033C
         sta     $C3
         lda     $033D
         sta     $C4
@@ -1285,7 +1296,7 @@ LA86C:  jsr     print_found
 LA880:  dey
         jsr     _load_FNADR_indy
         cmp     $0341,y
-        bne     LA851
+        bne     tape_load_code
         tya
         bne     LA880
 LA88C:  sty     ST
@@ -1324,7 +1335,7 @@ LA8C9:  jsr     LA92B
         cmp     #0 ; XXX not needed
         beq     LA8C9
         sta     $AB
-LA8D4:  jsr     LA96E
+LA8D4:  jsr     tape_read_byte
         lda     $BD
         sta     ($B2),y
         iny
@@ -1334,7 +1345,7 @@ LA8D4:  jsr     LA96E
 LA8E2:  jmp     L0110
 
 LA8E5:  jsr     LA92B
-LA8E8:  jsr     LA96E
+LA8E8:  jsr     tape_read_byte
         cpy     $93
         bne     LA8E2
         lda     #$0B
@@ -1354,7 +1365,7 @@ LA905:  lda     $C3
         lda     $C4
         sbc     $AF
         bcc     LA8E8
-        jsr     LA96E
+        jsr     tape_read_byte
 LA912:  iny
 LA913:  sty     $C0
         lda     #0
@@ -1369,7 +1380,7 @@ LA913:  sty     $C0
         clc
         rts
 
-LA92B:  jsr     LA742
+LA92B:  jsr     tape_wait_play
         bcc     LA939
         pla
         pla
@@ -1391,7 +1402,7 @@ LA945:  jsr     LA97E
         cmp     #$F2
         bne     LA945
 LA954:  ldy     #9
-LA956:  jsr     LA96E
+LA956:  jsr     tape_read_byte
         lda     $BD
         cmp     #2
         beq     LA956
@@ -1399,19 +1410,20 @@ LA956:  jsr     LA96E
         beq     LA956
 LA963:  cpy     $BD
         bne     LA945
-        jsr     LA96E
+        jsr     tape_read_byte
         dey
         bne     LA963
         rts
 
-LA96E:  lda     #8
+tape_read_byte:
+        lda     #8
         sta     $A3
-LA972:  jsr     LA97E
+:       jsr     LA97E
         rol     $BD
         nop
         nop
         dec     $A3
-        bne     LA972
+        bne     :-
         rts
 
 LA97E:  lda     #$10
