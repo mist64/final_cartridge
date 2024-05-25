@@ -168,9 +168,9 @@ new_load2:
         cpy     #7
         beq     L99B5 ; tape turbo
         cpy     #8
-        bcc     iec_load
+        bcc     L99C9
         cpy     #10
-        bcs     iec_load
+        bcs     L99C9
         tay
         lda     $B7
         beq     L99C9
@@ -242,11 +242,13 @@ L9A67:  jmp     $F636 ; LDA #0 : SEC : RTS
 original_save:
         jmp     $F5ED ; execute original SAVE routine
 
+turbotape_save:
+        jmp new_save_tape ; tape turbo
+
 new_save2:
         lda     FA
         cmp     #7
-        bne     @1
-        jmp     new_save_tape ; tape turbo
+        beq     turbotape_save
 @1:     cmp     #8 ; if <8 then not a drive
         bcc     original_save
         cmp     #10
@@ -270,7 +272,7 @@ new_save2:
         dec     $AD
 L9AA3:  jsr     L9AD0
         lda     $C1
-        jsr     L9AC7
+        jsr     send_byte_and_increment
         lda     $C2
         jsr     send_byte_and_increment
 @3:     lda     #$35
@@ -286,7 +288,8 @@ L9AC4:  cli
         clc
         rts
 
-L9AC7:  jsr     send_byte
+send_byte_and_increment:
+        jsr     send_byte
         jsr     $FCDB ; inc $AC/$AD
         dec     $93
         rts
