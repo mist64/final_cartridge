@@ -1,3 +1,5 @@
+Note: The master branch contains source code for the original Final Cartridge III. The Final Cartridge III 101% source code can be found in the development branch.
+
 # Final Cartridge
 
 This project is the reverse-engineered and documented Commodore 64 cc65/ca65/cl65 assembly source code of the first bank of the "*Final Cartridge III*".
