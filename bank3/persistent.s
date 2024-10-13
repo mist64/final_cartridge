@@ -1,8 +1,12 @@
-;****************************
-;  JC64dis version 2.5
-;  
-;  Source in CA65 format
-;****************************
+; ----------------------------------------------------------------
+; I/O Area ROM
+; ----------------------------------------------------------------
+; This is a max. 512 byte section that lives at $1E00-$1FFF of
+; bank 0 of the ROM, and will also be mapped into the I/O extension
+; area at $DE00-$DFFF, so it's always visible.
+
+; It contains soms trampolines to be able to switch from/to Ultimax
+; mode for the freezer and contains the autofire code for the joystick
 
       .setcpu "6502x"
 

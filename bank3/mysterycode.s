@@ -1,7 +1,7 @@
 ;****************************
-;  JC64dis version 2.5
+;  This code is not fully understood yet
 ;  
-;  Source in CA65 format
+;  Its purpose seems to be reading and writing the directory.
 ;****************************
 
       .setcpu "6502x"

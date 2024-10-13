@@ -1,8 +1,14 @@
-;****************************
-;  JC64dis version 2.5
-;  
-;  Source in CA65 format
-;****************************
+;*****************************************************************************
+;  Final Cartridge III reconstructed source code
+;
+;  The NMI interruprs handler that is executed in Ultimax mode, switches
+;  back to 16K mode and then calls freezer_init in this file. Here the actual
+;  freezing is done, then the routine to display the menu is called. The
+;  menu code is not inside this file.
+;
+;  After the user has made a selction from the file menu, control is returned
+;  to this file and a jump is made to the routine that executes the command.
+;*****************************************************************************
 
       .setcpu "6502x"
 
