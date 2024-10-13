@@ -3,7 +3,7 @@
 ; ----------------------------------------------------------------
 ; This speeds up LOAD and SAVE on both disk and tape
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 .global new_load

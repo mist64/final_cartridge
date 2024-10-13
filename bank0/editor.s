@@ -9,7 +9,7 @@
 ; * auto-scrolling of BASIC programs: when the screen scrolls
 ;   either direction, a new BASIC line is LISTed
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from basic

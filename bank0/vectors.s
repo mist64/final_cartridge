@@ -4,7 +4,7 @@
 ; This is put right after the cartridge's "cbm80" header and
 ; contains jump table, which is mostly used from other banks.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from init

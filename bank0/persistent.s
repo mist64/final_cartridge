@@ -7,8 +7,8 @@
 ; It mostly contains wrappers around BASIC, KERNAL or cartridge
 ; functions that switch the ROM config in addition.
 
-.include "kernal.i"
-.include "fc3ioreg.i"
+.include "../core/kernal.i"
+.include "../core/fc3ioreg.i"
 
 ; from printer
 .import new_clrch

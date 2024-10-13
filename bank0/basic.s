@@ -31,7 +31,7 @@
 ; "UNPACK" Command  - decompress a program
 ; "PACK" Command    - compress a program
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from monitor

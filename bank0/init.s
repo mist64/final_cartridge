@@ -2,7 +2,7 @@
 ; BASIC Extension and Speeder Initialization
 ; ----------------------------------------------------------------
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from basic

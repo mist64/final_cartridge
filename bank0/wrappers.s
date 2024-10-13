@@ -4,7 +4,7 @@
 ; This has no imports, and the only consumer is the BASIC
 ; extension.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 

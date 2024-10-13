@@ -3,7 +3,7 @@
 ; ----------------------------------------------------------------
 ; The BASIC extension and fast format call into this.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 
 ; from wrapper
 .import disable_rom_jmp_error

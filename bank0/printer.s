@@ -4,7 +4,7 @@
 ; This hooks CKOUT, BSOUT, CLRCH and CLALL to support Centronics
 ; and RS-232 printers as device #4.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 .global set_io_vectors_with_hidden_rom

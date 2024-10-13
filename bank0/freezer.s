@@ -10,7 +10,7 @@
 ; jumps to a different bank.
 
 .include "persistent.i"
-.include "fc3ioreg.i"
+.include "../core/fc3ioreg.i"
 
 .segment "freezer"
 

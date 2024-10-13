@@ -37,7 +37,7 @@
 ; * "OD" switches all memory dumps/input to the drive's memory.
 ; * "B" command to introspect cartridge ROM
 
-.include "kernal.i"
+.include "../core/kernal.i"
 
 .ifdef CART_FC3
 .include "persistent.i"

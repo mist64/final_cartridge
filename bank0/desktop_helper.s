@@ -5,7 +5,7 @@
 ; this library code using cross-bank calls. It also calls this to
 ; start a program in BASIC mode.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from basic
