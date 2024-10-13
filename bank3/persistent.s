@@ -179,7 +179,7 @@ autofire_ldx_dc00:
 .global autofire_lda_dc00
 autofire_lda_dc00:
       lda  $DC00                        ; Data port A #1: keyboard, joystick, paddle, optical pencil
-      jmp  WDF57
+      jmp  autofire_chkbutton
 
 .global autofire_lda_dc01
 autofire_lda_dc01:
@@ -199,8 +199,8 @@ autofire_lda_dc01:
       lda  $DC01                        ; Data port B #1: keyboard, joystick, paddle
       rts
 
-      lda  $0122                        ; CPU stack/Tape error
-WDF57:
+      lda  $0122
+autofire_chkbutton:
       pha
       and  #$10                         ; Fire button pressed?
       beq  autofire_button_pressed
