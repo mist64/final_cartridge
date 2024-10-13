@@ -520,7 +520,7 @@ W534E:
 
 routine5:
       jsr  routine20
-      jsr  $55BD                       ; !!!!
+      jsr  routine39
       bit  $3C
       bpl  W986E
       bit  $36
@@ -843,6 +843,7 @@ routine14:
       lda  #$7C
       ora  #$80
       bne  :+
+routine39:
       ldy  #$00
       lda  #$80
 :     sty  $C3
