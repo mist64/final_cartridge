@@ -25,18 +25,18 @@ init_load_and_basic_vectors = $8021
 freezer_goto_monitor:
       ldx  #$FF
       txs
-      jsr  $FDA3
-      jsr  $FD15                        ; Routine RESTOR of KERNAL
+      jsr  IOINIT_direct
+      jsr  RESTOR_direct
       lda  #$00
       tay
 :     sta  $0002,y                      ; Clear zeropage
       sta  $0200,y                      ; Clear $02xx
       iny
       bne  :-
-      ldx  #$00
-      ldy  #$A0
-      jsr  $FD8D
-      jsr  $FF5B                        ; Routine CINT of KERNAL
+      ldx  #<$A000
+      ldy  #>$A000
+      jsr  $FD8D                        ; Set top, bottom of memory and screen base
+      jsr  CINT_direct
       jsr  $E453                        ; Routine: Set BASIC vectors (case 0x300..case 0x309)
       jsr  $E3BF                        ; Routine: Set USR instruction and memory for BASIC
       lda  #>(monitor-1)
