@@ -3,14 +3,15 @@
 .import __MAIN_LAST__
 
 .include "../../core/kernal.i"
-      
+
 ;
-; This is the loader that loads and continues a Final Cartridge III tape
-; backup. After the loader, a file is stored on tape that stores the
+; This is the loader that loads and continues a Final Cartridge III disk
+; backup. It is stored in the "FC" file along with the contents of memory
+; til $0402. Most data is stored in a file "-FC" that stores the
 ; memory contents from $0403 to $fffd. This file is RLE compressed and
 ; needs decompression.
 ;.
-; Zeropage, stack, $0200..0403 and colour RAM is included in the loader
+; Zeropage, stack, $0200..0402 and colour RAM is included in the loader
 ; and starts right after code end.
 ;
 
