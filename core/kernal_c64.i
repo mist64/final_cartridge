@@ -9,6 +9,10 @@ LF0BD  := $F0BD ; string "I/O ERROR"
 LF333  := $F333 ; default contents of CLRCHN vector
 LF646  := $F646 ; IEC close
 
+IOINIT_direct   := $FDA3
+RESTOR_direct   := $FD15
+CINT_direct     := $FF5B
+
 ICLRCH := $0322 ; CLRCHN vector
 IBSOUT := $0326 ; CHROUT vector
 
