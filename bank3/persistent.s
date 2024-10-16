@@ -120,6 +120,8 @@ freezer_redirirq_menu:
 ; Go to ultimax mode, execute $fbe4 and return to 16K mode
 ;
 
+.global ultimax_fbe4
+ultimax_fbe4:
       jsr  ultimax_bank3_rts
       jsr  $FBE4
       jmp  bank3_16kmode
@@ -128,6 +130,8 @@ freezer_redirirq_menu:
 ; Go to ultimax mode, execute $fb98 and return to 16K mode
 ;
 
+.global ultimax_fb98
+ultimax_fb98:
       jsr  ultimax_bank3_rts
       jsr  $FB98
       jmp  bank3_16kmode

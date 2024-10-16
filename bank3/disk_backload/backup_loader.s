@@ -61,24 +61,24 @@ start:
 
       ; Initialize all SID voices
       ldx  #14                          ; Start with voice 3, iterate down
-:     lda  #$80                         
+:     lda  #$80
       sta  $D402,x                      ; Pulse width low byte
       sta  $D403,x                      ; Pulse width high byte
       lda  #$21                         ; Sawtooth + voice on
       sta  $D404,x                      ; Voice control register
-      lda  #$08                         
+      lda  #$08
       sta  $D405,x                      ; Attack/Decay
-      lda  #$80                         
+      lda  #$80
       sta  $D406,x                      ; Sustain/Release
       txa
       sec
-      sbc  #$07                         ; Subtract 7 for next voice                         
+      sbc  #$07                         ; Subtract 7 for next voice
       tax
       bpl  :-
 
-      lda  #$8F                         
+      lda  #$8F
       sta  $D418                        ; Select volume and filter mode
-      ldx  #$00                         
+      ldx  #$00
       stx  $DC0E                        ; Control register A of CIA #1
 
       ;
@@ -114,7 +114,7 @@ start:
       bpl  :-
 
       lda  #$0B                         ; Disable screen
-      sta  $D011                          ; $93 contains the backed up stack pointer
+      sta  $D011                        ; $93 contains the backed up stack pointer
       ldx  $93
       txs
 
@@ -139,11 +139,11 @@ start:
       inx
       bne  :-
 
-	  ; Open the second (main) file of the backup
+      ; Open the second (main) file of the backup
       jsr  open_second_file
 
       jsr  UNTALK
-      
+
       ; Upload the drive code and execute it
       jsr  upload_drivecode
       lda  #<drivecode_entry
@@ -155,7 +155,7 @@ start:
       ; Install lowcode in page $0200
       sei
 :     lda  __LOWCODE_LOAD__,y
-      sta  $0200,y                      ; INPUT buffer of BASIC
+      sta  $0200,y
       iny
       bne  :-
 
@@ -258,7 +258,7 @@ drivecode_entry:
       ; 1. By writing the $e0 command into the job queue, the 1541 preares for reading a sector
       ; (moving the head etc.) and tnen executes the program in the buffer.
       ; Code will start executing at jobqueue_entry
-      
+
 @1:   lda  #$E0
       sta  $01
 :     lda  $01

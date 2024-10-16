@@ -547,7 +547,7 @@ W988B:
       sta  $06
       jsr  routine10
 @4:   jsr  routine13
-      jsr  $55F9
+      jsr  routine37
       bne  :+
       jsr  routine23
 :     inx
@@ -627,7 +627,7 @@ W9905:
 
 routine6:
       jsr  routine20
-      jsr  $55B5
+      jsr  routine40
       ldy  #$00
       bit  $3C
       bpl  :+
@@ -839,6 +839,7 @@ routine14:
 @2:   sec
 @rts: rts
 
+routine40:
       ldy  #$60
       lda  #$7C
       ora  #$80
@@ -1129,7 +1130,7 @@ routine28:
 W9C8A:
       pla 
       pla
-      jmp  $584D  ;!!!!
+      jmp  W984D
 
 W9C8F:
       lda  #'C'
