@@ -1130,7 +1130,7 @@ routine28:
 W9C8A:
       pla 
       pla
-      jmp  W984D
+      jmp  W9D4D
 
 W9C8F:
       lda  #'C'
