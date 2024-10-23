@@ -10,7 +10,7 @@
 .include "../core/fc3ioreg.i"
 .include "persistent.i"
 
-.import load_ae_rom_hidden,store_a_ff_to_ae,fill_loop
+.import store_a_ff_to_ae,fill_loop
 .import __diredit_cmds_LOAD__,__diredit_cmds_RUN__,__diredit_cmds_SIZE__
 .import W9200
 .import not_last_sector
@@ -46,7 +46,7 @@ W9173:
       jmp  W9200
 W918C:
 :     ldy  #$02
-      jsr  load_ae_rom_hidden
+      jsr  _load_ae_rom_hidden
       bpl  @2
       lda  #$05
       ora  $AE
@@ -54,7 +54,7 @@ W918C:
       ldy  #$00
 :     lda  ($C3),y
       beq  :+
-      jsr  load_ae_rom_hidden
+      jsr  _load_ae_rom_hidden
       cmp  ($C3),y
       bne  @2
       iny
@@ -63,7 +63,7 @@ W918C:
       beq  @1
 :     cpy  #$10
       beq  :+
-      jsr  load_ae_rom_hidden
+      jsr  _load_ae_rom_hidden
       cmp  #$A0
       bne  @2
 :     iny
@@ -78,7 +78,7 @@ W918C:
       iny
       sta  ($C1),y
       iny
-:     jsr  load_ae_rom_hidden
+:     jsr  _load_ae_rom_hidden
       sta  ($C1),y
       iny
       cpy  #$20

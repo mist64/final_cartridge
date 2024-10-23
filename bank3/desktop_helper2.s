@@ -95,7 +95,7 @@ directory_read_complete:
       lda  #>$A000
       sta  $AF
       ldy  #$02                         ; Get file type
-@1:   jsr  load_ae_rom_hidden
+@1:   jsr  _load_ae_rom_hidden
       bpl  :+                           ; If slot not in use, skip.
       inc  $0200                        ; Count a dir entry.
 :     jsr  next_dir_entry
@@ -118,7 +118,7 @@ next_file:
       dec  $0200
 process_dir_entry:
       ldy  #$02                         ; Get file type
-      jsr  load_ae_rom_hidden
+      jsr  _load_ae_rom_hidden
       bpl  entry_not_found
       ; Adjust pointer to file name
       lda  #$05
@@ -128,7 +128,7 @@ process_dir_entry:
       ldy  #$00
 :     lda  ($C3),y
       beq  :+
-      jsr  load_ae_rom_hidden
+      jsr  _load_ae_rom_hidden
       cmp  ($C3),y
       bne  entry_not_found              ; File name not equal
       iny
@@ -137,7 +137,7 @@ process_dir_entry:
       beq  no_space_left
 :     cpy  #$10
       beq  :+
-      jsr  load_ae_rom_hidden
+      jsr  _load_ae_rom_hidden
       cmp  #$A0                         ; First character beyond file name must be white space ($A0)
       bne  entry_not_found
 :     ; We found the file name in the directory
@@ -154,7 +154,7 @@ process_dir_entry:
       iny
       sta  ($C1),y
       iny
-:     jsr  load_ae_rom_hidden
+:     jsr  _load_ae_rom_hidden
       sta  ($C1),y
       iny
       cpy  #$20
@@ -309,7 +309,7 @@ send_256byte_to_channel_2:
       lda  #$62
       jsr  listen_second
       ldy  #$00
-:     jsr  load_ae_rom_hidden
+:     jsr  _load_ae_rom_hidden
       jsr  IECOUT
       iny
       bne  :-

@@ -1,4 +1,4 @@
-; ----------------------------------------------------------------
+; --------ø--------------------------------------------------------
 ; I/O Area ROM
 ; ----------------------------------------------------------------
 ; This is a max. 512 byte section that lives at $1E00-$1FFF of
@@ -15,6 +15,8 @@
 
 .import freezer_init
 .import freezer_exec_menu
+.import freezer_update_spritepointers
+.import show_view_menu
 ;.import freezer_exec_bank
 
 .segment "romio1l"
@@ -69,8 +71,8 @@ _disable_fc3rom: ; $DE0F
 ; Do an "lda($AE),y" with ROMs disabled and interrupts off
 ;
 
-.global load_ae_rom_hidden
-load_ae_rom_hidden: ; $de20
+.global _load_ae_rom_hidden
+_load_ae_rom_hidden: ; $de20
         sei
         lda  #$35
         sta  $01
@@ -84,10 +86,11 @@ load_ae_rom_hidden: ; $de20
 
 .segment "romio1h"
 
-freezer_upd_sprptr_16k:
+.global _freezer_upd_sprptr_16k
+_freezer_upd_sprptr_16k:
       lda  #fcio_bank_3|fcio_c64_16kcrtmode
       sta  fcio_reg
-      jsr  $BC40                        ; jump into bank 3
+      jsr  freezer_update_spritepointers  ; jump into bank 3
 ultimax_bank3_rts:
       lda  #fcio_bank_3|fcio_c64_ultimaxmode
       sta  fcio_reg
@@ -109,10 +112,10 @@ bank3_16kmode:
 ;
 ; Go to 16k mode, execute $bc5b and return to ultimax mode
 ;
-
-freezer_redirirq_menu:
+.global _show_view_menu
+_show_view_menu:
       jsr  bank3_16kmode
-      jsr  $BC5B
+      jsr  show_view_menu
       jsr  ultimax_bank3_rts
       jmp  freezer_exec_menu
 
@@ -130,8 +133,8 @@ ultimax_fbe4:
 ; Go to ultimax mode, execute $fb98 and return to 16K mode
 ;
 
-.global ultimax_fb98
-ultimax_fb98:
+.global ultimax_highlight_selected_menu
+ultimax_highlight_selected_menu:
       jsr  ultimax_bank3_rts
       jsr  $FB98
       jmp  bank3_16kmode
@@ -244,6 +247,7 @@ freezer_set_c64and_fc3_rts:
 
       .segment "romio2h"
 
+.global t_freezer_init
 t_freezer_init:
       stx  fcio_reg
       sta  $DD0D                        ; Interrupt control register CIA #2

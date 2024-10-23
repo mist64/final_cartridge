@@ -16,7 +16,6 @@
 .include "../core/fc3ioreg.i"
 .include "persistent.i"
 
-.import load_ae_rom_hidden
 .import _jmp_bank,_enable_fcbank0,_disable_fc3rom_set_01
 .import freezer_set_c64and_fc3_rts
 .import freezer_ultimax_exec_menu
