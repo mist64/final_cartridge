@@ -48,7 +48,7 @@ tmpvar1:            .res 1
 tmpptr_a:           .res 2
 tmpvar2:            .res 1
 spritexy_backup:    .res 8 ; Backup sprite 2..5 x/y coord ($D004..$D00B)
-viciireg_backup:    .res 25
+viciireg_backup:    .res 25 ; VIC-II registers from $D010
 spritecol_backup:   .res 4
 spriteptr_backup:   .res 4
 colram_backup:      .res 16 ; Back for last 16 bytes of 1st line of colour RAM
@@ -503,7 +503,7 @@ freezer_init:
       tya
       tax
 
-      ; This is a routine that is executed after a backed has been loaded and this routine
+      ; This is a routine that is executed after a backup has been loaded and this routine
       ; will finalize the loading. Since temp variables at $A6 are no longer needed, this
       ; routine can now be installed.
       ldy  #freezer_restore_0300_size-1
@@ -542,9 +542,9 @@ freezer_init:
       beq  freezer_jmp_joyswap
       dex
       beq  freezer_jmp_autofire
-      dex
-      dex
-      dex
+      dex  ; color menu handled inside menu; no further action
+      dex  ; color menu handled inside menu; no further action
+      dex  ; color menu handled inside menu; no further action
       dex
       beq  freezer_settings
       dex
@@ -799,7 +799,7 @@ freezer_find_memory:
       bcs  @screen_ok
       lda  #$01                         ; Use stack as last resort
 @screen_ok:
-      sta  $03                          ; Jump Vector: real-integer conversion
+      sta  $03
       ldy  #0
       sty  $02                          ; Low byte to zero
       tya

@@ -11,3 +11,4 @@
 .import ultimax_fbe4
 .import ultimax_highlight_selected_menu
 .import _freezer_upd_sprptr_16k
+.import _show_view_menu

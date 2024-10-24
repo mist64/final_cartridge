@@ -7,6 +7,10 @@
       .setcpu "6502x"
 
 .include "persistent.i"
+.include "../core/fc3ioreg.i"
+
+.import ciareg_backup
+.import viciireg_backup
 
       .macro MonoSpriteLine tribyte 
         .byte tribyte >> 16, ( tribyte >> 8) & 255,  tribyte & 255
@@ -835,7 +839,7 @@ freezer_exec_menu:
       lda  #$80
       sta  $DC0E                        ; Initialize timer A
       sta  $DC0F                        ; Initialize timer B
-      lda  #$7B                         ; Switch the VIC-II to illegal multi-color bitmap mode
+      lda  #$7B                         ; Switch the VIC-II to illegal bitmap mode 1
       sta  $D011                        ; VIC control register
       lda  $DD00
       and  #$FC                         ; Switch the VIC-II to bank 3
@@ -1042,18 +1046,18 @@ freezer_action1:
       jmp  freezer_action2
       nop
 freezer_action3:
-      ldy  $03
-WFA5C:
+      ldy  $03                         ; Currently open menu
       cpy  #$02
       beq  WFA49
-      lda  WFAF2,y
+      lda  menu_action_offset,y
+      ; An overcomplicated way to compute A:=A+$02 :
       tay
       ldx  $02
 :     iny
       dex
       bpl  :-
       tya
-      jmp  WFBB7
+      jmp  freezer_complete_action
 
 WFA6E:
       dec  $03
@@ -1114,7 +1118,7 @@ unknown1:
       .byte $01, $06, $0C, $12, $18
 WFAEF:
       .byte $1E, $24, $29
-WFAF2:
+menu_action_offset:
       .byte $00, $04, $08, $0B, $0E, $11
 selected_item_wait_iters:
       .byte $1E, $16, $16, $13
@@ -1202,6 +1206,7 @@ WFB67:
 ; Make set the first line of the colour RAM to light_green
 ;
 ; $FB8C
+colram_topline_green_16k = colram_topline_green & $BFFF
 colram_topline_green:
       ldx  #40-1
 :     lda  #13                          ; Light-green
@@ -1231,7 +1236,8 @@ highlight_selected_menu:
       bne  :-
       rts
 
-WFBB7:
+;$FBB7
+freezer_complete_action:
       sei
       pha
       ldy  #$A0
@@ -1252,27 +1258,35 @@ WFBB7:
       ; Disable all sprites
       lda  #$00
       sta  $D015                        ; Sprites Abilitator
-      jmp  $DE9A
+      jmp  _show_view_menu
 :     ldx  #$00
       stx  $D01A                        ; IRQ mask register
       rts
 
+;
+; Draw the menu during raster interrupt
+;
 WFBE4:
       ; Screen RAM and charset at $F800
       ldx  #$EE
       stx  $D018                        ; VIC memory control register
-:     lda  $D012                        ; Reading/Writing IRQ balance value
-      cmp  #$39
+      ; Wait until raster line 58 (first visible line is 51)
+:     lda  $D012
+      cmp  #57
       bcc  :-
+      ; Wait some cycles
       nop
       ldx  #$09
 :     dex
       bne  :-
+      ; Scroll down 1 line
       lda  #$1C
       sta  $D011                        ; VIC control register
+      ; Wait some cycles
       ldx  #$0A
 :     dex
       bne  :-
+      ; Illegal bitmap mode 1, keep the scroll down
       lda  #$7C
       sta  $D011                        ; VIC control register
       rts
@@ -1304,22 +1318,22 @@ freezer_update_spritepointers:
 freezer_spritepointers_base:
       .byte $C5, $C9, $CD, $D1, $D5, $D9
 
-; $BC5F
+; $BC5B
 show_view_menu:
       sei
       lda  $0314
       pha
-      lda  $0315                        ; Vector: Hardware Interrupt (IRQ)
+      lda  $0315
       pha
-      lda  #<freezer_irq_handler2
+      lda  #<view_irq_handler2
       sta  $0314                        ; Vector: Hardware Interrupt (IRQ)
-      lda  #>freezer_irq_handler2
+      lda  #>view_irq_handler2
       sta  $0315                        ; Vector: Hardware Interrupt (IRQ)
-      lda  $9D
+      lda  viciireg_backup + $01        ; $D011 backup
       pha
-      ora  #$03
+      ora  #$03                         ; Reset screen scroll?
       and  #$7B
-      sta  $9D
+      sta  viciireg_backup + $01
       ldx  #4
 :     lda  $AC,x
       sta  $D020,x                      ; Border color
@@ -1356,34 +1370,39 @@ show_view_menu:
 
 WBCBC:
       sei
+      ; Background black
       lda  #$00
-      sta  $D021                        ; Background 0 color
-      lda  #$C8                         ; Set 25 lines
+      sta  $D021
+      ; 25 line mode
+      lda  #$C8
       sta  $D016
       ; Set VIC-II to bank 3
       lda  $DD00
       and  #$FC
       sta  $DD00
       jsr  ultimax_fbe4
-WBCD2:
-      lda  $80
-      sta  $DD00                        ; Data port A #2: serial bus, RS-232, VIC memory
-      lda  $A4
+;WBCD2
+show_frozen_screen:
+      ; Restore VIC-II bank
+      lda  ciareg_backup + $10          ; $DD00 backup
+      sta  $DD00
+      lda  viciireg_backup + $08        ; $D018 backup
       sta  $D018                        ; VIC memory control register
-      lda  $AD
+      lda  viciireg_backup + $11        ; $D021 backup
       sta  $D021                        ; Background 0 color
-      lda  $A2
+      lda  viciireg_backup + $06        ; $D016 backup
       sta  $D016                        ; VIC control register
       nop
       nop
-      inc  $9D
-      lda  $9D
+      inc  viciireg_backup + $01        ; $D011 backup, scroll 1 line down
+      lda  viciireg_backup + $01
       sta  $D011                        ; VIC control register
-      dec  $9D
+      dec  viciireg_backup + $01        ; scroll back up
       lda  $02
-      cmp  #$F0
+      cmp  #$F0                         ; VIC-II line 240?
       bcc  :+
-      lda  $A1                          ; Real time clock HMS (1/60 sec)
+      ; Show original sprites
+      lda  viciireg_backup + $05        ; $D015 backup
       sta  $D015                        ; Sprites Abilitator
 :     rts
 
@@ -1392,7 +1411,7 @@ WBCD2:
 ; the vector at $0314.
 ;
 
-freezer_irq_handler2:
+view_irq_handler2:
       sei                               ; Unnecessary, interrupts are already
                                         ; disabled by the CPU.
       lda  $D012
@@ -1431,11 +1450,11 @@ WBD3F:
       bcc  WBD98                        ; Firebutton pressed
       txa                               ; Left/right status
       beq  WBD55                        ; No change
-      bmi  WBD60                        ; Left
-      jmp  WBD68                        ; Right
+      bmi  view_left                    ; Left
+      jmp  view_right                   ; Right
 
 rline1:
-      ; Switch to normal text mode
+      ; Switch to normal text mode to display menu bar
       lda  #$1B
       sta  $D011
       jmp  WBE22
@@ -1449,14 +1468,14 @@ WBD55:
 WFD5D:
       jmp  WBE0A
 
-WBD60:
+view_left:
       dec  $03                          ; Decrease selected menu
       bpl  WFDB4
       inc  $03                          ; Can't go left of leftmost menu
       beq  WFDB4
-WBD68:
+view_right:
       cpx  #$EF
-      beq  WBD60
+      beq  view_left
       lda  $03
       cmp  #$06
       bcs  WFDEC
@@ -1474,7 +1493,7 @@ stickinactive:
       ldy  $05
       bne  WBD37
       cmp  #$FB                         ; CRSR L/R
-      beq  WBD68
+      beq  view_right
       cmp  #$F7                         ; F7
       bne  WBD37
       sta  $04
@@ -1486,12 +1505,11 @@ WBD98:
       beq  WFDBD
 WFDA2:
       cpx  #$02
-      bne  WFDAC
+      bne  :+
       lda  $9D
       and  #$20
       bne  WFDB7
-WFDAC:
-      dex
+:     dex
       beq  WFDC0
 WFDAF:
       inc  $D020,x                      ; Border color
@@ -1532,7 +1550,6 @@ view_up:
       cmp  #$3E                         ; Top reached? (line 62)
       beq  exit_infinite_loop           ; Then exit
       bcs  WBE0A
-WFDE9:
       jmp  WBE0A
 
 WFDEC:
@@ -1543,7 +1560,7 @@ WBDF0:
       sta  $D418                        ; Select volume and filter mode
       lda  #$0B
       sta  $05
-      jsr  $BB8C
+      jsr  colram_topline_green_16k
       lda  $03
       pha
       clc
@@ -1553,7 +1570,7 @@ WBDF0:
       pla
       sta  $03
 WBE0A:
-      lda  #$01
+      lda  #$01                         ; Next raster interrupt on scanline 1
       sta  $D012                        ; Reading/Writing IRQ balance value
 WBE0F:
       lda  #$01
@@ -1571,7 +1588,7 @@ WBE22:
       ; Disable all sprites
       lda  #$00
       sta  $D015
-      jsr  $BCBC
+      jsr  WBCBC
       lda  $02
       pha
       and  #$0F
@@ -1580,7 +1597,7 @@ WBE22:
       cmp  #$0C
       beq  :+
       pla
-      sta  $D012                        ; Reading/Writing IRQ balance value
+      sta  $D012                        ; Next raster interrupt at end of visible area
       jmp  WBE0F
 :     pla
       cmp  $D012                        ; Reading/Writing IRQ balance value
@@ -1604,14 +1621,14 @@ exit_infinite_loop:
       inx
       txs
       pla
-      sta  $9D
+      sta  viciireg_backup + $01
       pla
       sta  $0315
       pla
       sta  $0314
       rts
 
-LBE61:
+vicii_bank_base:
       .byte $c0,$80,$40,$00
 
 WBE65:
@@ -1620,9 +1637,9 @@ WBE65:
 WBE69:
       lda  $06
       pha
-      lda  $9D
-      and  #$20
-      beq  inc_colour_ram
+      lda  viciireg_backup + $01
+      and  #$20                         ; Bitmap mode?
+      beq  inc_colour_ram               ; Jump if text mode
       lda  #$00
       sta  $04
       lda  $D018
@@ -1630,10 +1647,10 @@ WBE69:
       lsr
       lsr
       sta  $05
-      lda  $80
-      and  #$03
+      lda  ciareg_backup + $10          ; $DD00 backup
+      and  #$03                         ; Get VIC-II bank
       tax
-      lda  LBE61,x
+      lda  vicii_bank_base,x
       clc
       adc  $05
       sta  $05
@@ -1641,7 +1658,7 @@ WBE69:
       ldx  #$04
 @1:   lda  ($04),y
       pha
-      sei
+      sei                               ; Not necessary?
       lda  $03
       cmp  #$FE
       bne  :+
@@ -1653,7 +1670,7 @@ WBE69:
       and  #$0F
       adc  #$01
       ora  $06
-      jmp  $BEB8
+      jmp  @2
 :     pla
       pha
       and  #$0F
@@ -1663,7 +1680,8 @@ WBE69:
       and  #$F0
       adc  #$10
       ora  $06
-      cpx  #$01
+      ; Screen is 1000 bytes, $3E8, so stop when X=1 and Y=$E8
+@2:   cpx  #$01
       bne  :+
       cpy  #$E8
       beq  exit_colour
@@ -1675,6 +1693,9 @@ WBE69:
       bne  @1
       jmp  exit_colour
 
+;
+; Adjust the foreground colour by increasing all values in colour ram
+;
 inc_colour_ram:
       ldx  #$00
 :     inc  $D800,x                      ; Color RAM
@@ -1688,7 +1709,7 @@ inc_colour_ram:
       dex
       bpl  :-
 exit_colour:
-      jsr  $BB8C
+      jsr  colram_topline_green_16k
       pla
       sta  $06
       pla
@@ -1721,7 +1742,7 @@ restore_sprites:
       sta  $D026                        ; Multicolor animation 1 register
       rts
 
-      jsr  WBCD2
+      jsr  show_frozen_screen
       ldx  #$17
 :     lda  $DBE8,x                      ; Color RAM
       sta  $D800,x                      ; Color RAM
@@ -1757,14 +1778,16 @@ freezer_nmi_handler:
       lda  $00
       pha
       lda  #$2F
-      sta  $00                          ; init cpu cport ddr
+      sta  $00                          ; default value of processor port DDR
       lda  $01                          ; save cpu port
-      ora  #$20
+      ora  #$20                         ; cassette motor off - but don't store
       pha
       lda  #$37                         ; init cpu port
       sta  $01                          ; 6510 I/O register
-      lda  #$13                         ; fc3 in bank 3, nmi =low, game = low
-      sta  $DFFF
+
+      ; Activate Ultimax mode and bank 3, NMI line stays active
+      lda  #fcio_bank_3|fcio_c64_ultimaxmode
+      sta  fcio_reg ; NMI = 1, GAME = 1, EXROM = 0
       lda  $DC0B                        ; Day time clock #1: Hour+[indicator AM/PM]
       lda  $DD0B                        ; Day time clock #2: Hour+[indicator AM/PM]
       txa
@@ -1785,8 +1808,8 @@ freezer_nmi_handler:
       lda  #$00
       sta  $DD0E                        ; Control register A of CIA #2
       sta  $DD0F                        ; Control register B of CIA #2
-      lda  #$7C
-      ldx  #$03
+      lda  #$7C                         ; Stored into $DD0D
+      ldx  #fcio_bank_3|fcio_c64_16kcrtmode ; Stored info $FFFF
       jmp  t_freezer_init
 
 .segment "freezer_vectors"
