@@ -899,7 +899,7 @@ freezer_loop:
       txa
       beq  :+
       bpl  leftright
-      jmp  WFA6E
+      jmp  left
 :     tya
       beq  :+
       bpl  updown
@@ -916,7 +916,7 @@ keyaction:
       beq  freezer_loop
       sta  $04
       cmp  #$F7                         ; F7 pressed?
-      beq  f7
+      beq  jmp_freezer_action
       ldx  #$BF                         ; Select keyboard column B
       stx  $DC00
       ldx  $DC01
@@ -925,7 +925,8 @@ keyaction:
       cmp  #$FB                         ; CRSR LEFT/RIGHT presset?
       beq  leftright
       jmp  freezer_loop
-f7:   jmp  WFA6E
+jmp_left:
+      jmp  left
 
 jmp_freezer_action:
       jmp  freezer_action1
@@ -937,7 +938,7 @@ updown:
 
 leftright:
       cpx  #$EF                         ; Left shift pressed?
-      beq  f7
+      beq  jmp_left
       jmp  right
 
 jmp_up:
@@ -1059,11 +1060,12 @@ freezer_action3:
       tya
       jmp  freezer_complete_action
 
-WFA6E:
+;$FA6E
+left:
       dec  $03
       beq  WFA10
       bmi  WFA10
-      dec  $03
+      dec  $03                          ; Right will increase it again
       jsr  colram_topline_green
       jmp  right
 
@@ -1705,7 +1707,7 @@ inc_colour_ram:
       dex
       bne  :-
       ldx  #$0F
-:     inc  $BD,x
+:     inc  colram_backup,x
       dex
       bpl  :-
 exit_colour:
@@ -1721,35 +1723,39 @@ exit_colour:
 restore_sprites:
       sei
       ldx  #$07
-:     lda  $94,x
+:     lda  spritexy_backup,x
       sta  $D004,x
       dex
       bpl  :-
-      lda  $9C
+      lda  viciireg_backup + $00
       sta  $D010                        ; Position X MSB sprites 0..7
-      lda  $A3
+      lda  viciireg_backup + $08
       sta  $D017                        ; (2X) vertical expansion (Y) sprite 0..7
       ldx  #$03
-:     lda  $A6,x
+:     lda  viciireg_backup + $0A,x
       sta  $D01A,x
-      lda  $B5,x
+      lda  viciireg_backup + $19,x
       sta  $D029,x
       dex
       bpl  :-
-      lda  $B1
+      lda  viciireg_backup + $15
       sta  $D025                        ; Multicolor animation 0 register
-      lda  $B2
+      lda  viciireg_backup + $16
       sta  $D026                        ; Multicolor animation 1 register
       rts
 
+;$BF21
+      ;
+      ; Dead code???
+      ;
       jsr  show_frozen_screen
-      ldx  #$17
+      ldx  #25
 :     lda  $DBE8,x                      ; Color RAM
       sta  $D800,x                      ; Color RAM
       dex
       bpl  :-
-      ldx  #$0F
-:     lda  $BD,x
+      ldx  #15
+:     lda  colram_backup,x
       sta  $D818,x                      ; Color RAM
       dex
       bpl  :-

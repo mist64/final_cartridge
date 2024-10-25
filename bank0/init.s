@@ -11,9 +11,12 @@
 ; from printer
 .import set_io_vectors_with_hidden_rom
 
+; from bank 2
+.import psettings
+
 .global entry
 .global init_load_and_basic_vectors
-.global init_vectors_jmp_bank_2
+.global init_vectors_goto_psettings
 .global init_basic_vectors
 .global go_desktop
 .global go_basic
@@ -46,12 +49,13 @@ L8031:  lda     basic_vectors,x ; overwrite BASIC vectors
         bpl     L8031
         rts
 
-init_vectors_jmp_bank_2:
+init_vectors_goto_psettings:
+        ; Show the printer settings window (code in bank 2)
         jsr     init_load_save_vectors
         jsr     init_basic_vectors
-        lda     #>(LBFFA - 1)
+        lda     #>(psettings - 1)
         pha
-        lda     #<(LBFFA - 1) ; ???
+        lda     #<(psettings - 1)
         pha
         lda     #$42 ; bank 2
         jmp     _jmp_bank
