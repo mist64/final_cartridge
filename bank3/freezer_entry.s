@@ -42,6 +42,7 @@
 
 .global tmpptr_a,tmpvar1,spritexy_backup
 .global freezer_mem_a,freezer_mem_a_val,freezer_mem_b,freezer_mem_b_val
+.global spritexy_backup,viciireg_backup,colram_backup,ciareg_backup
 
 ciareg_backup:      .res 32
 tmpvar1:            .res 1

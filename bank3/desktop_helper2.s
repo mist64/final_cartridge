@@ -1,8 +1,9 @@
-;****************************
-;  This code is not fully understood yet
-;  
-;  Its purpose seems to be reading and writing the directory.
-;****************************
+;*****************************************************************************
+;  Final Cartridge III reconstructed source code
+;
+;  After the user has reordered the entries in a directory using the desktop,
+;  this code writes back the directory to disk in the desired order.
+;*****************************************************************************
 
       .setcpu "6502x"
 

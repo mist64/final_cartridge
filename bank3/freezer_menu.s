@@ -1,16 +1,24 @@
-;****************************
-;  JC64dis version 2.5
-;  
-;  Source in CA65 format
-;****************************
+;*****************************************************************************
+;  Final Cartridge III reconstructed source code
+;
+;  This file contains the NMI interrupt handler for the frezer. The actual
+;  NMI occurs in bank 0, but the NMI handler is duplicated in both banks and
+;  the NMI handler in bank 0 quickly changes to bank 3 to continue.
+;
+;  This file also contains the graphics and code for the freezer menu and
+;  the graphics and code for the screenshot preview function in the freezer.
+;
+;*****************************************************************************
 
       .setcpu "6502x"
 
 .include "persistent.i"
 .include "../core/fc3ioreg.i"
 
-.import ciareg_backup
-.import viciireg_backup
+.importzp ciareg_backup
+.importzp viciireg_backup
+.importzp spritexy_backup
+.importzp colram_backup
 
       .macro MonoSpriteLine tribyte 
         .byte tribyte >> 16, ( tribyte >> 8) & 255,  tribyte & 255
@@ -668,33 +676,6 @@ freezer_action2:
       jmp  freezer_action3
 :     jmp  freezer_loop
 
-.segment "mysterybytes3"
-
-      .byte $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $00, $00, $00, $00, $00, $00, $00, $00 
-      .byte $33, $33, $33, $33, $33, $33, $33, $33 
-      .byte $33, $33, $33, $33, $33, $33, $33, $33 
-      .byte $00
-
 
 .segment "view_graphics"
       .byte 5, 6, 7, 8, 9, 10, 11, 12   
@@ -738,7 +719,7 @@ freezer_action2:
       ; ▉░░░▉▉▉░░░▉▉░░░▉▉░░░▉▉░▉▉▉░▉▉░░░▉▉▉▉▉▉▉▉
       ; ▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉
       .byte %10001110, %01110101, %01111101, %01111101, %01111101, %01110101, %10001110, %11111111
-      .byte %11010111, %11010111, %11010111, %00110111, %11010111, %11010111, %00110001, %11111111
+      .byte %00110111, %11010111, %11010111, %11010111, %11010111, %11010111, %00110001, %11111111
       .byte %10001100, %01110101, %01110101, %01110101, %01110100, %01110101, %10001101, %11111111
       .byte %00111000, %11010111, %11010110, %11010101, %00110011, %10110111, %11011000, %11111111
       .byte %11111111, %01111111, %01111111, %01111111, %01111111, %01111111, %11111111, %11111111
@@ -1293,15 +1274,6 @@ WFBE4:
       sta  $D011                        ; VIC control register
       rts
 
-      .byte $00, $00, $00, $00, $FF, $FF, $FF, $FF 
-      .byte $00, $00, $00, $00, $FF, $FF, $FF, $FF 
-      .byte $00, $00, $00, $00, $FF, $FF, $FF, $FF 
-      .byte $00, $00, $00, $00, $FF, $FF, $FF, $FF 
-      .byte $00, $00, $00, $00, $FF, $FF, $FF, $FF 
-      .byte $00, $00, $00, $00, $FF, $FF, $FF, $FF 
-      .byte $00, $00, $00, $00, $FF, $FF, $FF, $FF 
-      .byte $00, $00
-
 .segment "freezer_menu_16k"
 
 ; $BC40
@@ -1341,7 +1313,7 @@ show_view_menu:
       sta  $D020,x                      ; Border color
       dex
       bpl  :-
-      jsr  colram_topline_green
+      jsr  colram_topline_green_16k
       lda  $05
       bmi  @1
       cmp  #$01
@@ -1602,7 +1574,7 @@ WBE22:
       sta  $D012                        ; Next raster interrupt at end of visible area
       jmp  WBE0F
 :     pla
-      cmp  $D012                        ; Reading/Writing IRQ balance value
+:     cmp  $D012                        ; Reading/Writing IRQ balance value
       bne  :-
       nop
       nop
@@ -1729,7 +1701,7 @@ restore_sprites:
       bpl  :-
       lda  viciireg_backup + $00
       sta  $D010                        ; Position X MSB sprites 0..7
-      lda  viciireg_backup + $08
+      lda  viciireg_backup + $07
       sta  $D017                        ; (2X) vertical expansion (Y) sprite 0..7
       ldx  #$03
 :     lda  viciireg_backup + $0A,x
@@ -1749,7 +1721,7 @@ restore_sprites:
       ; Dead code???
       ;
       jsr  show_frozen_screen
-      ldx  #25
+      ldx  #23
 :     lda  $DBE8,x                      ; Color RAM
       sta  $D800,x                      ; Color RAM
       dex
@@ -1766,16 +1738,6 @@ WBF39:
 
       jmp  $2000
 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $F7, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00, $00, $00, $FF 
-      .byte $FF, $FF, $FF, $00, $00
 
 .segment "freezer"
 freezer_nmi_handler:

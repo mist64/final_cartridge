@@ -28,7 +28,7 @@ else
 endif
 
 SOURCES_B0=bank0/header.s bank0/vectors.s bank0/init.s bank0/basic.s bank0/drive.s bank0/desktop_helper.s bank0/speeder.s bank0/monitor.s bank0/wrappers.s bank0/editor.s bank0/printer.s bank0/format.s bank0/freezer.s bank0/persistent.s bank0/junk.s
-SOURCES_B3=bank3/freezer_entry.s bank3/freezer_reset.s bank3/freezer_game.s bank3/freezer_backup.s bank3/screenshot.s bank3/persistent.s bank3/mysterycode.s bank3/desktop_helper2.s
+SOURCES_B3=bank3/freezer_entry.s bank3/freezer_reset.s bank3/freezer_game.s bank3/freezer_backup.s bank3/screenshot.s bank3/persistent.s bank3/mysterycode.s bank3/desktop_helper2.s bank3/freezer_menu.s
 
 DEPS=core/kernal.i bank0/persistent.i
 
@@ -79,7 +79,7 @@ bank3/freezer_backup.o: bank3/freezer_backup.s bank3/disk_backload/backup_loader
 fc3full.bin: bank0.bin bank3.bin
 	cp bin/Final_Cartridge_3_1988-12.bin fc3full.bin
 	dd if=bank0.bin of=fc3full.bin bs=16384 count=1 conv=notrunc
-	dd if=bank3.bin of=fc3full.bin bs=8192 seek=6 count=1 conv=notrunc
+	dd if=bank3.bin of=fc3full.bin bs=16384 seek=3 count=1 conv=notrunc
 
 fc3full.crt: fc3full.bin
 	cartconv -i fc3full.bin -o fc3full.crt -t fc3

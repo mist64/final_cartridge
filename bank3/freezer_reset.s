@@ -16,6 +16,7 @@
 .import __freezer_restore_2_RUN__,__freezer_restore_2_SIZE__
 .importzp freezer_mem_a,freezer_mem_a_val,freezer_mem_b,freezer_mem_b_val
 .import monitor
+.import freezer_screenshot_prepare
 
 .segment "freezer_monitor"
 
@@ -103,5 +104,5 @@ freezer_goto_settings:
 :     sta  (freezer_mem_b),y
       dey
       bpl  :-
-      jmp  $A000
+      jmp  freezer_screenshot_prepare ; $A000
 

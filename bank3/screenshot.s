@@ -1,9 +1,12 @@
-;****************************
+;*****************************************************************************
 ;
-; This code has to do with creating screenshots. It is copied to $5000
-; when a screenshot is printed.
+; This code has to do with creating screenshots. The code in the segment
+; "screenshotcode" is copied to $5000 when a screenshot is printed.
 ;
-;****************************
+; The code in segment "printersettings" prepares the screen shot and then
+; jumps to the printer settings window that is located in bank 2.
+;
+;*****************************************************************************
 
       .setcpu "6502x"
 
@@ -11,8 +14,13 @@
 .include "../core/fc3ioreg.i"
 .include "persistent.i"
 
+.import __screenshotcode_RUN__, __screenshotcode_LOAD__
+.import __copycode_LOAD__,__copycode_RUN__,__copycode_SIZE__
+.import __ramload_LOAD__,__ramload_RUN__,__ramload_SIZE__
+
 
 .segment "screenshotcode"
+; $9500
       sei
       lda  #<$EA31
       sta  $0314                        ; Vector: Hardware Interrupt (IRQ)
@@ -1270,3 +1278,617 @@ tabel4:
       .byte $08, $04
 
 end_of_text:
+
+.segment "printersettings"
+
+; AE000
+.global freezer_screenshot_prepare
+freezer_screenshot_prepare:
+      ldx  #<__copycode_SIZE__ - 1
+:     lda  __copycode_LOAD__,x
+      sta  <__copycode_RUN__,x                        ; DATA current line number
+      dex
+      bpl  :-
+      ldy  #$00
+      ; Compute VIC-II base adress
+      lda  $DD00                        ; Data port A #2: serial bus, RS-232, VIC memory
+      and  #$03
+      eor  #$03
+      sta  $C8
+      lsr
+      ror
+      ror
+      sta  $AD
+      ldx  #>$4000
+      stx  $AF
+      ; Copy the VIC-II bank to $4000..$7FFF
+      lda  #$34
+      jsr  copy_x_pages
+
+
+      lda  $D011
+      and  #$20                         ; Charset not needed in bitmap mode
+      bne  @1
+      lda  $C8
+      bne  @1                           ; Charset only needed in bank 0?? Wrong! :)
+      lda  $D018                        ; VIC memory control register
+      and  #$0E
+      cmp  #$04                         ; Charset at $1000
+      beq  :+
+      cmp  #$06                         ; Or $1800?
+      bne  @1
+:     ; Copy the character ROM to $5000.
+      lda  #>$D000
+      sta  $AD
+      lda  #>$5000
+      sta  $AF
+      ldx  #$10
+      lda  #$33
+      jsr  __copycode_LOAD__            ; Ugly!
+
+@1:   ; Copy the colour RAM to $1800
+      lda  #>$D800
+      sta  $AD
+      lda  #>$1800
+      sta  $AF
+      ldx  #$04
+      lda  #$37
+      jsr  __copycode_LOAD__            ; Ugly!
+      ; Y=0
+
+      ; Backup the VIC-II to $0B00
+:     lda  $D000,y
+      sta  $0B00,y
+      iny
+      bne  :-
+
+      lda  $0B11
+      and  #$20
+      sta  $C7     ; bitmap mode flag
+      lda  $0B16
+      and  #$10
+      asl
+      sta  $AC     ; 40 column flag
+
+      ldx  #$00
+      stx  $C1
+      stx  $C3
+      stx  $CE     ; Character line counter
+
+      lda  $0B18
+      tax
+      and  #$F0
+      lsr
+      lsr
+      ora  #$40
+      sta  $C2     ; ($C1) = pointer to screen RAM
+
+      txa
+      and  #$08
+      ora  #$10
+      lsr
+      ldy  $C7
+      bne  :+
+      txa
+      and  #$0E
+      ora  #$10
+      lsr
+:     sta  $C8   ; $10|bitmap / $10|charset
+
+      lda  #>$1800 ; colour RAM pointer
+      sta  $C4
+      lda  $0B23  ; background colour 2
+      sta  $B4
+      lda  $0B22  ; background colour 1
+      sta  $B5
+      lda  #$00
+      sta  $B2
+      lda  #$80
+      sta  $B3
+      lda  #>$1900
+      sta  $CD
+
+      ; VIC-II bank to $4000..$7FFF
+      lda  $DD00                        ; Data port A #2: serial bus, RS-232, VIC memory
+      and  #$FC
+      ora  #$02
+      sta  $DD00                        ; Data port A #2: serial bus, RS-232, VIC memory
+
+      lda  #$33
+      sta  $01
+      bne  @4 ; Always!
+
+@2:   lda  #$00
+      sta  $CE                           ; Character line counter
+      lda  $C1
+      clc
+      adc  #40                           ; Move one line down
+      sta  $C1
+      sta  $C3
+      bcc  @4
+      inc  $C2
+      inc  $C4
+      lda  $C7
+      beq  @4
+      inc  $C8
+@4:   lda  #$00
+      sta  $CF
+@3:   lda  $C8                           ; Copy charset location
+      sta  $CA
+      ldy  $CF
+      lda  ($C3),y
+      ldx  $C7
+      bne  :+
+      ldx  $AC
+      beq  :+
+      and  #$07
+      tax
+      lda  ($C3),y
+      and  #$08
+      sta  $03
+      txa
+:     and  #$0F
+      sta  $B6
+      jsr  read_pixel_byte
+      lda  #$80
+      sta  $AE
+      jsr  WA234
+      inc  $CF
+      lda  $CF
+      cmp  #40
+      bcc  @3
+      inc  $CE
+      lda  $CE
+      cmp  #$08
+      bne  @4
+      dec  $CD
+      bne  @2
+      jsr  WA27D
+      lda  #$37
+      sta  $01                          ; 6510 I/O register
+      ldx  #$FF
+      sei
+      txs
+      cld
+      jsr  $FDA3                        ; IOINIT inside KERNAL
+      lda  #$00
+      tay
+:     sta  $0002,y
+      sta  $0200,y
+      sta  $0300,y
+      iny
+      bne  :-
+      jsr  $FD15                        ; Routine RESTOR of KERNAL
+      ldx  #$00
+      ldy  #$A0
+      jsr  $FE2D                        ; SETTOP inside KERNAL
+      lda  #$08
+      sta  $0282                        ; Pointer: Memory base for Operative System
+      lda  #$04
+      sta  $0288                        ; Top of memory screen (page)
+      jsr  $FF5B                        ; Routine CINT of KERNAL
+      jsr  $E453                        ; Routine: Set BASIC vectors (case 0x300..case 0x309)
+      jsr  $E3BF                        ; Routine: Set USR instruction and memory for BASIC
+
+      ; Backup the zero page to $0C00
+      ldy  #$00
+      sty  $AC
+      sty  $AE
+      lda  #>$C000
+      sta  $AD
+      lda  #>$0C00
+      sta  $AF
+      ldx  #$10
+:     lda  ($AC),y
+      sta  ($AE),y
+      iny
+      bne  :-
+      inc  $AD
+      inc  $AF
+      dex
+      bne  :-
+
+      ; Copy the screenshot code to $5000
+      lda  #>__screenshotcode_LOAD__
+      sta  $AD
+      lda  #>__screenshotcode_RUN__
+      sta  $AF
+      ldx  #$0A
+:     lda  ($AC),y
+      sta  ($AE),y
+      iny
+      bne  :-
+      inc  $AD
+      inc  $AF
+      dex
+      bne  :-
+
+      ; Copy the screen RAM to $4000
+      lda  $0B18                        ; Backup of $D018
+      and  #$F0
+      lsr
+      lsr
+      clc
+      adc  #$40
+      sta  $AD
+      lda  #>$4000
+      sta  $AF
+      ldy  #<$4000
+      sty  $AC
+      sty  $AE
+      ldx  #$04
+:     lda  ($AC),y
+      sta  ($AE),y
+      iny
+      bne  :-
+      inc  $AD
+      inc  $AF
+      dex
+      bne  :-
+
+      lda  #>$8017 ; init_vectors_goto_psettings
+      pha
+      lda  #<$8017
+      pha
+      jmp  _enable_fcbank0
+
+WA1BA:
+      lda  $AC
+      bne  @5
+      lda  $C7
+      bne  @3
+@1:   lda  $B0
+      and  $AE
+      bne  @2
+      lda  $0B21                        ; Backup of $D021
+      .byte $2c                         ; Skip next instruction
+@2:   lda  $B6
+      rts
+@3:   lda  $B0
+      and  $AE
+      bne  @4
+      lda  $B4
+      rts
+@4:   lda  $B5
+      rts
+@5:   lda  $C7
+      bne  @6
+      lda  $03
+      beq  @1
+@6:   jsr  WA1E9
+      asl  $AE
+      rts
+
+WA1E9:
+      lda  $B0
+      tax
+      and  $AE
+      bne  @2
+      lsr  $AE
+      txa
+      and  $AE
+      beq  @1
+      lda  $B5
+      rts
+@1:   lda  $0B21
+      rts
+@2:   lsr  $AE
+      txa
+      and  $AE
+      beq  @3
+      lda  $B6
+      rts
+@3:   lda  $B4
+      rts
+
+;
+; $A20B
+;
+read_pixel_byte:
+      lda  ($C1),y  ; Get byte from screen RAM
+      ldx  $C7
+      beq  :+       ; Text mode? Jump
+      ; Bitmap mode... byte contains colours
+      sta  $B4      ; Background colour
+      lsr
+      lsr
+      lsr
+      lsr
+      sta  $B5      ; Foreground colour
+      tya
+      clc
+      adc  $C1
+      bcc  :+
+      inc  $CA
+:     ldx  #3
+:     asl
+      rol  $CA
+      dex
+      bne  :-
+      ora  $CE     ; Character scan line 
+      sta  $C9
+      ldy  #$00
+      lda  ($C9),y ; Read a byte from character ROM or the bitmap
+      sta  $B0
+      rts
+
+WA234:
+      jsr  WA1BA
+      and  #$0F
+      pha
+      lsr  $AE
+      ldx  $AC
+      beq  @2
+      ldx  $C7
+      bne  @1
+      ldx  $03
+      beq  @2
+@1:   lsr  $AE
+      pha
+@2:   bcc  WA234
+      ldy  #3
+:     pla
+      asl
+      asl
+      asl
+      asl
+      sta  $02
+      pla
+      ora  $02
+      sta  ($B2),y
+      dey
+      bpl  :-
+      lda  $B2
+      clc
+      adc  #$04
+      sta  $B2
+      bcc  :+
+      inc  $B3
+      lda  $B3
+      and  #$0F
+      bne  :+
+      lda  $01
+      pha
+      lda  #$37
+      sta  $01
+      inc  $D020                        ; Border color
+      pla
+      sta  $01
+:     rts
+
+WA27D:
+      lda  #$80
+      sta  $02
+      lda  #$07
+      sta  $03
+      lda  #$F8
+      sta  $C1
+      ldx  #<__ramload_SIZE__ -1
+:     lda  __ramload_LOAD__,x
+      sta  <__ramload_RUN__,x
+      dex
+      bpl  :-
+@5:   lda  $0B15
+      and  $02
+      beq  @4
+      lda  $0B1B
+      and  $02
+      bne  @4
+      jsr  WA2FB
+      lda  #$00
+      sta  $33
+@2:   jsr  WE363
+      lda  $08
+      cmp  #$C8
+      bcs  @3
+      jsr  WA3AB
+      lda  $06
+      sta  $30
+      lda  $07
+      sta  $31
+      lda  #$00
+      sta  $32
+@1:   lda  $31
+      beq  :+
+      lda  $30
+      cmp  #$40
+      bcs  @6
+:     lda  $32
+      ldy  $0B
+      cpy  #$18
+      beq  :+
+      lsr
+:     tay
+      lda  $0040,y
+      beq  @6
+      jsr  WA3C6
+@6:   inc  $30
+      bne  :+
+      inc  $31
+:     inc  $32
+      lda  $32
+      cmp  $0B
+      bcc  @1
+@3:   inc  $08
+      inc  $33
+      lda  $33
+      cmp  $0A
+      bcc  @2
+@4:   lsr  $02
+      dec  $03
+      bpl  @5
+      rts
+
+WA2FB:
+      lda  #$01
+      sta  $05
+      ldx  #$06
+      ldy  $03
+      lda  ($C1),y
+:     asl
+      rol  $05
+      dex
+      bne  :-
+      sta  $04
+      lda  $03
+      asl
+      tay
+      sec
+      lda  $0B01,y
+      sbc  #$32
+      sta  $08
+      sec
+      lda  $0B00,y
+      sbc  #$18
+      sta  $06
+      ldx  #$00
+      lda  $0B10
+      and  $02
+      beq  :+
+      inx
+:     txa
+      sbc  #$00
+      sta  $07
+      lda  $0B1C
+      and  $02
+      sta  $09
+      ldx  #$15
+      lda  $0B17                        ; Backup of $D017
+      and  $02
+      beq  :+
+      ldx  #$2A
+:     stx  $0A
+      ldx  #$18
+      lda  $0B1D                        ; Backup of $D01D
+      and  $02
+      beq  :+
+      ldx  #$30
+:     stx  $0B
+      lda  $0B25                        ; Backup of $D025
+      sta  $38
+      ldy  $03
+      lda  $0B27,y
+      sta  $39
+      lda  $0B26
+      sta  $3A
+      rts
+
+WE363:
+      lda  $33
+      ldx  $0A
+      cpx  #$15
+      beq  :+
+      lsr
+      bcs  @rts
+:     ldy  #$00
+:     lda  ($04),y
+      sta  $000C,y
+      iny
+      cpy  #$03
+      bne  :-
+      tya
+      clc
+      adc  $04
+      sta  $04
+      bcc  :+
+      inc  $05
+:     ldx  #$00
+@1:   asl  $0E
+      rol  $0D
+      rol  $0C
+      lda  #$00
+      bcc  :+
+      lda  #$02
+:     ldy  $09
+      bne  @2
+@3:   sta  $40,x
+      inx
+      cpx  #$18
+      bne  @1
+@rts: rts
+
+@2:   asl  $0E
+      rol  $0D
+      rol  $0C
+      adc  #$00
+      sta  $40,x
+      inx
+      bne  @3
+
+WA3AB:
+      lda  #<$8000
+      sta  $3E
+      lda  #>$8000
+      sta  $3F
+      ldy  $08
+      beq  @rts
+@1:   clc
+      lda  $3E
+      adc  #$A0
+      sta  $3E
+      bcc  :+
+      inc  $3F
+:     dey
+      bne  @1
+@rts: rts
+
+WA3C6:
+      tax
+      lda  $37,x
+      and  #$0F
+      tax
+      lda  $31
+      lsr
+      lda  $30
+      ror
+      tay
+      jsr  load_34_rom_hidden ; preserves C
+      bcs  WE3E2
+      and  #$F0
+      sta  $3C
+      txa
+      ora  $3C
+WE3DF:
+      sta  ($3E),y
+      rts
+
+WE3E2:
+      and  #$0F
+      sta  $3C
+      txa
+      asl
+      asl
+      asl
+      asl
+      ora  $3C
+      jmp  WE3DF
+
+
+.segment "ramload"
+
+load_34_rom_hidden:
+      lda  #$34
+      sta  $01
+      lda  ($3E),y
+      dec  $01
+      rts
+
+.segment "copycode"
+
+copy_x_pages:
+      sta  $01
+copy_ac_ec:
+      sty  $AC
+      sty  $AE
+:     lda  ($AC),y
+      sta  ($AE),y
+      iny
+      bne  :-
+      inc  $AD
+      inc  $AF
+      dex
+      bne  :-
+      lda  #$37
+      sta  $01
+      rts
+
