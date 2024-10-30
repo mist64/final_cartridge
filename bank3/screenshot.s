@@ -744,7 +744,6 @@ routine31:
 W9A0C:
       lda  $9E
       eor  $25
-W9A10:
       .byte $2c
 W9A11:
       lda  $9E
@@ -1701,7 +1700,7 @@ WA27D:
 :     tay
       lda  $0040,y
       beq  @6
-      jsr  WA3C6
+      jsr  stuff37a_to_lhnibble_of_3e
 @6:   inc  $30
       bne  :+
       inc  $31
@@ -1832,7 +1831,7 @@ WA3AB:
       bne  @1
 @rts: rts
 
-WA3C6:
+stuff37a_to_lhnibble_of_3e:
       tax
       lda  $37,x
       and  #$0F
@@ -1842,7 +1841,7 @@ WA3C6:
       lda  $30
       ror
       tay
-      jsr  load_34_rom_hidden ; preserves C
+      jsr  load_3e_rom_hidden ; preserves C
       bcs  WE3E2
       and  #$F0
       sta  $3C
@@ -1866,7 +1865,7 @@ WE3E2:
 
 .segment "ramload"
 
-load_34_rom_hidden:
+load_3e_rom_hidden:
       lda  #$34
       sta  $01
       lda  ($3E),y
