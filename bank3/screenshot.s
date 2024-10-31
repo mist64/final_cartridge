@@ -518,13 +518,13 @@ LL3:  jsr  routine12
       jsr  routine24
       bne  LL3
 W534E:
-      jsr  W9D4D
+      jsr  W584D
       lda  #$01
       ldy  #$0A
       jsr  routine22
       lda  #$0D
       jsr  BSOUT
-      jmp  W9D4D
+      jmp  W584D
 
 routine5:
       jsr  routine20
@@ -598,7 +598,7 @@ W98E5:
       jsr  routine27
       lda  #$00
       jsr  BSOUT
-:     jmp  $5835
+:     jmp  W5835
 
 routine24:
       inc  $02
@@ -1137,7 +1137,7 @@ routine28:
 W9C8A:
       pla 
       pla
-      jmp  W9D4D
+      jmp  W584D
 
 W9C8F:
       lda  #'C'
@@ -1195,30 +1195,30 @@ routine32:
       jsr  BSOUT
 :     lda  $DC01
       cmp  #$7F
-      beq  W9D33
+      beq  W5833
       jsr  routine28
       bit  $3C
-      bmi  W9D55
+      bmi  W5855
       lda  $30
       cmp  #$04
-      bcs  W9D1F
+      bcs  W581F
       lda  $DC0C
       beq  :+
       cmp  #$37
       bcs  :+
       cmp  #$30
-      bcs  W9D1F
+      bcs  W581F
 :     lda  $30
       cmp  #$02
-      bcs  W9D17
+      bcs  W5817
       adc  #$4B
       .byte $2C                         ; Skip next instruction
-W9D17:
+W5817:
       adc  #$56
       jsr  routine27
       jmp  W5829
 
-W9D1F:
+W581F:
       lda  #'*'
       jsr  routine27
       lda  $30
@@ -1229,26 +1229,27 @@ W5829:
       lda  $34
       jmp  BSOUT
 
-W9D33:
+W5833:
       pla
       pla
+W5835:
       jsr  routine28
       bit  $3C
-      bmi  W9D48
+      bmi  W5848
       bit  $36 
-      bpl  W9D4D
+      bpl  W584D
       lda  #'r'
       jsr  routine27
       lda  #$00
       .byte $2C                         ; Skip next instruction
-W9D48:
+W5848:
       lda  #$0F
       jsr  BSOUT
-W9D4D:
+W584D:
       jsr  CLALL
       lda  #$01
       jsr  CLOSE
-W9D55:
+W5855:
       rts
 
 routine34:
