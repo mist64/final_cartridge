@@ -25,6 +25,9 @@ print_vertical_size := $32
 print_sideways_flag := $35
 print_color_flag := $36
 print_8p24p_flag := $37
+; $00 Epson
+; $40 NEC P
+; $80 CBM
 printer_type_flags := $3C
 
 ; $00 = Commodore
@@ -583,6 +586,7 @@ routine5:
       jsr  routine39
       bit  printer_type_flags
       bpl  W986E
+      ; Commodore MPS
       bit  print_color_flag
       bmi  W981C
 W986E:
@@ -636,21 +640,24 @@ W988B:
 @2:   jsr  c1w_to_c3w
       bit  printer_type_flags
       bpl  @3
+      ; Commodore MPS
       jsr  routine21
       bpl  W986E
       bmi  W98E5
-@3:   lda  $C4
+@3:   ; Epson/NEC P
+      lda  $C4
       cmp  #$FD
       bcc  W986E
 W98E5:
       jsr  print_cr
       bit  print_color_flag
       bpl  :+
+      ; Set printing colour to black
       lda  #'r'
       jsr  print_esc_char
-      lda  #$00
+      lda  #$00 ; Black
       jsr  BSOUT
-:     jmp  W5835
+:     jmp  print_done
 
 routine24:
       inc  $02
@@ -1167,15 +1174,14 @@ routine20:
       jmp  BSOUT
 
 W9C69:
-      lda  #'3'
+      lda  #'3' ; Set line spacing
       jsr  print_esc_char
-      lda  #$17
+      lda  #23  ; 23/180 inch
       jsr  BSOUT
-      lda  #'A'
+      lda  #'A' ; Set line spacing
       jsr  print_esc_char
-      lda  #$08
+      lda  #$08 ; 8/60 inch
       jmp  BSOUT
-
 W9C7D:
       bit  print_color_flag
       bmi  W9C8F
@@ -1237,17 +1243,19 @@ print_esc_char:
       jsr  BSOUT
       pla
       bne  jmp_bsout
+
 routine32:
       bit  print_color_flag
       bpl  :+
+      ; Set printing colour to A
       pha
       lda  #'r'
       jsr  print_esc_char
       pla
       jsr  BSOUT
 :     lda  $DC01
-      cmp  #$7F
-      beq  W5833
+      cmp  #$7F   ; Check for run/stop
+      beq  print_abort
       jsr  print_cr
       bit  printer_type_flags
       bmi  W5855
@@ -1280,21 +1288,21 @@ W5829:
       lda  $34
       jmp  BSOUT
 
-W5833:
+print_abort:
       pla
       pla
-W5835:
+print_done:
       jsr  print_cr
       bit  printer_type_flags
-      bmi  W5848
+      bmi  @mps
       bit  print_color_flag 
       bpl  close_all
+      ; Set colour to black
       lda  #'r'
       jsr  print_esc_char
       lda  #$00
       .byte $2C                         ; Skip next instruction
-W5848:
-      lda  #$0F
+@mps: lda  #$0F                         ; Exit graphics mode, single width text printing
       jsr  BSOUT
 close_all:
       jsr  CLALL
