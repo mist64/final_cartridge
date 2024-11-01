@@ -19,6 +19,14 @@
 .import __ramload_LOAD__,__ramload_RUN__,__ramload_SIZE__
 
 
+print_graphmode_val := $30
+print_horizontal_size := $31
+print_vertical_size := $32
+print_sideways_flag := $35
+print_color_flag := $36
+print_8p24p_flag := $37
+printer_type_flags := $3C
+
 ; $00 = Commodore
 ; $01 = Centronics
 ; $02 = RS-323
@@ -130,42 +138,42 @@ print_invert := $0207
 @1:   lda #$80                          ; Commodore MPS printer
       .byte $2c                         ; BIT $xxxx, skip next instruction
 @2:   lda #$00                          ; EPSON printer
-      sta  $3C
+      sta  printer_type_flags
       lda  #$00
       ldx  print_colors
       bne  :+
       lda  #$80
-:     sta  $36
+:     sta  print_color_flag
       lda  #$00
       ldx  print_sideways
       beq  :+
       lda  #$80
-:     sta  $35
+:     sta  print_sideways_flag
       ldx  print_horz_size
       inx
-      stx  $31
+      stx  print_horizontal_size
       ldx  print_vert_size
       inx
-      stx  $32
+      stx  print_vertical_size
       lda  #$00
       ldx  print_graphmode
       cpx  #$06
       bcc  :+
       lda  #$80
-:     sta  $37                          ; 8P/24P flag
-      lda  tabel1,x
-      sta  $30
+:     sta  print_8p24p_flag             ; 8P/24P flag
+      lda  printer_graphmodes,x
+      sta  print_graphmode_val
       lda  print_invert
       beq  :+
       lda  #$FF
 :     sta  $25
       ldx  #$08
-      bit  $3C
+      bit  printer_type_flags
       bpl  @4
       dex
       lda  #$E0
       ldy  #$01
-      bit  $36
+      bit  print_color_flag
       bpl  :+
       lda  #$80
       ldy  #$02
@@ -174,15 +182,15 @@ print_invert := $0207
       lda  #$FF
       sta  $46
 @4:   stx  $3D
-      lda  $31
-      bit  $35
+      lda  print_horizontal_size
+      bit  print_sideways_flag
       bpl  :+
-      lda  $32
+      lda  print_vertical_size
 :     sta  $29
-      bit  $36
+      bit  print_color_flag
       bmi  :+
       jsr  routine1
-:     bit  $35                          ; Sideways printing?
+:     bit  print_sideways_flag          ; Sideways printing?
       bmi  @3                           ; Then jump
       jsr  routine2
       jsr  routine3
@@ -246,7 +254,7 @@ print_invert := $0207
       jmp  @map_in_bank_2
 
 routine2:
-      ldx  $32
+      ldx  print_vertical_size
       lda  #$C8
       sta  $33
       lda  #$00
@@ -263,7 +271,7 @@ routine2:
       jmp  @1
 
 routine4:
-      ldx  $31
+      ldx  print_horizontal_size
       lda  #$40
       sta  $33
       lda  #$01
@@ -353,9 +361,9 @@ routine1:
       dex
       bne  :-
 
-      ldx  $32
+      ldx  print_vertical_size
 :     clc
-      adc  $31
+      adc  print_horizontal_size
       dex
       bne  :-
       stx  $52
@@ -421,13 +429,13 @@ routine1:
       bne  :-
 @4:   dey
       bpl  @5
-      lda  $31
+      lda  print_horizontal_size
       asl
       asl
       asl
       asl
       ldx  #$10
-      bit  $35
+      bit  print_sideways_flag
       bpl  :+
       tax
       lda  #$10
@@ -573,12 +581,12 @@ W534E:
 routine5:
       jsr  routine20
       jsr  routine39
-      bit  $3C
+      bit  printer_type_flags
       bpl  W986E
-      bit  $36
+      bit  print_color_flag
       bmi  W981C
 W986E:
-      bit  $36
+      bit  print_color_flag
       bpl  :+
       lda  #$0A
       jsr  BSOUT
@@ -615,7 +623,7 @@ W988B:
       jsr  routine29
 @1:   jsr  routine17
       bne  W988B
-      bit  $36
+      bit  print_color_flag
       bpl  @2
       inc  $11
       lda  $11
@@ -626,7 +634,7 @@ W988B:
       cmp  #$07
       bne  W987F
 @2:   jsr  c1w_to_c3w
-      bit  $3C
+      bit  printer_type_flags
       bpl  @3
       jsr  routine21
       bpl  W986E
@@ -635,11 +643,11 @@ W988B:
       cmp  #$FD
       bcc  W986E
 W98E5:
-      jsr  routine28
-      bit  $36
+      jsr  print_cr
+      bit  print_color_flag
       bpl  :+
       lda  #'r'
-      jsr  routine27
+      jsr  print_esc_char
       lda  #$00
       jsr  BSOUT
 :     jmp  W5835
@@ -680,9 +688,9 @@ routine6:
       jsr  routine20
       jsr  routine40
       ldy  #$00
-      bit  $3C
+      bit  printer_type_flags
       bpl  :+
-      bit  $36
+      bit  print_color_flag
       bmi  W9900
 W994D:
 :     sty  $09
@@ -690,7 +698,7 @@ W994D:
       sta  $05
       lda  $06
       sta  $07
-      bit  $36
+      bit  print_color_flag
       bpl  @4
       lda  #$0A
       jsr  BSOUT
@@ -728,7 +736,7 @@ W994D:
 :     jsr  routine16
       jsr  routine24
       bne  @2
-      bit  $36
+      bit  print_color_flag
       bpl  :+
       inc  $11
       lda  $11
@@ -738,7 +746,7 @@ W994D:
       lda  $10
       cmp  #$07
       bne  @3
-:     bit  $3C
+:     bit  printer_type_flags
       bpl  :+
       jsr  routine21
       bpl  W994D
@@ -765,7 +773,7 @@ routine36:
       rts
 
 routine31:
-      bit  $36
+      bit  print_color_flag
       bmi  W9A11
       bit  $50
       bpl  W9A0C
@@ -799,7 +807,7 @@ W9A11:
       pla
       sta  $39,x
 W9A1F:
-      lda  $37
+      lda  print_8p24p_flag
       beq  @x
       ldx  #$00
       lda  $38
@@ -810,7 +818,7 @@ W9A1F:
 @x:   rts
 
 routine18:
-      bit  $3C
+      bit  printer_type_flags
       bpl  @x
       stx  $24
       ldx  #7
@@ -825,13 +833,13 @@ routine18:
 @x:   rts
 
 routine29:
-      bit  $36
+      bit  print_color_flag
       bmi  routine15
       bit  $50
       bpl  routine15
 @1:   lda  $0B2F,x
       jsr  BSOUT
-      bit  $37
+      bit  print_8p24p_flag
       bpl  :+
       lda  $0B38,x
       jsr  BSOUT
@@ -844,7 +852,7 @@ routine29:
 routine15:
       lda  $39
       jsr  BSOUT
-      bit  $37
+      bit  print_8p24p_flag
       bpl  :+
       lda  $3A
       jsr  BSOUT
@@ -863,7 +871,7 @@ zero_3ew:
 routine14:
       lda  $29
       sta  $42
-      bit  $3C
+      bit  printer_type_flags
       bpl  @1
       lda  $40
       sec
@@ -917,7 +925,7 @@ routine39:
       sta  $AE
       lda  $9E
 W9AE3:
-      bit  $3C
+      bit  printer_type_flags
       bpl  reverse_bits_A
       lsr
       and  $04
@@ -937,7 +945,7 @@ reverse_bits_A:
 routine37:
       inc  $06
       lda  $06
-      cmp  $32
+      cmp  print_vertical_size
       bcc  :+
       lda  #$00
       sta  $06
@@ -946,7 +954,7 @@ routine37:
 routine30:
       inc  $06
       lda  $06
-      cmp  $31
+      cmp  print_horizontal_size
       bcc  :+
       lda  #$00
       sta  $06
@@ -977,7 +985,7 @@ tabel2:
       .byte $02,$02,$02,$00,$01,$05,$03,$01
 
 W9B3A:
-      bit  $3C
+      bit  printer_type_flags
       bmi  W9B23
       ldx  $11
       beq  @1
@@ -1030,7 +1038,7 @@ routine13:
       rts
 
 routine25:
-      bit  $36
+      bit  print_color_flag
       bmi  W9B3A
       bit  $50
       bpl  W9BEB
@@ -1148,7 +1156,7 @@ routine16:
 routine20:
       jsr  routine34
       bcs  except_close_all
-      bit  $3C
+      bit  printer_type_flags
       bmi  W9C7D
       bvc  W9C69
       lda  #$1C
@@ -1160,22 +1168,22 @@ routine20:
 
 W9C69:
       lda  #'3'
-      jsr  routine27
+      jsr  print_esc_char
       lda  #$17
       jsr  BSOUT
       lda  #'A'
-      jsr  routine27
+      jsr  print_esc_char
       lda  #$08
       jmp  BSOUT
 
 W9C7D:
-      bit  $36
+      bit  print_color_flag
       bmi  W9C8F
       lda  #$08
 jmp_bsout:
       jmp  BSOUT
 
-routine28:
+print_cr:
       lda  #$0D
       bne  jmp_bsout
 except_close_all:
@@ -1185,15 +1193,15 @@ except_close_all:
 
 W9C8F:
       lda  #'C'
-      jsr  routine27
-      bit  $35
+      jsr  print_esc_char
+      bit  print_sideways_flag
       bpl  :+
       jsr  routine26
       jmp  routine19
 :     jsr  routine19
 
 routine26:
-      lda  $32
+      lda  print_vertical_size
       ldx  #'2'
       ldy  #'0'
       cmp  #$01
@@ -1208,7 +1216,7 @@ routine26:
       bne  out_2c0
 
 routine19:
-      lda  $31
+      lda  print_horizontal_size
       ldx  #'3'
       ldy  #'2'
       cmp  #$01
@@ -1223,49 +1231,48 @@ out_2c0:
       lda  #'0'
       jmp  BSOUT
 
-routine27:
+print_esc_char:
       pha
       lda  #$1B
       jsr  BSOUT
       pla
       bne  jmp_bsout
 routine32:
-      bit  $36
+      bit  print_color_flag
       bpl  :+
       pha
       lda  #'r'
-      jsr  routine27
+      jsr  print_esc_char
       pla
       jsr  BSOUT
 :     lda  $DC01
       cmp  #$7F
       beq  W5833
-      jsr  routine28
-      bit  $3C
+      jsr  print_cr
+      bit  printer_type_flags
       bmi  W5855
-      lda  $30
+      lda  print_graphmode_val
       cmp  #$04
       bcs  W581F
       lda  $DC0C
       beq  :+
-      cmp  #$37
+      cmp  #'7'
       bcs  :+
-      cmp  #$30
+      cmp  #'0'
       bcs  W581F
-:     lda  $30
+:     lda  print_graphmode_val
       cmp  #$02
-      bcs  W5817
+      bcs  :+
       adc  #$4B
       .byte $2C                         ; Skip next instruction
-W5817:
-      adc  #$56
-      jsr  routine27
+:     adc  #$56
+      jsr  print_esc_char
       jmp  W5829
 
 W581F:
       lda  #'*'
-      jsr  routine27
-      lda  $30
+      jsr  print_esc_char
+      lda  print_graphmode_val
       jsr  BSOUT
 W5829:
       lda  $33
@@ -1277,13 +1284,13 @@ W5833:
       pla
       pla
 W5835:
-      jsr  routine28
-      bit  $3C
+      jsr  print_cr
+      bit  printer_type_flags
       bmi  W5848
-      bit  $36 
+      bit  print_color_flag 
       bpl  close_all
       lda  #'r'
-      jsr  routine27
+      jsr  print_esc_char
       lda  #$00
       .byte $2C                         ; Skip next instruction
 W5848:
@@ -1299,7 +1306,7 @@ W5855:
 routine34:
       lda  #$01
       ldy  #$01
-      bit  $3C
+      bit  printer_type_flags
       bpl  :+
       dey
 routine22:
@@ -1312,7 +1319,7 @@ routine22:
       ldx  #1
       jmp  CKOUT
 
-tabel1:
+printer_graphmodes:
       .byte $00, $01, $02, $03, $04, $06, $20, $21 
       .byte $26, $27
 
