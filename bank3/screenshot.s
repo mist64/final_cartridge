@@ -14,7 +14,7 @@
 .include "../core/fc3ioreg.i"
 .include "persistent.i"
 
-.import __screenshotcode_RUN__, __screenshotcode_LOAD__
+.import __screenshotcode_RUN__, __screenshotcode_LOAD__,__screenshotcode_SIZE__
 .import __copycode_LOAD__,__copycode_RUN__,__copycode_SIZE__
 .import __ramload_LOAD__,__ramload_RUN__,__ramload_SIZE__
 
@@ -1537,7 +1537,7 @@ freezer_screenshot_prepare:
       sta  $AD
       lda  #>__screenshotcode_RUN__
       sta  $AF
-      ldx  #$0A
+      ldx  #(>__screenshotcode_SIZE__) + 2 ; copy one page too much
 :     lda  ($AC),y
       sta  ($AE),y
       iny
@@ -1560,6 +1560,7 @@ freezer_screenshot_prepare:
       ldy  #<$4000
       sty  $AC
       sty  $AE
+
       ldx  #$04
 :     lda  ($AC),y
       sta  ($AE),y
