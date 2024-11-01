@@ -19,6 +19,46 @@
 .import __ramload_LOAD__,__ramload_RUN__,__ramload_SIZE__
 
 
+; $00 = Commodore
+; $01 = Centronics
+; $02 = RS-323
+printer_interface := $0200
+
+; $00 = CBM Compatible
+; $01 = EPSON Compatible
+; $02 = NEC P Series
+printer_type := $0201
+
+;  $00 = yes
+;  $01 = no
+print_colors := $0202
+
+;  $00 = no
+;  $01 = yes
+print_sideways := $0203
+
+; horizontal size - 1
+print_horz_size := $0204
+
+; vertical size - 1
+print_vert_size := $0205
+
+; $00 = 8P Single Density
+; $01 = 8P Double Density
+; $02 = 8P High Speed, DD
+; $03 = 8P Quadruple Density
+; $04 = 8P CRT Graphics
+; $05 = 8P CRT Graphics II
+; $06 = 24P Single Density
+; $07 = 24P Double Density
+; $08 = 24P CRT Graphics II
+; $09 = Triple Density
+print_graphmode := $0206
+
+; $00 = no
+; $01 = yes
+print_invert := $0207
+
 .segment "screenshotcode"
 ; $9500
       sei
@@ -41,20 +81,21 @@
       lda  #fcio_nmi_line | fcio_c64_crtrom_off | fcio_bank_0
       sta  fcio_reg
 
-      lda  $0B21
+      lda  $0B21                        ; $D021 backup
       and  #$0F
       sta  $0B21
-      lda  $0B16
-      and  #$10
+      lda  $0B16                        ; $D016 backup
+      and  #$10                         ; Isolate multi-colour bit
       asl
       asl
       asl
-      sta  $50
-      lda  $0B11
-      and  #$20
+      sta  $50                          ; Multi-colour flag $00=off $80=on
+      lda  $0B11                        ; $D011 backup
+      and  #$20                         ; Isolate 
       asl
       asl
-      sta  $26
+      sta  $26                          ; Bitmap modee flag $00=off $80=on
+
       ;
       ; Swap memory from $0C00..$1BFF with $C000..$CFFF
       ;
@@ -79,43 +120,42 @@
       dex
       bne  :-
 
-      ldx  $0201
+      ; Settings from settings screen
+      ldx  printer_type
       beq  @1
       dex
       beq  @2
-      lda  #$40
+      lda  #$40                         ; NEC P series printer
       .byte $2c                         ; BIT $xxxx, skip next instruction
-@1:
-      lda #$80
+@1:   lda #$80                          ; Commodore MPS printer
       .byte $2c                         ; BIT $xxxx, skip next instruction
-@2:
-      lda #$00
+@2:   lda #$00                          ; EPSON printer
       sta  $3C
       lda  #$00
-      ldx  $0202
+      ldx  print_colors
       bne  :+
       lda  #$80
 :     sta  $36
       lda  #$00
-      ldx  $0203
+      ldx  print_sideways
       beq  :+
       lda  #$80
 :     sta  $35
-      ldx  $0204
+      ldx  print_horz_size
       inx
       stx  $31
-      ldx  $0205
+      ldx  print_vert_size
       inx
       stx  $32
       lda  #$00
-      ldx  $0206
+      ldx  print_graphmode
       cpx  #$06
       bcc  :+
       lda  #$80
-:     sta  $37
+:     sta  $37                          ; 8P/24P flag
       lda  tabel1,x
       sta  $30
-      lda  $0207
+      lda  print_invert
       beq  :+
       lda  #$FF
 :     sta  $25
@@ -142,14 +182,17 @@
       bit  $36
       bmi  :+
       jsr  routine1
-:     bit  $35
-      bmi  @3
+:     bit  $35                          ; Sideways printing?
+      bmi  @3                           ; Then jump
       jsr  routine2
       jsr  routine3
       jsr  routine4
       jsr  routine5
 
 @map_in_bank_2:
+      ;
+      ; Printing has finished, now return to the settings screen
+      ;
       ; Map in FC3 bank 2
       lda  #fcio_nmi_line | fcio_bank_2
       sei
@@ -158,7 +201,6 @@
       sta  $0314
       lda  #>$DE21
       sta  $0315
-
 
       ;
       ; Swap memory from $0C00..$1BFF with $C000..$CFFF
@@ -297,6 +339,7 @@ print_digit_at_18:
       jmp  BSOUT
 
 routine1:
+      ; Clear $6000..$6AFF
       lda  #$00
       tay
       sta  $48
@@ -339,6 +382,7 @@ routine1:
       lda  $3B
       adc  #$60
       sta  $3B
+
       ldx  #$0F
 @2:   lda  tabel4,x
       tay
@@ -367,7 +411,7 @@ routine1:
       jsr  routine7
 :     lda  #$01
       sta  ($48),y
-      jsr  routine8
+      jsr  add_10_to_48w
       dex
       beq  @4
       lda  #$01
@@ -449,7 +493,7 @@ routine7:
       ldx  $11
       rts
 
-routine8:
+add_10_to_48w:
       clc
       lda  $48
       adc  #$10
@@ -481,7 +525,7 @@ routine9:
       sta  $54
 :     rts
 
-routine11:
+zero_48w:
       ldy  #$00
       sty  $48
       sty  $49
@@ -499,8 +543,8 @@ routine38:
 
 W981C:
       jsr  c3w_to_c1w
-      jsr  routine11
-LL3:  jsr  routine12
+      jsr  zero_48w
+LL3:  jsr  zero_3ew
 :     jsr  routine13
       jsr  routine14
       bcc  @1
@@ -548,7 +592,7 @@ W987F:
 W9883:
       lda  $10
       jsr  routine32
-      jsr  routine12
+      jsr  zero_3ew
 W988B:
       jsr  routine36
       lda  $07
@@ -603,14 +647,14 @@ W98E5:
 routine24:
       inc  $02
       lda  $02
-      cmp  #$C8
+      cmp  #200
       rts
 
 W9900:
       sty  $09
-      jsr  routine11
+      jsr  zero_48w
 @1:   jsr  c3w_to_c1w
-      jsr  routine12
+      jsr  zero_3ew
       sty  $02
       ldy  $09
 :     jsr  routine13
@@ -659,7 +703,7 @@ W994D:
       lda  $10
       jsr  routine32
       jsr  c3w_to_c1w
-      jsr  routine12
+      jsr  zero_3ew
       sty  $02
 @2:   ldy  $09
       lda  $05
@@ -707,6 +751,7 @@ W99D1:
       jmp  W98E5
 
 routine36:
+      ; $0B00 is VIC-II register backup. Weird code.
       lda  #$00
       ldx  #$1A
 :     sta  $0B30,x
@@ -809,7 +854,7 @@ routine15:
       bne  routine15
       rts
 
-routine12:
+zero_3ew:
       ldy  #$00
       sty  $3E
       sty  $3F
@@ -1469,7 +1514,7 @@ freezer_screenshot_prepare:
       jsr  $E453                        ; Routine: Set BASIC vectors (case 0x300..case 0x309)
       jsr  $E3BF                        ; Routine: Set USR instruction and memory for BASIC
 
-      ; Backup the zero page to $0C00
+      ; Backup $C000..$CFFF to $0C00
       ldy  #$00
       sty  $AC
       sty  $AE
