@@ -1164,7 +1164,7 @@ routine20:
       jsr  routine34
       bcs  except_close_all
       bit  printer_type_flags
-      bmi  W9C7D
+      bmi  maybe_set_size ; CBM printer
       bvc  W9C69
       lda  #$1C
       jsr  BSOUT
@@ -1180,12 +1180,8 @@ W9C69:
       jsr  BSOUT
       lda  #'A' ; Set line spacing
       jsr  print_esc_char
-      lda  #$08 ; 8/60 inch
-      jmp  BSOUT
-W9C7D:
-      bit  print_color_flag
-      bmi  W9C8F
-      lda  #$08
+print_bs:
+      lda  #$08 ; 8/60 inch (or enter graphics mode when called via label for CBM printers)
 jmp_bsout:
       jmp  BSOUT
 
@@ -1197,9 +1193,17 @@ except_close_all:
       pla
       jmp  close_all
 
-W9C8F:
+maybe_set_size:
+      ; CBM printer
+      bit  print_color_flag
+      bpl  print_bs ; no color? Jump
+
+      ; This ESC 'C' command is supported by the CBM MCS-801 and is used for
+      ; "scan mode bit image printing".
+      ;
+      ; On the MCS-820 and MPS-1550C ESC 'C sets the page length like Epson.
       lda  #'C'
-      jsr  print_esc_char
+      jsr  print_esc_char  ;
       bit  print_sideways_flag
       bpl  :+
       jsr  routine26
@@ -1211,14 +1215,14 @@ routine26:
       ldx  #'2'
       ldy  #'0'
       cmp  #$01
-      beq  out_2c0
+      beq  out_2c0  ;'200'
       ldx  #'4'
       cmp  #$02
-      beq  out_2c0
+      beq  out_2c0  ;'400'
       ldx  #'6'
       cmp  #$03
-      beq  out_2c0
-      ldy  #'4'
+      beq  out_2c0  ;'600'
+      ldy  #'4'     ;'640'
       bne  out_2c0
 
 routine19:
