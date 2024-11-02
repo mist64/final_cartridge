@@ -1164,7 +1164,7 @@ routine20:
       jsr  routine34
       bcs  except_close_all
       bit  printer_type_flags
-      bmi  maybe_set_size ; CBM printer
+      bmi  W9C7D ; CBM printer
       bvc  W9C69
       lda  #$1C
       jsr  BSOUT
@@ -1180,7 +1180,11 @@ W9C69:
       jsr  BSOUT
       lda  #'A' ; Set line spacing
       jsr  print_esc_char
-print_bs:
+      lda  #$08 ; 8/60 inch
+      jmp  BSOUT
+W9C7D:
+      bit  print_color_flag
+      bmi  maybe_set_size
       lda  #$08 ; 8/60 inch (or enter graphics mode when called via label for CBM printers)
 jmp_bsout:
       jmp  BSOUT
@@ -1194,10 +1198,6 @@ except_close_all:
       jmp  close_all
 
 maybe_set_size:
-      ; CBM printer
-      bit  print_color_flag
-      bpl  print_bs ; no color? Jump
-
       ; This ESC 'C' command is supported by the CBM MCS-801 and is used for
       ; "scan mode bit image printing".
       ;
