@@ -1133,7 +1133,7 @@ jmp_bsout:
 routine28:
       lda  #$0D
       bne  jmp_bsout
-W9C8A:
+except_close_all:
       pla 
       pla
       jmp  close_all
@@ -1183,7 +1183,7 @@ routine27:
       lda  #$1B
       jsr  BSOUT
       pla
-      bne  W9C83
+      bne  jmp_bsout
 routine32:
       bit  $36
       bpl  :+
