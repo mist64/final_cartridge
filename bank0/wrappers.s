@@ -4,7 +4,7 @@
 ; This has no imports, and the only consumer is the BASIC
 ; extension.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 
@@ -16,7 +16,7 @@ WAF08:  lda     #>($AF08 - 1)
         lda     #<($AF08 - 1) ; SYNTAX ERROR
 disable_rom_jmp:
         pha
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 .global disable_rom_jmp_overflow_error
 disable_rom_jmp_overflow_error:
@@ -76,9 +76,9 @@ WA663_E386:
 WE16F:  ldx     #>($E16F - 1)
         ldy     #<($E16F - 1) ; LOAD
 jsr_with_rom_disabled:
-        lda     #>(_enable_rom - 1)
+        lda     #>(_enable_fcbank0 - 1)
         pha
-        lda     #<(_enable_rom - 1)
+        lda     #<(_enable_fcbank0 - 1)
 L98A3:  pha
         txa ; push X/Y address
         pha
@@ -116,4 +116,4 @@ WE175:  lda     #>($E175 - 1)
         lda     #<($E175 - 1) ; LOAD worker
         pha
         lda     #0
-        jmp     _disable_rom
+        jmp     _disable_fc3rom

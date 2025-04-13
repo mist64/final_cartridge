@@ -3,7 +3,7 @@
 ; ----------------------------------------------------------------
 ; This speeds up LOAD and SAVE on both disk and tape
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 .global new_load
@@ -20,20 +20,20 @@ new_save:
 
 send_byte:
         pha
- :      bit     $DD00
-        bpl     :-
+@1:     bit     $DD00  ; Wait until DATA IN high
+        bpl     @1
         lsr     a
         lsr     a
         lsr     a
         lsr     a
         tax
-:       lda     $D012
+@2:     lda     $D012
         cmp     #$31
-        bcc     :+
+        bcc     @3
         and     #$06
         cmp     #$02
-        beq     :-
-:       lda     #$07
+        beq     @2
+@3:     lda     #$07
         sta     $DD00
         lda     iec_tab,x
         nop
@@ -65,15 +65,18 @@ iec_tab:
 .assert >* = >iec_tab, error, "Page boundary!"
 
 receive_4_bytes:
-       lda     $0330
+        ; Note $DD00 is set to 0 before this routine is called
+        ; PAL/NTSC check. Vector points to _new_load for NTSC, _new_load+1 for PAL
+        lda     $0330
         cmp     #<_new_load
-        beq     L998B
-:       bit     $DD00
-        bvs     :-
+        beq     @ntsc
+        ; PAL
+@pal:   bit     $DD00  ; Wait until clock in low
+        bvs     @pal
         ldy     #3
         nop
         ldx     $01
-:       lda     $DD00
+@1:     lda     $DD00
         lsr     a
         lsr     a
         nop
@@ -91,16 +94,17 @@ receive_4_bytes:
         ora     $DD00
         sta     $C1,y
         dey
-        bpl     :-
-.assert >* = >:-, error, "Page boundary!"
+        bpl     @1
+.assert >* = >@pal, error, "Page boundary!"
         rts
 
-L998B:  bit     $DD00
-        bvs     L998B
+@ntsc:  ; NTSC
+        bit     $DD00
+        bvs     @ntsc
         ldy     #3
         nop
         ldx     $01
-L9995:  lda     $DD00
+@2:     lda     $DD00
         lsr     a
         lsr     a
         nop
@@ -119,22 +123,23 @@ L9995:  lda     $DD00
         ora     $DD00
         sta     $C1,y
         dey
-        bpl     L9995
+        bpl     @2
+.assert >* = >@ntsc, error, "Page boundary!"
         rts
-.assert >* = >L998B, error, "Page boundary!"
 
 ; *** tape
 L99B5:  tax
-        beq     L99C3
+        beq     @1     ; LOAD? Then do not install stack code.
         ldx     #$16
 :       lda     L9A50,x
         sta     L0110,x
         dex
         bpl     :-
-L99C3:  jmp     LA851
+@1:     jmp     tape_load_code
 ; *** tape
 
-L99C6:  jmp     $F530 ; IEC LOAD - used in the error case
+iec_load:
+        jmp     $F530 ; IEC LOAD - used in the error case
 
 L99C9:  pla
         pla
@@ -144,7 +149,7 @@ L99C9:  pla
         pha
         lda     #$A6
         pha
-        jmp     _disable_rom_set_01
+        jmp     _disable_fc3rom_set_01
 
 L99D6:  pla
         pla
@@ -154,7 +159,7 @@ L99D6:  pla
         pha
         lda     #$F2
         pha
-        jmp     _disable_rom_set_01
+        jmp     _disable_fc3rom_set_01
 
 new_load2:
         sty     $93
@@ -188,7 +193,7 @@ new_load2:
         lda     ST
         lsr     a
         lsr     a
-        bcs     L99C6
+        bcs     iec_load
         jsr     $EE13 ; IECIN
         sta     $AF
         txa
@@ -234,20 +239,22 @@ L9A50:  lda     #$0C
 
 L9A67:  jmp     $F636 ; LDA #0 : SEC : RTS
 
-L9A6A:  jmp     $F5ED ; default SAVE vector
+original_save:
+        jmp     $F5ED ; execute original SAVE routine
 
-L9A6D:  jmp     $A7C6 ; interpreter loop
+turbotape_save:
+        jmp new_save_tape ; tape turbo
 
 new_save2:
         lda     FA
         cmp     #7
-        beq     L9A6D ; tape turbo
-        cmp     #8
-        bcc     L9A6A ; not a drive
+        beq     turbotape_save
+@1:     cmp     #8 ; if <8 then not a drive
+        bcc     original_save
         cmp     #10
-        bcs     L9A6A ; not a drive (XXX why only support drives 8 and 9?)
-        ldy     $B7
-        beq     L9A6A
+        bcs     original_save ; not a drive (XXX why only support drives 8 and 9?)
+        ldy     $B7   ; length of filename
+        beq     original_save
         lda     #$61
         sta     SA
         jsr     LA71B
@@ -265,23 +272,24 @@ new_save2:
         dec     $AD
 L9AA3:  jsr     L9AD0
         lda     $C1
-        jsr     L9AC7
+        jsr     send_byte_and_increment
         lda     $C2
-        jsr     L9AC7
-L9AB0:  lda     #$35
+        jsr     send_byte_and_increment
+@3:     lda     #$35
         jsr     _load_ac_indy
-        jsr     L9AC7
-        bne     L9AB0
+        jsr     send_byte_and_increment
+        bne     @3
         lda     $A4
         bmi     L9AC4
         jsr     L9AD0
-        jmp     L9AB0
+        jmp     @3
 
 L9AC4:  cli
         clc
         rts
 
-L9AC7:  jsr     send_byte
+send_byte_and_increment:
+        jsr     send_byte
         jsr     $FCDB ; inc $AC/$AD
         dec     $93
         rts
@@ -315,9 +323,9 @@ L9AF0:  jsr     UNTALK
         ldy     #>__drive_code_load_LOAD__
         ldx     #>__drive_code_load_RUN__ ; $0400
         jsr     transfer_code_to_drive
-        lda     #<L059A
+        lda     #<drivecode_load_initialize
         jsr     IECOUT
-        lda     #>L059A
+        lda     #>drivecode_load_initialize
         jsr     IECOUT
         jsr     UNLSTN
         sei
@@ -343,8 +351,8 @@ L9AF0:  jsr     UNTALK
         lda     $AF
         sbc     #0
         sta     $A3
-L9B3D:  bit     $DD00
-        bmi     L9B82
+@back:  bit     $DD00 ; DATA IN high?
+        bmi     @recv ; Then receive data
         cli
         php
         lda     $95
@@ -368,22 +376,22 @@ L9B3D:  bit     $DD00
         jsr     LA612
         jsr     UNLSTN
         plp
-        bvs     L9B78 ; used to be "bcs" in 1988-05
+        bvs     @done ; used to be "bcs" in 1988-05
         lda     #$1D
         sec
         rts
 
-L9B78:  lda     #$40
+@done:  lda     #$40
         sta     ST
         jsr     LA694
         jmp     $F5A9 ; LOAD done
 
-L9B82:  bvs     L9B3D
-        lda     #$20
+@recv:  bvs     @back ; CLOCK IN high? Then back
+        lda     #$20  ; DATA OUT high, CLOCK OUT 0
         sta     $DD00
-:       bit     $DD00
-        bvc     :-
-        lda     #0
+@1:     bit     $DD00 ; Wait until CLOCK IN is high
+        bvc     @1
+        lda     #0    ; Clear $DD00 to simply receive algorithm
         sta     $DD00
         jsr     receive_4_bytes
         lda     #$FE
@@ -398,15 +406,15 @@ L9B82:  bvs     L9B3D
         lda     ST
         sbc     $C3
         sta     $93
-        bcs     L9BAD
+        bcs     @2
         dex
-L9BAD:  plp
-        bcc     L9BB1
+@2:     plp
+        bcc     @3
         dex
-L9BB1:  stx     $94
+@3:     stx     $94
         ror     $C3
         ldx     $C2
-        beq     L9BC8
+        beq     @4
         dex
         stx     $A5
         txa
@@ -416,166 +424,224 @@ L9BB1:  stx     $94
         lda     $94
         adc     #0
         sta     $AF
-L9BC8:  ldy     #0
+@4:     ldy     #0
         lda     $C3
-        bne     L9BD7
-        jsr     receive_4_bytes
+        bne     @8
+        jsr     receive_4_bytes ; in $C1..$C4
         ldy     #2
         ldx     #2
-        bne     L9BE5
-L9BD7:  lda     $C1
+        bne     @5
+@8:     lda     $C1
         sta     ($93),y
         iny
-L9BDC:  tya
+@9:     tya
         pha
-        jsr     receive_4_bytes
+        jsr     receive_4_bytes ; in $C1..C4
         pla
         tay
         ldx     #3
-L9BE5:  cpy     $A5
-        bcs     L9BED
-        lda     $C1,x
-        sta     ($93),y
-L9BED:  iny
+@5:     cpy     $A5
+        bcs     @6
+        lda     $C1,x           ; copy bytes ...
+        sta     ($93),y         ; ...to target memory
+@6:     iny
         cpy     #$FE
-        bcs     L9BF7
+        bcs     @7
         dex
-        bpl     L9BE5
-        bmi     L9BDC
-L9BF7:  jmp     L9B3D
+        bpl     @5
+        bmi     @9
+@7:     jmp     @back
 
 ; ----------------------------------------------------------------
 
 .segment "drive_code_load" ; $0400
 
+sector_not_needed = $FF
+
 drive_code_load:
-        lda     $43
+        lda     $43        ; Number of sectors on current track
         sta     $C1
-L9BFE:  jsr     L0582
-L9C01:  bvc     L9C01
+L9BFE:
+        ;
+        ; Here we wait for a sector header and read it
+        ;
+        jsr     wait_for_header ; (sets Y=0)
+        ; 7 more bytes to read
+@1:     bvc     @1         ; Loop until byte ready
         clv
-        lda     $1C01
-        sta     $25,y
+        lda     $1C01      ; Read next byte of header
+        sta     $25,y      ; Store
         iny
-        cpy     #7
-        bne     L9C01
-        jsr     $F556
-L9C12:  bvc     L9C12
+        cpy     #7         ; Did we read 7 bytes?
+        bne     @1         ; No? Read next byte
+        ; Sector header has been read
+
+        ; 
+        ; Now we read 5 bytes of the sector data
+        ;
+        jsr     $F556      ; Wait for SYNC (sets Y=0)
+@2:     bvc     @2         ; Loop until byte ready
         clv
         lda     $1C01
         sta     ($30),y
         iny
-        cpy     #5
-        bne     L9C12
-        jsr     $F497
+        cpy     #5         ; Did we read 5 bytes?
+        bne     @2         ; No? Read next byte
+        jsr     $F497      ; GCR decode header (not sector data) and write to $16..$1A
+
+        ; Check checksum $1A = $16 xor $17 xor $18 xor $19
+        ; Therefore xorring $16..$1A should result in 0
         ldx     #5
         lda     #0
-L9C26:  eor     $15,x
+@3:     eor     $15,x
         dex
-        bne     L9C26
+        bne     @3
         tay
-        beq     L9C31
-L9C2E:  jmp     $F40B
+        beq     @4
+@error: jmp     $F40B     ; Read error
 
-L9C31:  inx
-L9C32:  lda     $12,x
-        cmp     $16,x
-        bne     L9C2E
+                          ; X=0
+@4:     inx               ; X=1
+@6:     lda     $12,x     ; Compare expected header ID
+        cmp     $16,x     ; ..  with read header ID
+        bne     @error
         dex
-        bpl     L9C32
-        jsr     $F7E8
-        ldx     $19
-        cpx     $43
-        bcs     L9C2E
-        lda     $53
-        sta     L060F,x
-        lda     $54
-        sta     L05FA,x
-        lda     #$FF
-        sta     L0624,x
+        bpl     @6
+
+        jsr     $F7E8     ; GCR decode first 5 bytes of sector data and write to $52..$55
+        ldx     $19       ; Is the sector number that we read smaller
+        cpx     $43       ; than the number of sectors on this track?
+        bcs     @error
+        lda     $53       ; Store next track
+        sta     track_links,x
+        lda     $54       ; Store next sector
+        sta     sector_links,x
+        lda     #sector_not_needed
+        sta     sector_order,x ; initialize array
         dec     $C1
         bne     L9BFE
+
+        ;
+        ; Now build the sector_order array
+        ;
         lda     #1
         sta     $C3
-        ldx     $09
-L9C5D:  lda     $C2
-        sta     L0624,x
+        ldx     $09       ; Sector last read
+@7:     lda     $C2       ; Counter, initalized to 0 by drivecode_load_initialize
+        sta     sector_order,x
         inc     $C2
-        lda     L060F,x
-        cmp     $08
-        bne     L9C75
-        lda     L05FA,x
-        tax
+        lda     track_links,x
+        cmp     $08       ; Next sector on the same track as last?
+        bne     @8        ; Then sector_order array is finished
+        lda     sector_links,x ; Chain to
+        tax                    ; next sector of file
         inc     $C3
-        bne     L9C5D
-        beq     L9C2E
-L9C75:  cmp     #$24
-        bcs     L9C2E
+        bne     @7
+        beq     @error         ; If $C3 hits 0 (255 iterations), then there must be a cycle in the sector chain
+        
+        ;
+        ; When we arrive here we either need to continue on a different track, or
+        ; we hit the final sector of the file (A=0). Either way the sector_order array
+        ; is complete.
+        ;
+@8:     cmp     #$24           ; Track >=36 ?
+        bcs     @error         ; Then a problem. NOTE: This is incompatible with dual sided disks on 1571.
         sta     $08
-        lda     L05FA,x
+        lda     sector_links,x
         sta     $09
-L9C80:  jsr     L0582
+
+        ;
+        ; Wait for a sector header and read it
+        ;
+@9:     jsr     wait_for_header ; (sets Y=0)
         iny
-L9C84:  bvc     L9C84
+        ; 3 more bytes to read
+@10:    bvc     @10       ; Loop until byte ready
         clv
         lda     $1C01
         sta     ($30),y
         iny
         cpy     #4
-        bne     L9C84
+        bne     @10
         ldy     #0
-        jsr     $F7E8
-        ldx     $54
-        cpx     $43
-        bcs     L9C2E
-        lda     L0624,x
-        cmp     #$FF
-        beq     L9C80
+        jsr     $F7E8     ; GCR decode the bytes
+        ldx     $54       ; If sector number
+        cpx     $43       ; >= number of sectors on track
+        bcs     @error    ; then there is a problem
+        lda     sector_order,x
+        cmp     #sector_not_needed   ; If we don't need to read this sector,
+        beq     @9                   ; Wait for the next one
         stx     $C0
-        jsr     $F556
-L9CA8:  bvc     L9CA8
+
+        ;
+        ; This is a sector we need. so read its contents
+        ;
+        jsr     $F556     ; Wait for SYNC (sets Y=0)
+        ; Read 256 bytes in the buffer
+@11:    bvc     @11       ; Loop until byte ready
         clv
         lda     $1C01
         sta     ($30),y
         iny
-        bne     L9CA8
+        bne     @11
+        ; Read another 70 bytes in the auxiliary buffer at end of the stack
         ldy     #$BA
-L9CB5:  bvc     L9CB5
+@12:    bvc     @12      ; Loop until byte ready
         clv
         lda     $1C01
         sta     $0100,y
         iny
-        bne     L9CB5
+        bne     @12
+        ; GCR decode bytes
         jsr     $F7E8
-        lda     $53
-        beq     L9CCC
-        lda     #0
+        lda     $53      ; Get link to next track ???
+        beq     @13      ; 0? Then skip
+        lda     #0       ; Clear link to next sector ???
         sta     $54
-L9CCC:  sta     $34
+@13:    sta     $34
         sta     $C1
         ldx     $C0
-        lda     $0624,x
+        lda     sector_order,x
         sta     $53
-        lda     #$FF
-        sta     L0624,x
+        lda     #sector_not_needed   ; We won't need this sector anymore
+        sta     sector_order,x
         jsr     $F6D0
         lda     #$42
         sta     $36
-        ldy     #$08
+
+        ; Signal C64 that we want to transmit
+        ldy     #$08     ; Clock out high, data out low
         sty     $1800
-L9CE8:  lda     $1800
+        ; C64 will set DATA IN high if it is ready to receive
+@14:    lda     $1800
         lsr     a
-        bcc     L9CE8
+        bcc     @14
         ldy     #0
-L04F6:
+@next:
         dec     $36
         sty     $1800
-        bne     L9CFE
-        dec     $C3
-        bne     L9C80
-        jmp     $F418
+        bne     @transmit_buffer
+        dec     $C3       ; Did we read all blocks?
+        bne     @9
+        jmp     $F418     ; Set buffer status at $0001 to 01 (succesfull completion)
 
-L9CFE:  ldy     $C1
+@transmit_buffer:
+        ; 5 bytes of GCR data become 4 bytes of decoded data. But the GCR data will not be decoded
+        ; into raw data, but directly decoded into values that can be written to VIA register $1800.
+        ; In order to convert to register values, we will convert the 5 bytes GCR into 8 "quintets"
+        ; of 5 bits that we will store at $55..$5D.
+        ;
+        ; A "quintet" can be convert to 4 bits of decoded data by a lookup table, but we are not
+        ; going to generate decoded data, but VIA register values. We transmit two bytes at a time
+        ; over the serial bus via the clock and data lines. Thus in order to transmit 4 bits, we need
+        ; two VIA register values that will be transmited after each other.
+        ;
+        ; In other words, we need two 32 byte lookup tables. However, because in a GCR code, no two
+        ; zeros can occur in a row, the first 8 values will never occur and we can limit ourselves
+        ; to 24 byte lookup tables.
+        ;
+        ; Convert to nibbles:
+        ldy     $C1
         lda     ($30),y
         lsr     a
         lsr     a
@@ -585,11 +651,11 @@ L9CFE:  ldy     $C1
         and     #$07
         sta     $5D
         iny
-        bne     L9D15
-        iny
+        bne     @16      ; Not end of regular buffer?
+        iny              ; End of register buffer
         sty     $31
-        ldy     #$BA
-L9D15:  lda     ($30),y
+        ldy     #$BA     ; Continue from auxiliary buffer at $01BA
+@16:    lda     ($30),y
         asl     a
         rol     $5D
         asl     a
@@ -638,76 +704,89 @@ L9D15:  lda     ($30),y
         lda     ($30),y
         and     #$1F
         sta     $57
-L0564:
         iny
         sty     $C1
-        ldy     #$08
+@transmit_tuple:
+        ; Transmit the 4-byte tuple to the C64
+        ; $55..5D contain indexes into the tables with CIA register values
+        ldy     #$08        ; Signal C64 with CLOCK OUT high, DATA OUT low
         sty     $1800
         ldx     $55,y
-:       lda     L05CA - 8,x ; ???
+        ; Transmit bits 0-1 of the 4 bits of decoded data
+@17:    lda     regvalue_lookup_01 - 8,x  ; - 8 because the table is only 24 rather than 32 bytes
         sta     $1800
-        lda     L05DA,x
+        ; Transmit bits 2-3 of the 4 bits of decoded data
+        lda     regvalue_lookup_23 - 8,x  ; - 8 because the table is only 24 rather than 32 bytes
         ldx     $54,y
         sta     $1800
         dey
-        bne     :-
-        jmp     L04F6
+        bne     @17
+.assert >* = >@transmit_tuple, error, "Page boundary!"
+        jmp     @next
 
-L0582:
+wait_for_header:
         ldx     #3
         stx     $31
-L9D80:  inx
-        bne     L9D86
-        jmp     $F40B
+@try_again:
+        inx
+        bne     @try
+        jmp     $F40B    ; Read error
 
-L9D86:  jsr     $F556
-L9D89:  bvc     L9D89
+@try:   jsr     $F556    ; Wait for SYNC on disk (sets Y=0)
+@1:     bvc     @1       ; Loop until byte ready
         clv
         lda     $1C01
-        cmp     $24
-        bne     L9D80
+        cmp     $24      ; Header block ID as expected?
+        bne     @try_again
         rts
 
-L059A:
-        ldx     #$00
+drivecode_load_initialize:
+        ldx     #$00     ; CLOCK OUT low, DATA OUT low
         stx     $1800
         stx     $C2
-        lda     $19
-        sta     $09
-        lda     $18
-        sta     $08
-L9DA3:  lda     #$E0
+        lda     $19      ; Sector number last read sector (first sector of program file)
+        sta     $09      ; Buffer 1 sector
+        lda     $18      ; Track of last read reactor  (first sector of program file)
+        sta     $08      ; Buffer 1 track
+        ; The drive code is in memory at $400, the address of buffer 1.
+        ; So we want to send an execute command for buffer 1.
+@2:     lda     #$E0     ; $E0 = read sector header and then execute code in buffer
         sta     $01
-L9DA7:  lda     $01
-        bmi     L9DA7
-        cmp     #2
-        bcs     L9DBB
+@1:     lda     $01      ; Wait until command has completed
+        bmi     @1
+        ;
+        ; If the command has completed, it means the load has completed.
+        ;
+        cmp     #2       ; >=2 means error
+        bcs     @error
         lda     $08
-        bne     L9DA3
-        lda     #$02
+        bne     @2
+        lda     #$02     ; DATA OUT high, CLOCK OUT low 
         sta     $1800
-        jmp     $C194
+        jmp     $C194    ; Prepare status message
 
-L9DBB:  inx
-        ldy     #$0A
+@error: inx
+        ldy     #$0A     ; DATA out high, lock out high
         sty     $1800
-        jmp     $E60A
+        jmp     $E60A    ; 21, 'read error'
 
-L05CA:
+regvalue_lookup_01:
         .byte   0, 10, 10, 2
         .byte   0, 10, 10, 2
         .byte   0, 0, 8, 0
         .byte   0, 0, 8, 0
-L05DA:
         .byte   0, 2, 8, 0
         .byte   0, 2, 8, 0
-        .byte   0, 8, 10, 10, 0, 0, 2, 2
-        .byte   0, 0, 10, 10, 0, 0, 2, 2
+regvalue_lookup_23:
+        .byte   0, 8, 10, 10
+        .byte   0, 0, 2, 2
+        .byte   0, 0, 10, 10
+        .byte   0, 0, 2, 2
         .byte   0, 8, 8, 8
         .byte   0, 0, 0, 0
-L05FA:
-L060F := L05FA + 21
-L0624 := L060F + 21
+sector_links:
+track_links := sector_links + 21
+sector_order := track_links + 21
 
 ; ----------------------------------------------------------------
 ; drive code $0500
@@ -752,7 +831,7 @@ LA534:  ldy     #0
         lda     $81
         sta     ($94),y
         iny
-LA542:  jsr     L0564
+LA542:  jsr     receive_byte
         sta     ($30),y
         iny
         cpy     L0611
@@ -1035,26 +1114,35 @@ LA734:  jsr     _load_FNADR_indy
         bne     LA734
         jmp     $F654 ; UNLISTEN
 
-LA742:  jsr     $F82E ; cassette sense
-        beq     LA764
-        ldy     #$1B
-LA749:  jsr     LA7B3
-LA74C:  bit     $DC01
-        bpl     LA766
-        jsr     $F82E ; cassette sense
-        bne     LA74C
-        ldy     #$6A
-        jmp     LA7B3
 
-LA75B:  jsr     $F82E ; cassette sense
-        beq     LA764
-        ldy     #$2E
-LA762: ; ???
+tape_wait_play:
+         ; if already pressed, no need to display messages
+        jsr     $F82E ; cassette sense
+        beq     rts_carry_clear
+        ldy     #$1B  ; print PRESS PLAY ON TAPE
+LA749:  jsr     LA7B3 ; print
+        ; Wait for key on tape, but allow run/stop to abort.
+        ; Run/stop is column 7, row 7
+        ; $DC00 = $7f, = row 7 selected. Therefore test bit 7 of $DC01:
+:       bit     $DC01
+        bpl     rts_carry_set
+        jsr     $F82E ; cassette sense
+        bne     :-
+        ldy     #$6A  ; Offset to OK
+        jmp     LA7B3 ; print OK
+
+tape_wait_record:
+        jsr     $F82E ; cassette sense
+        beq     rts_carry_clear
+        ldy     #$2E  ; print PRESS RECORD & PLAY ON TAPE
         bne     LA749
-LA764:  clc
+
+rts_carry_clear:
+        clc
         rts
 
-LA766:  sec
+rts_carry_set:
+        sec
         rts
 
 print_found:
@@ -1118,7 +1206,7 @@ LA7C4:  clc
 
 .segment "tape"
 
-; ??? unused?
+new_save_tape:
         ldx     #load_ac_indy_end - load_ac_indy - 1
 :       lda     load_ac_indy,x
         sta     L0110,x
@@ -1127,10 +1215,10 @@ LA7C4:  clc
         ldx     #5
         stx     $AB
         jsr     $FB8E ; copy I/O start address to buffer address
-        jsr     LA75B
+        jsr     tape_wait_record
         bcc     :+
         lda     #0
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 :       jsr     LA77E
         jsr     turn_screen_off
         jsr     LA999
@@ -1183,17 +1271,18 @@ LA841:  lda     $D7
         dey
         bne     LA841
         jsr     LA912
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
-LA851:  jsr     LA8C9
+tape_load_code:
+        jsr     LA8C9
         lda     $AB
         cmp     #2
-        beq     LA862
+        beq     :+
         cmp     #1
-        bne     LA851
+        bne     tape_load_code
         lda     SA
         beq     LA86C ; "LOAD"[...]",n,0" -> skip load address
-LA862:  lda     $033C
+:       lda     $033C
         sta     $C3
         lda     $033D
         sta     $C4
@@ -1210,7 +1299,7 @@ LA86C:  jsr     print_found
 LA880:  dey
         jsr     _load_FNADR_indy
         cmp     $0341,y
-        bne     LA851
+        bne     tape_load_code
         tya
         bne     LA880
 LA88C:  sty     ST
@@ -1242,14 +1331,14 @@ LA88C:  sty     ST
         sta     ST
 LA8C2:  ldx     $AE
         ldy     $AF
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 LA8C9:  jsr     LA92B
         lda     $BD
         cmp     #0 ; XXX not needed
         beq     LA8C9
         sta     $AB
-LA8D4:  jsr     LA96E
+LA8D4:  jsr     tape_read_byte
         lda     $BD
         sta     ($B2),y
         iny
@@ -1259,7 +1348,7 @@ LA8D4:  jsr     LA96E
 LA8E2:  jmp     L0110
 
 LA8E5:  jsr     LA92B
-LA8E8:  jsr     LA96E
+LA8E8:  jsr     tape_read_byte
         cpy     $93
         bne     LA8E2
         lda     #$0B
@@ -1279,7 +1368,7 @@ LA905:  lda     $C3
         lda     $C4
         sbc     $AF
         bcc     LA8E8
-        jsr     LA96E
+        jsr     tape_read_byte
 LA912:  iny
 LA913:  sty     $C0
         lda     #0
@@ -1294,14 +1383,14 @@ LA913:  sty     $C0
         clc
         rts
 
-LA92B:  jsr     LA742
+LA92B:  jsr     tape_wait_play
         bcc     LA939
         pla
         pla
         pla
         pla
         lda     #0
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 LA939:  jsr     turn_screen_off
         sty     $D7
@@ -1316,7 +1405,7 @@ LA945:  jsr     LA97E
         cmp     #$F2
         bne     LA945
 LA954:  ldy     #9
-LA956:  jsr     LA96E
+LA956:  jsr     tape_read_byte
         lda     $BD
         cmp     #2
         beq     LA956
@@ -1324,19 +1413,20 @@ LA956:  jsr     LA96E
         beq     LA956
 LA963:  cpy     $BD
         bne     LA945
-        jsr     LA96E
+        jsr     tape_read_byte
         dey
         bne     LA963
         rts
 
-LA96E:  lda     #8
+tape_read_byte:
+        lda     #8
         sta     $A3
-LA972:  jsr     LA97E
+:       jsr     LA97E
         rol     $BD
         nop
         nop
         dec     $A3
-        bne     LA972
+        bne     :-
         rts
 
 LA97E:  lda     #$10

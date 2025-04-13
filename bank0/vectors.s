@@ -4,14 +4,14 @@
 ; This is put right after the cartridge's "cbm80" header and
 ; contains jump table, which is mostly used from other banks.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from init
 .import entry
 .import go_basic
 .import init_load_and_basic_vectors
-.import init_vectors_jmp_bank_2
+.import init_vectors_goto_psettings
 
 ; from format
 .import fast_format
@@ -30,19 +30,19 @@
 
 .global jentry
 jentry:
-        jmp     entry
+        jmp     entry ; $804C
 
 ; this vector is called from other banks
-        jmp     perform_operation_for_desktop
+        jmp     perform_operation_for_desktop ; $995E
 
 .global jfast_format
 jfast_format: ; monitor calls this
-        jmp     fast_format
+        jmp     fast_format ;$96E4
 
 ; these vectors are called from other banks
-        jmp     init_read_disk_name
-        jmp     init_write_bam
-        jmp     init_vectors_jmp_bank_2
-        jmp     go_basic
-        jmp     print_screen
-        jmp     init_load_and_basic_vectors
+        jmp     init_read_disk_name ;$96FB
+        jmp     init_write_bam ; $971A
+        jmp     init_vectors_goto_psettings ; $803B
+        jmp     go_basic ; $80CE
+        jmp     print_screen ; $9473
+        jmp     init_load_and_basic_vectors ; $A004

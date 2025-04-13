@@ -1,0 +1,14 @@
+.import _jmp_bank
+.import autofire_lda_dc00
+.import autofire_lda_dc01
+.import autofire_ldx_dc00
+.import autofire_ldx_dc01
+.import autofire_ldy_dc00
+.import autofire_ldy_dc01
+.import t_freezer_init
+.import _jmp_bank,_enable_fcbank0,_disable_fc3rom_set_01
+.import _load_ae_rom_hidden
+.import ultimax_fbe4
+.import ultimax_highlight_selected_menu
+.import _freezer_upd_sprptr_16k
+.import _show_view_menu

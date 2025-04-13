@@ -37,7 +37,7 @@
 ; * "OD" switches all memory dumps/input to the drive's memory.
 ; * "B" command to introspect cartridge ROM
 
-.include "kernal.i"
+.include "../core/kernal.i"
 
 .ifdef CART_FC3
 .include "persistent.i"
@@ -191,7 +191,7 @@ enable_all_roms:
 
 goto_user:
 .ifdef CART_FC3
-        jsr     _disable_rom
+        jsr     _disable_fc3rom
 .endif
 .ifdef MACHINE_C64
         sta     R6510
@@ -1580,9 +1580,9 @@ LB40A:  bne     LB3F0
 
 LB42D:
 .ifdef CART_FC3
-        lda     #>(_enable_rom - 1)
+        lda     #>(_enable_fcbank0 - 1)
         pha
-        lda     #<(_enable_rom - 1)
+        lda     #<(_enable_fcbank0 - 1)
         pha
 .endif
         lda     #0
@@ -1590,9 +1590,9 @@ LB42D:
 
 LB438:
 .ifdef CART_FC3
-        lda     #>(_enable_rom - 1)
+        lda     #>(_enable_fcbank0 - 1)
         pha
-        lda     #<(_enable_rom - 1)
+        lda     #<(_enable_fcbank0 - 1)
         pha
 .endif
         lda     #zp1 ; pointer to ZP location with address

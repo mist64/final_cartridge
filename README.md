@@ -1,12 +1,16 @@
+Note: The master branch contains source code for the original Final Cartridge III. The Final Cartridge III 101% source code can be found in the development branch.
+
 # Final Cartridge
 
-This project is the reverse-engineered and documented Commodore 64 cc65/ca65/cl65 assembly source code of the first bank of the "*Final Cartridge III*".
+This project is the reverse-engineered and documented Commodore 64 cc65/ca65/cl65 assembly source code of the "*Final Cartridge III*". Currently source code of bank 0 and low part of bank 3 has been reconstructed.
 
-When assembled, the resulting binary is identical with the 1988-12 version of bank 0 of the original cartridge ROM.
+When assembled, the resulting binary is identical with the 1988-12 version of the original cartridge ROM.
 
 ## What is contained?
 
-Bank 0 contains the BASIC and editor extensions, the floppy and tape speeder, fast format, the centronics printer driver, and the monitor. This project does not contain Desktop, the freezer or the BASIC menu bar.
+Bank 0 contains the BASIC and editor extensions, the floppy and tape speeder, fast format, the centronics printer driver, and the monitor.
+
+Bank 3 contains the freezer.
 
 ## Building
 

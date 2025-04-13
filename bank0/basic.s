@@ -31,7 +31,7 @@
 ; "UNPACK" Command  - decompress a program
 ; "PACK" Command    - compress a program
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from monitor
@@ -114,9 +114,10 @@ new_expression:
 evaluate_hex_expression:
         lda     #0
         ldx     #10
-:       sta     $5D,x
+@1:
+        sta     $5D,x
         dex
-        bpl     :-
+        bpl     @1
 L81B9:  jsr     _CHRGET
         bcc     L81C4
         cmp     #'A'
@@ -134,15 +135,16 @@ L81C4:  sbc     #$2F
 
 L81D6:  sta     $61
 L81D8:  pla
-        jsr     _add_A_to_FAC
+        jsr     _add_a_to_fac1
         jmp     L81B9
 
 L81DF:  clc
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
-L81E3:  lda     #$16
+set_bsout_to_screen:
+        lda     #<PRT  ; Kernel print to screen routine
         sta     $0326
-        lda     #$E7
+        lda     #>PRT
         sta     $0327
         rts
 
@@ -166,7 +168,7 @@ auto_line_number_increment := $0336
 new_mainloop:
         jsr     set_irq_and_kbd_handlers
         jsr     cond_init_load_save_vectors
-        jsr     L81E3
+        jsr     set_bsout_to_screen
         jsr     WA560
         stx     TXTPTR
         sty     TXTPTR + 1
@@ -183,7 +185,7 @@ new_mainloop:
         jsr     new_tokenize
         jmp     _new_execute
 
-L822B:  jsr     _get_line_number
+L822B:  jsr     _basic_string_to_word
         tax
         bne     L8234
         sta     $02A9
@@ -208,28 +210,33 @@ new_tokenize:
         ldx     TXTPTR
         ldy     #4
         sty     $0F
-L8259:  lda     $0200,x ; read character from direct mode
-        bpl     L8265
+@loadchar:
+        lda     $0200,x ; read character from direct mode
+        bpl     @notoken
         cmp     #$FF ; PI
-        beq     L82B6
+        beq     @nextchar
         inx
-        bne     L8259
-L8265:  cmp     #' '
-        beq     L82B6
-        sta     $08
+        bne     @loadchar
+@notoken:
+        cmp     #' '
+        beq     @nextchar
+        sta     $08              ; If '"' then '"' is the char that ends skipping
         cmp     #'"'
-        beq     L82DB
+        beq     @skip_til_end
         bit     $0F
-        bvs     L82B6
+        bvs     @nextchar
         cmp     #'?'
-        bne     L827B
+        bne     @not_print
         lda     #$99 ; PRINT token
-        bne     L82B6
-L827B:  cmp     #'0'
-        bcc     L8283
-        cmp     #$3C
-        bcc     L82B6
-L8283:  sty     $71
+        bne     @nextchar
+@not_print:
+        cmp     #'0'
+        bcc     @punctuation
+        cmp     #'<'
+        bcc     @nextchar
+@punctuation:
+        ; PETSCII characters less than '0', i.e. punctuation characters like @#?,.
+        sty     $71
 ; **** this is the same code as BASIC ROM $A579-$A5AD (end) ****
 
         stx     TXTPTR
@@ -237,78 +244,92 @@ L8283:  sty     $71
         sty     $22
         ldy     #>(new_basic_keywords - 1)
         sty     $23
-L828F:  ldy     #0
+@zero_token:
+        ldy     #0  ; Start at token 0
         sty     $0B
         dex
-L8294:  inx
+@incptr_cmpchar:
+        inx
         inc     $22
-        bne     L829B
+        bne     @cmpchar
         inc     $23
-L829B:  lda     $0200,x
+@cmpchar:
+        lda     $0200,x
         sec
         sbc     ($22),y
-        beq     L8294
+        beq     @incptr_cmpchar
         cmp     #$80
-        bne     L82E2
+        bne     @char_nomatch
         ldy     $23
-        cpy     #$A9
-        bcs     L82B2
+        cpy     #$A9   ; $22/$23 pointing to original token table?
+        bcs     :+
         lda     $0B
-        adc     #$CC
+        adc     #$CC   ; Final Cartridge III tokens start at $CC
         .byte   $2C
-L82B2:  ora     $0B
-L82B4:  ldy     $71
-
+:       ora     $0B
+@maybe_skip:
+        ldy     $71
 ; **** this is the same code as BASIC ROM $A5C9-$A5F8 (start) ****
-L82B6:  inx
-        iny
-        sta     $01FB,y
-        lda     $01FB,y
-        beq     L830B
-        sec
-        sbc     #$3A
-        beq     L82C9
-        cmp     #$49
-        bne     L82CB
-L82C9:  sta     $0F
-L82CB:  sec
-        sbc     #$55
-        bne     L8259
-        sta     $08
-L82D2:  lda     $0200,x
-        beq     L82B6
-        cmp     $08
-        beq     L82B6
-L82DB:  iny
-        sta     $01FB,y
+@nextchar:
         inx
-        bne     L82D2
-L82E2:  ldx     TXTPTR
-        inc     $0B
+        iny
+        sta     $0200 - 5,y
+        lda     $0200 - 5,y
+        beq     @done
+        sec
+        sbc     #':'      ; Is it a ":" ?
+        beq     @colon_or_data
+        cmp     #$83-':'  ; Is it a DATA token?
+        bne     @nor_colon_nor_data
+@colon_or_data:
+        sta     $0F
+@nor_colon_nor_data:
+        sec
+        sbc     #$8f-':'  ; Is it a REM token ?
+        bne     @loadchar
+        ; REM token, no further tokenizaton until end of line
+        sta     $08
+@loadskip:
+        lda     $0200,x
+        beq     @nextchar
+        cmp     $08       ; Value in $08 = char that stops skipping
+        beq     @nextchar
+@skip_til_end:
+        iny
+        sta     $0200 - 5,y
+        inx
+        bne     @loadskip
+@char_nomatch:
+        ldx     TXTPTR
+        inc     $0B   ; increase token
 ; **** this is the same code as BASIC ROM $A5C9-$A5F8 (end) ****
 
-L82E6:  lda     ($22),y
+        ; Move the token pointer to the next token
+@tokenptr_nexttoken:
+        lda     ($22),y ; Load current char of token
         php
-        inc     $22
-        bne     L82EF
-        inc     $23
-L82EF:  plp
-        bpl     L82E6
+        inc     $22     ; Inc token pointer low byte
+        bne     :+
+        inc     $23     ; Inc token pointer high byte
+:       plp
+        bpl     @tokenptr_nexttoken
         lda     ($22),y
-        bne     L829B
-        lda     $23
+        bne     @cmpchar
+        ; End of token table
+        lda     $23     ; $22/$23 pointing to original token table?
         cmp     #$A9
-        bcs     L8306
-        lda     #$A9
+        bcs     @get_next_char
+        lda     #>(basic_keywords - 1)
         sta     $23
-        lda     #$FF
+        lda     #<(basic_keywords - 1)
         sta     $22
-        bne     L828F ; always
+        bne     @zero_token ; always
 
 ; **** this is the same code as BASIC ROM $A604-$A612 (start) ****
-L8306:  lda     $0200,x
-        bpl     L82B4
-L830B:  sta     $01FD,y
+@get_next_char:
+        lda     $0200,x
+        bpl     @maybe_skip
+@done:  sta     $01FD,y
         dec     TXTPTR + 1
         lda     #$FF
         sta     TXTPTR
@@ -340,7 +361,7 @@ L832F:  cmp     #$E9 ; last new token + 1
         pha
         jmp     _CHRGET
 
-L8342:  jmp     _disable_rom
+L8342:  jmp     _disable_fc3rom
 
 trace_command:
         lda     PNTR ; save cursor state
@@ -659,7 +680,7 @@ L8531:  php
         stx     $5F
 :       rts
 
-L858E:  jsr     _get_line_number
+L858E:  jsr     _basic_string_to_word
         lda     $14
         sta     auto_current_line_number,y
         iny
@@ -668,7 +689,7 @@ L858E:  jsr     _get_line_number
         iny
         jmp     _CHRGOT
 
-L85A0:  jsr     _get_line_number
+L85A0:  jsr     _basic_string_to_word
         ldx     $14
         stx     $AC,y
         ldx     $15
@@ -970,7 +991,7 @@ L87F7:  cmp     L8603,x
         bpl     L87F7
         jsr     _CHRGOT
         bcs     L87D4
-        jsr     _get_line_number
+        jsr     _basic_string_to_word
         lda     $15
         ldy     $14
         jsr     L8FF9
@@ -1390,7 +1411,7 @@ get_secaddr_and_send_listen:
         bne     :+
         jsr     _CHRGET
         bcs     L8B3A ; SYNTAX ERROR
-        jsr     _get_line_number
+        jsr     _basic_string_to_word
         lda     $15
         bne     L8B3A ; must be < 256, otherwise SYNTAX ERROR
         lda     $14
@@ -1547,7 +1568,7 @@ L8C03:  lda     $028D
         bne     L8C03 ; wait while CBM key is pressed
         txa
         jsr     do_detokenize
-        jmp     _list
+        jmp     _list_print_non_token_byte
 
 do_detokenize:
         cmp     #$E9
@@ -1659,7 +1680,7 @@ L8CB6:  sta     $22
 
 L8CCE:  tya
         bmi     L8CD7
-        jsr     _int_to_fac
+        jsr     _int_to_fac1
         jmp     L8CDA
 
 L8CD7:  jsr     L8D21
@@ -1702,7 +1723,7 @@ L8D12:  ldy     #0
         jsr     _lda_22_indy
         tay
         txa
-        jmp     _ay_to_float
+        jmp     _ay_to_fac1
 
 L8D21:  jsr     L8D0D
         ldy     #2
@@ -1819,7 +1840,7 @@ L8DCC:  jsr     _basic_bsout
 L8E02:  iny
         jsr     _lda_5f_indy
         bmi     L8E0F
-        jsr     _int_to_fac
+        jsr     _int_to_fac1
         lda     #5
         bne     L8E14
 L8E0F:  jsr     L8D21
@@ -2105,7 +2126,7 @@ L901D:  lda     alt_pack_run,x
         pha
         lda     #<(unpack_entry - 1)
         pha
-        jmp     _disable_rom
+        jmp     _disable_fc3rom
 
 alt_pack_run:
         jsr     $A663 ; CLR

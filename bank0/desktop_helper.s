@@ -5,7 +5,7 @@
 ; this library code using cross-bank calls. It also calls this to
 ; start a program in BASIC mode.
 
-.include "kernal.i"
+.include "../core/kernal.i"
 .include "persistent.i"
 
 ; from basic
@@ -252,9 +252,9 @@ L968C:  ldy     $AE
         rts
 
 disk_operation_fallback:
-        lda     #<($FF92 - 1)
+        lda     #>($9200 - 1)
         pha
-        lda     #>($FF92 - 1) ; ???
+        lda     #<($9200 - 1)
         pha
         lda     #$43
         jmp     _jmp_bank ; bank 3

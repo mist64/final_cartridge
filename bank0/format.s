@@ -2,7 +2,7 @@
 ; Fast Format
 ; ----------------------------------------------------------------
 
-.include "kernal.i"
+.include "../core/kernal.i"
 
 ; from drive
 .import check_iec_error

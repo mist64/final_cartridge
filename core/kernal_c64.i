@@ -9,8 +9,15 @@ LF0BD  := $F0BD ; string "I/O ERROR"
 LF333  := $F333 ; default contents of CLRCHN vector
 LF646  := $F646 ; IEC close
 
+PRT             := $E716
+IOINIT_direct   := $FDA3
+RESTOR_direct   := $FD15
+CINT_direct     := $FF5B
+
 ICLRCH := $0322 ; CLRCHN vector
 IBSOUT := $0326 ; CHROUT vector
+
+START  := $FCE2 ; RESET routine
 
 R6510           := $01   ; 6510 I/O register
 TXTPTR          := $7A   ; current byte of BASIC text
